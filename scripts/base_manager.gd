@@ -40,7 +40,7 @@ func _process(_delta: float) -> void:
 	_preview.global_position = Vector2(grid_pos) * GRID_SIZE
 	_preview.call("set_preview_valid", _selected_type != StringName() and can_place_at(_selected_type, grid_pos) and _can_afford(get_definition(_selected_type)))
 	if _status_label:
-		_status_label.text = "Chọn công trình. G/Esc thoát • Chuột phải hủy\nVị trí: %d, %d" % [grid_pos.x, grid_pos.y]
+		_status_label.text = "Chuột trái: Đặt • Chuột phải: Hủy\nG/Esc: Thoát xây dựng\nVị trí: %d, %d" % [grid_pos.x, grid_pos.y]
 
 func _input(event: InputEvent) -> void:
 	if not is_build_mode:
@@ -80,31 +80,43 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 
-	if event is InputEventMouseButton and event.pressed:
-		var hovered := get_viewport().gui_get_hovered_control()
-		if hovered:
-			return
-		if event.button_index == MOUSE_BUTTON_RIGHT:
-			_cancel_placement()
-			get_viewport().set_input_as_handled()
-		elif event.button_index == MOUSE_BUTTON_LEFT:
-			if _selected_type != StringName():
-				place_building(_selected_type, _world_to_grid(_mouse_world_position()))
-			get_viewport().set_input_as_handled()
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Chỉ đặt/hủy bằng cú nhấp không bị UI tiêu thụ; nút chọn công trình
+	# không được đồng thời xem như cú nhấp xuống bản đồ.
+	if not is_build_mode or not (event is InputEventMouseButton):
+		return
+	var mouse_event := event as InputEventMouseButton
+	if not mouse_event.pressed:
+		return
+	if mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+		_cancel_placement()
+		get_viewport().set_input_as_handled()
+	elif mouse_event.button_index == MOUSE_BUTTON_LEFT and _selected_type != StringName():
+		place_building(_selected_type, _world_to_grid(_mouse_world_position()))
+		get_viewport().set_input_as_handled()
 
 func _enter_build_mode() -> void:
 	var player := _get_player()
 	if not player:
 		_notify("Không tìm thấy Shiroi trong khu vực hiện tại.", true)
 		return
+	if not PLOT_RECT.has_point(player.global_position):
+		_notify("Bạn cần đứng trong khu căn cứ Thung Lũng Hy Vọng để xây dựng.", true)
+		return
 	if not is_base_unlocked(BASE_ID):
-		_notify("Căn cứ chưa được mở khóa.", true)
+		_notify("Căn cứ Thung Lũng Hy Vọng chưa được mở khóa. Hãy mở khóa căn cứ trước.", true)
 		return
 	if _other_modal_is_open():
 		_notify("Hãy đóng bảng đang mở trước khi vào chế độ xây dựng.", true)
 		return
+	if not is_instance_valid(_build_ui) or not is_instance_valid(_build_panel):
+		push_error("BaseManager: Build Mode UI chưa được khởi tạo.")
+		_notify("Không thể mở giao diện xây dựng. Hãy khởi động lại game.", true)
+		return
 	is_build_mode = true
 	_selected_type = &""
+	_build_ui.visible = true
 	_build_panel.visible = true
 	_update_build_ui()
 	build_mode_changed.emit(true)
@@ -115,6 +127,7 @@ func _exit_build_mode() -> void:
 	is_build_mode = false
 	_selected_type = &""
 	_build_panel.visible = false
+	_build_ui.visible = false
 	_clear_preview()
 	build_mode_changed.emit(false)
 

@@ -141,7 +141,7 @@ text = "[2] Tạo 1 ô dở (Thử cộng dồn)"
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 9
-text = "[3] Rơi vật phẩm gần Player"
+text = "[3] Rơi Đá chế biến x2"
 
 [node name="BtnRestoreInv" type="Button" parent="PanelContainer/Margin/VBox/TabContainer/Kiểm thử Túi đồ/VBox/BtnsGrid"]
 layout_mode = 2

@@ -169,9 +169,8 @@ func _on_btn_spawn_loot_pressed() -> void:
 
 	var p: Node2D = pickup_scene.instantiate() as Node2D
 	if p:
-		# Ngẫu nhiên rơi Gel Slime hoặc Gỗ hoặc Tinh thể Phong
-		var items: Array[StringName] = [&"slime_gel", &"wood", &"wind_crystal"]
-		var chosen_item: StringName = items[randi() % items.size()]
+		# Cấp đúng nguyên liệu xây dựng để có thể kiểm thử công trình từ Debug.
+		var chosen_item: StringName = &"processed_stone"
 		p.set("item_id", chosen_item)
 		p.set("amount", 2)
 		var offset := Vector2(randf_range(-30.0, 30.0), randf_range(20.0, 35.0))
@@ -180,7 +179,10 @@ func _on_btn_spawn_loot_pressed() -> void:
 
 		var notif_mgr = get_node_or_null("/root/NotificationManager")
 		if notif_mgr:
-			notif_mgr.show_info("Đã tạo vật phẩm %s rơi gần Player!" % str(chosen_item))
+			var inv_mgr = get_node_or_null("/root/InventoryManager")
+			var item_def = inv_mgr.get_item_def(chosen_item) if inv_mgr else null
+			var item_name: String = item_def.name if item_def else str(chosen_item)
+			notif_mgr.show_info("Đã tạo %s x2 rơi gần Player!" % item_name)
 
 func _on_btn_heal_pressed() -> void:
 	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D

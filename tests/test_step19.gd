@@ -71,7 +71,7 @@ func _run() -> void:
 	slime.call("_die")
 	await create_timer(0.45).timeout
 	_check(await _save(save_manager), "Save dead Slime snapshot")
-	var defeated_before_load := defeated_events[0]
+	var defeated_before_load: int = int(defeated_events[0])
 	var quest_kills_before_load := int(quest_manager.call("get_objective_progress", &"main_clear_slimes", &"defeat_3_slimes"))
 	for i in 3:
 		_check(await _load(save_manager), "Repeated enemy load %d" % (i + 1))
@@ -93,15 +93,20 @@ func _run() -> void:
 	var toggle_build := InputEventKey.new()
 	toggle_build.pressed = true
 	toggle_build.physical_keycode = KEY_G
+	player.global_position = Vector2(700, 544)
 	base_manager.call("_input", toggle_build)
 	_check(not bool(base_manager.get("is_build_mode")), "G cannot open a locked base")
 	_check(bool(base_manager.call("unlock_base_for_debug")), "Debug unlocks Hope Valley")
+	player.global_position = Vector2(640, 360)
+	base_manager.call("_input", toggle_build)
+	_check(not bool(base_manager.get("is_build_mode")), "G outside Hope Valley does not enter Build Mode")
 	player.global_position = Vector2(700, 544)
 	inventory.call("_init_empty_slots")
 	inventory.call("add_item", &"wooden_plank", 4)
 	inventory.call("add_item", &"processed_stone", 2)
 	base_manager.call("_input", toggle_build)
 	_check(bool(base_manager.get("is_build_mode")) and bool(base_manager.call("select_building", &"storage")), "G build mode can select Storage")
+	_check(bool(base_manager.get("_build_ui").get("visible")), "Build Mode CanvasLayer is visible after pressing G")
 	_check(InputMap.has_action("toggle_build_mode") and _inventory_uses_b(), "Build mode adds G while preserving B inventory")
 	_check(_action_uses_key("quick_load", KEY_F9), "F9 remains mapped to quick load")
 	var storage_grid := Vector2i(50, 34)
@@ -117,7 +122,7 @@ func _run() -> void:
 	var right_click := InputEventMouseButton.new()
 	right_click.pressed = true
 	right_click.button_index = MOUSE_BUTTON_RIGHT
-	base_manager.call("_input", right_click)
+	base_manager.call("_unhandled_input", right_click)
 	_check(bool(base_manager.get("is_build_mode")) and base_manager.get("_selected_type") == StringName(), "Right click cancels placement without leaving Build Mode")
 	_check(await _save(save_manager), "Save base and building snapshot")
 	var player_pos_at_save: Vector2 = player.global_position
@@ -137,6 +142,7 @@ func _run() -> void:
 	escape.physical_keycode = KEY_ESCAPE
 	base_manager.call("_input", escape)
 	_check(not bool(base_manager.get("is_build_mode")) and not paused, "Esc leaves build mode without opening Pause")
+	_check(not bool(base_manager.get("_build_ui").get("visible")), "Build Mode CanvasLayer hides after exiting")
 
 	# Migration policy: pre-Step-19 snapshots have no enemy/base fields; loading
 	# keeps enemy runtime because HP was never recorded and clears new buildings.
@@ -158,6 +164,16 @@ func _run() -> void:
 	slime.set("current_health", 23.0)
 	_check(not (await _load(save_manager)), "Malformed enemy snapshot is rejected")
 	_check(is_equal_approx(float(slime.get("current_health")), 23.0) and FileAccess.get_file_as_string(_test_save_path) == invalid_text, "Rejected load leaves runtime and save file untouched")
+
+	var debug_panel := scene.get_node("DebugPanel")
+	debug_panel.call("_on_btn_spawn_loot_pressed")
+	await process_frame
+	var dropped_processed_stone := false
+	for pickup in get_nodes_in_group("pickup_items"):
+		if pickup.get("item_id") == &"processed_stone" and int(pickup.get("amount")) == 2:
+			dropped_processed_stone = true
+			break
+	_check(dropped_processed_stone, "Debug loot button creates two processed stones")
 
 	_print_results()
 	_restore_test_slot()
