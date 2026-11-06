@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://c8s7t9a1b2c3d"]
+
+[ext_resource type="Script" path="res://scripts/crafting_station.gd" id="1_station_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_station"]
+radius = 28.0
+
+[node name="CraftingStation" type="Area2D"]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_station_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_station")
+
+[node name="PromptLabel" type="Label" parent="."]
+z_index = 10
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -60.0
+offset_top = -34.0
+offset_right = 60.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 0.92, 0.45, 1)
+theme_override_font_sizes/font_size = 9
+text = "[F] Chế tạo"
+horizontal_alignment = 1

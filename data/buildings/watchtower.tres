@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BuildingDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/building_definition.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/base_building.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+building_type_id = &"watchtower"
+display_name = "Tháp canh"
+description = "Điểm quan sát cao bảo vệ căn cứ."
+category = "Phòng thủ"
+footprint_cells = Vector2i(2, 2)
+costs = {"wooden_plank": 6, "processed_stone": 6, "basic_building_kit": 1}
+scene = ExtResource("2")
+color = Color(0.48, 0.4, 0.65, 1)

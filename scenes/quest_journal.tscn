@@ -1,0 +1,224 @@
+[gd_scene format=3 uid="uid://deub3pokt4ndw"]
+
+[ext_resource type="Script" path="res://scripts/quest_journal.gd" id="1_journal_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_journal_bg"]
+bg_color = Color(0.08, 0.09, 0.12, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.25, 0.75, 0.65, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_col_bg"]
+bg_color = Color(0.05, 0.06, 0.08, 0.85)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.18, 0.25, 0.3, 0.7)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_toast_bg"]
+bg_color = Color(0.08, 0.12, 0.14, 0.94)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.9, 0.8, 0.9)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_close_btn"]
+bg_color = Color(0.22, 0.1, 0.12, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.8, 0.3, 0.35, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[node name="QuestJournal" type="CanvasLayer"]
+process_mode = 3
+layer = 90
+script = ExtResource("1_journal_script")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -230.0
+offset_top = -140.0
+offset_right = 230.0
+offset_bottom = 140.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_journal_bg")
+
+[node name="Margin" type="MarginContainer" parent="PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="PanelContainer/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Header" type="HBoxContainer" parent="PanelContainer/Margin/VBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="PanelContainer/Margin/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.85, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "NHẬT KÝ NHIỆM VỤ (Nhấn J để đóng/mở)"
+
+[node name="CloseBtn" type="Button" parent="PanelContainer/Margin/VBox/Header"]
+custom_minimum_size = Vector2(24, 20)
+layout_mode = 2
+mouse_filter = 0
+theme_override_font_sizes/font_size = 9
+theme_override_styles/normal = SubResource("StyleBoxFlat_close_btn")
+text = "✕"
+
+[node name="Content" type="HBoxContainer" parent="PanelContainer/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="LeftCol" type="PanelContainer" parent="PanelContainer/Margin/VBox/Content"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_col_bg")
+
+[node name="Scroll" type="ScrollContainer" parent="PanelContainer/Margin/VBox/Content/LeftCol"]
+layout_mode = 2
+
+[node name="QuestListVBox" type="VBoxContainer" parent="PanelContainer/Margin/VBox/Content/LeftCol/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="RightCol" type="PanelContainer" parent="PanelContainer/Margin/VBox/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_col_bg")
+
+[node name="MarginRight" type="MarginContainer" parent="PanelContainer/Margin/VBox/Content/RightCol"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TitleLabel" type="Label" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "Chọn nhiệm vụ..."
+
+[node name="TypeLabel" type="Label" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.8, 0.9, 1)
+theme_override_font_sizes/font_size = 8
+text = "Loại: -"
+
+[node name="StatusLabel" type="Label" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Trạng thái: -"
+
+[node name="DescLabel" type="Label" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 8
+autowrap_mode = 2
+
+[node name="HSeparator1" type="HSeparator" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight/VBox"]
+layout_mode = 2
+
+[node name="ObjTitle" type="Label" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 0.8, 1)
+theme_override_font_sizes/font_size = 9
+text = "Mục tiêu:"
+
+[node name="ObjectivesVBox" type="VBoxContainer" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="HSeparator2" type="HSeparator" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight/VBox"]
+layout_mode = 2
+
+[node name="RewardTitle" type="Label" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_font_sizes/font_size = 9
+text = "Phần thưởng:"
+
+[node name="RewardsVBox" type="VBoxContainer" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="Spacer" type="Control" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ActionBtn" type="Button" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight/VBox"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "Nhận nhiệm vụ"
+
+[node name="StatusInfoLabel" type="Label" parent="PanelContainer/Margin/VBox/Content/RightCol/MarginRight/VBox"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+
+[node name="ToastPanel" type="PanelContainer" parent="."]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -160.0
+offset_top = 22.0
+offset_right = 160.0
+offset_bottom = 44.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_toast_bg")
+
+[node name="Margin" type="MarginContainer" parent="ToastPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 2
+
+[node name="ToastLabel" type="Label" parent="ToastPanel/Margin"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 1, 0.85, 1)
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+vertical_alignment = 1

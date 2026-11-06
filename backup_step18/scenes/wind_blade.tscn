@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://dwindblade001"]
+
+[ext_resource type="Script" path="res://scripts/wind_blade.gd" id="1_blade_script"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_blade"]
+radius = 10.0
+height = 28.0
+
+[node name="WindBlade" type="Area2D"]
+collision_layer = 0
+collision_mask = 5
+script = ExtResource("1_blade_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = 1.5708
+shape = SubResource("CapsuleShape2D_blade")

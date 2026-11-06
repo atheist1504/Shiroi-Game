@@ -1,0 +1,188 @@
+[gd_scene format=3 uid="uid://c8j2k3l4m5n6p"]
+
+[ext_resource type="Script" path="res://scripts/inventory_ui.gd" id="1_inv_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_inv_bg"]
+bg_color = Color(0.08, 0.09, 0.12, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.75, 0.65, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_detail_box"]
+bg_color = Color(0.05, 0.06, 0.08, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.3, 0.35, 0.8)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_use_btn"]
+bg_color = Color(0.18, 0.42, 0.25, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.35, 0.85, 0.45, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_close_btn"]
+bg_color = Color(0.2, 0.1, 0.12, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7, 0.25, 0.3, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[node name="InventoryUI" type="CanvasLayer"]
+process_mode = 3
+visible = false
+layer = 95
+script = ExtResource("1_inv_script")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.03, 0.04, 0.06, 0.65)
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -195.0
+offset_top = -95.0
+offset_right = 195.0
+offset_bottom = 95.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_inv_bg")
+
+[node name="Margin" type="MarginContainer" parent="PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="HBox" type="HBoxContainer" parent="PanelContainer/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LeftCol" type="VBoxContainer" parent="PanelContainer/Margin/HBox"]
+custom_minimum_size = Vector2(204, 0)
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Header" type="HBoxContainer" parent="PanelContainer/Margin/HBox/LeftCol"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="PanelContainer/Margin/HBox/LeftCol/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.4, 0.9, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+text = "TÚI ĐỒ / BALO (24 Ô) - [B]"
+
+[node name="CloseBtn" type="Button" parent="PanelContainer/Margin/HBox/LeftCol/Header"]
+custom_minimum_size = Vector2(22, 18)
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+theme_override_styles/normal = SubResource("StyleBoxFlat_close_btn")
+text = "✕"
+
+[node name="GridContainer" type="GridContainer" parent="PanelContainer/Margin/HBox/LeftCol"]
+layout_mode = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 6
+
+[node name="RightCol" type="VBoxContainer" parent="PanelContainer/Margin/HBox"]
+custom_minimum_size = Vector2(144, 0)
+layout_mode = 2
+
+[node name="DetailBox" type="PanelContainer" parent="PanelContainer/Margin/HBox/RightCol"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_detail_box")
+
+[node name="Margin" type="MarginContainer" parent="PanelContainer/Margin/HBox/RightCol/DetailBox"]
+layout_mode = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="PanelContainer/Margin/HBox/RightCol/DetailBox/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="HeaderHBox" type="HBoxContainer" parent="PanelContainer/Margin/HBox/RightCol/DetailBox/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="IconRect" type="TextureRect" parent="PanelContainer/Margin/HBox/RightCol/DetailBox/Margin/VBox/HeaderHBox"]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="PanelContainer/Margin/HBox/RightCol/DetailBox/Margin/VBox/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
+theme_override_font_sizes/font_size = 10
+text = "Túi Đồ"
+vertical_alignment = 1
+
+[node name="CategoryLabel" type="Label" parent="PanelContainer/Margin/HBox/RightCol/DetailBox/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 8
+text = "Rê chuột vào ô vật phẩm"
+
+[node name="HSeparator" type="HSeparator" parent="PanelContainer/Margin/HBox/RightCol/DetailBox/Margin/VBox"]
+layout_mode = 2
+
+[node name="DescLabel" type="Label" parent="PanelContainer/Margin/HBox/RightCol/DetailBox/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.8, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 8
+text = "Sức chứa: 24 ô.
+Nhấn B hoặc Esc để đóng."
+autowrap_mode = 2
+
+[node name="StackLabel" type="Label" parent="PanelContainer/Margin/HBox/RightCol/DetailBox/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.7, 0.8, 1)
+theme_override_font_sizes/font_size = 8
+text = ""
+
+[node name="UseBtn" type="Button" parent="PanelContainer/Margin/HBox/RightCol/DetailBox/Margin/VBox"]
+visible = false
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+theme_override_styles/normal = SubResource("StyleBoxFlat_use_btn")
+text = "Sử dụng"

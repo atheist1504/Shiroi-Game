@@ -1,0 +1,68 @@
+extends CharacterBody2D
+
+# Tốc độ di chuyển cơ bản và tốc độ khi chạy nhanh (Sprint)
+@export var walk_speed: float = 130.0
+@export var run_speed: float = 230.0
+@export var acceleration: float = 1200.0
+@export var friction: float = 1200.0
+
+@onready var sprite_2d: Sprite2D = $Sprite2D
+
+func _ready() -> void:
+	_setup_fallback_input_actions()
+
+func _physics_process(delta: float) -> void:
+	var direction := _get_input_direction()
+	var is_sprinting := _is_sprint_active()
+	var target_speed := run_speed if is_sprinting else walk_speed
+
+	# Xử lý gia tốc và ma sát mượt mà cho 8 hướng
+	if direction != Vector2.ZERO:
+		var target_velocity := direction * target_speed
+		velocity = velocity.move_toward(target_velocity, acceleration * delta)
+		
+		# Lật sprite theo hướng di chuyển ngang (trái/phải)
+		if sprite_2d:
+			if direction.x < 0:
+				sprite_2d.flip_h = true
+			elif direction.x > 0:
+				sprite_2d.flip_h = false
+	else:
+		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
+
+	move_and_slide()
+
+# Lấy hướng di chuyển chuẩn hóa 8 hướng từ WASD hoặc phím mũi tên
+func _get_input_direction() -> Vector2:
+	var dir := Vector2.ZERO
+
+	if Input.is_action_pressed("move_right") or Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT):
+		dir.x += 1.0
+	if Input.is_action_pressed("move_left") or Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT):
+		dir.x -= 1.0
+	if Input.is_action_pressed("move_down") or Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN):
+		dir.y += 1.0
+	if Input.is_action_pressed("move_up") or Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP):
+		dir.y -= 1.0
+
+	return dir.normalized()
+
+# Kiểm tra trạng thái nhấn Shift để chạy
+func _is_sprint_active() -> bool:
+	return Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_SHIFT)
+
+# Tự động khởi tạo Action nếu trong Project Settings chưa có
+func _setup_fallback_input_actions() -> void:
+	_ensure_action_with_key("move_left", [KEY_A, KEY_LEFT])
+	_ensure_action_with_key("move_right", [KEY_D, KEY_RIGHT])
+	_ensure_action_with_key("move_up", [KEY_W, KEY_UP])
+	_ensure_action_with_key("move_down", [KEY_S, KEY_DOWN])
+	_ensure_action_with_key("sprint", [KEY_SHIFT])
+
+func _ensure_action_with_key(action_name: StringName, keycodes: Array) -> void:
+	if not InputMap.has_action(action_name):
+		InputMap.add_action(action_name)
+		for keycode in keycodes:
+			var event := InputEventKey.new()
+			event.physical_keycode = keycode
+			InputMap.action_add_event(action_name, event)

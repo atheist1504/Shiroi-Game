@@ -1,0 +1,544 @@
+[gd_scene format=3 uid="uid://b68inqnb0w3oi"]
+
+[ext_resource type="PackedScene" uid="uid://cl6vpr2fntgou" path="res://player.tscn" id="1_player"]
+[ext_resource type="Script" path="res://scripts/hud.gd" id="2_hud_script"]
+[ext_resource type="PackedScene" uid="uid://bv830knl4d01p" path="res://slime.tscn" id="3_slime"]
+[ext_resource type="PackedScene" uid="uid://dtestboss001" path="res://scenes/test_boss.tscn" id="4_test_boss"]
+[ext_resource type="PackedScene" uid="uid://ddebugpanel001" path="res://scenes/debug_panel.tscn" id="5_debug_panel"]
+[ext_resource type="PackedScene" uid="uid://ddiscovery001" path="res://scenes/discovery_point.tscn" id="6_discovery_pt"]
+[ext_resource type="PackedScene" uid="uid://dquestjournal001" path="res://scenes/quest_journal.tscn" id="7_quest_journal"]
+[ext_resource type="PackedScene" uid="uid://d1g8x7k2b8y9a" path="res://scenes/pause_menu.tscn" id="8_pause_menu"]
+[ext_resource type="PackedScene" uid="uid://c8j2k3l4m5n6p" path="res://scenes/inventory_ui.tscn" id="9_inv_ui"]
+[ext_resource type="PackedScene" uid="uid://b8k3m4n5p6q7r" path="res://scenes/resource_node.tscn" id="10_res_node"]
+[ext_resource type="PackedScene" uid="uid://c8s7t9a1b2c3d" path="res://scenes/crafting_station.tscn" id="11_craft_station"]
+[ext_resource type="PackedScene" uid="uid://b7v6c5d4e3f2g" path="res://scenes/crafting_ui.tscn" id="12_craft_ui"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_wall"]
+size = Vector2(1280, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vert_wall"]
+size = Vector2(24, 720)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_box"]
+size = Vector2(64, 64)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_bg"]
+bg_color = Color(0.109804, 0.12549, 0.160784, 0.862745)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.298039, 0.337255, 0.415686, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_fill"]
+bg_color = Color(0.878431, 0.423529, 0.458824, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_stamina_bg"]
+bg_color = Color(0.109804, 0.12549, 0.160784, 0.862745)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.298039, 0.337255, 0.415686, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_stamina_fill"]
+bg_color = Color(0.278431, 0.74902, 0.615686, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_energy_bg"]
+bg_color = Color(0.109804, 0.12549, 0.160784, 0.862745)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.18, 0.38, 0.35, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_energy_fill"]
+bg_color = Color(0.2, 0.85, 0.72, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_skill_slot"]
+bg_color = Color(0.109804, 0.12549, 0.160784, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.75, 0.65, 0.7)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_game_over"]
+bg_color = Color(0.0862745, 0.0980392, 0.12549, 0.941176)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.878431, 0.423529, 0.458824, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="Main" type="Node2D"]
+
+[node name="Environment" type="Node2D" parent="."]
+
+[node name="FloorBackground" type="ColorRect" parent="Environment"]
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.137255, 0.152941, 0.180392, 1)
+
+[node name="FloorTile1" type="ColorRect" parent="Environment"]
+offset_left = 160.0
+offset_top = 90.0
+offset_right = 480.0
+offset_bottom = 270.0
+color = Color(0.168627, 0.188235, 0.219608, 1)
+
+[node name="FloorTile2" type="ColorRect" parent="Environment"]
+offset_left = 800.0
+offset_top = 90.0
+offset_right = 1120.0
+offset_bottom = 270.0
+color = Color(0.168627, 0.188235, 0.219608, 1)
+
+[node name="FloorTile3" type="ColorRect" parent="Environment"]
+offset_left = 160.0
+offset_top = 450.0
+offset_right = 480.0
+offset_bottom = 630.0
+color = Color(0.168627, 0.188235, 0.219608, 1)
+
+[node name="FloorTile4" type="ColorRect" parent="Environment"]
+offset_left = 800.0
+offset_top = 450.0
+offset_right = 1120.0
+offset_bottom = 630.0
+color = Color(0.168627, 0.188235, 0.219608, 1)
+
+[node name="Walls" type="Node2D" parent="Environment"]
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(640, 12)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTop"]
+shape = SubResource("RectangleShape2D_horiz_wall")
+
+[node name="Visual" type="ColorRect" parent="Environment/Walls/WallTop"]
+offset_left = -640.0
+offset_top = -12.0
+offset_right = 640.0
+offset_bottom = 12.0
+color = Color(0.298039, 0.337255, 0.415686, 1)
+
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(640, 708)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallBottom"]
+shape = SubResource("RectangleShape2D_horiz_wall")
+
+[node name="Visual" type="ColorRect" parent="Environment/Walls/WallBottom"]
+offset_left = -640.0
+offset_top = -12.0
+offset_right = 640.0
+offset_bottom = 12.0
+color = Color(0.298039, 0.337255, 0.415686, 1)
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(12, 360)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLeft"]
+shape = SubResource("RectangleShape2D_vert_wall")
+
+[node name="Visual" type="ColorRect" parent="Environment/Walls/WallLeft"]
+offset_left = -12.0
+offset_top = -360.0
+offset_right = 12.0
+offset_bottom = 360.0
+color = Color(0.298039, 0.337255, 0.415686, 1)
+
+[node name="WallRight" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(1268, 360)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRight"]
+shape = SubResource("RectangleShape2D_vert_wall")
+
+[node name="Visual" type="ColorRect" parent="Environment/Walls/WallRight"]
+offset_left = -12.0
+offset_top = -360.0
+offset_right = 12.0
+offset_bottom = 360.0
+color = Color(0.298039, 0.337255, 0.415686, 1)
+
+[node name="Obstacles" type="Node2D" parent="Environment"]
+
+[node name="Box1" type="StaticBody2D" parent="Environment/Obstacles"]
+position = Vector2(400, 250)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box1"]
+shape = SubResource("RectangleShape2D_box")
+
+[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box1"]
+offset_left = -32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = 32.0
+color = Color(0.423529, 0.470588, 0.54902, 1)
+
+[node name="Box2" type="StaticBody2D" parent="Environment/Obstacles"]
+position = Vector2(880, 250)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box2"]
+shape = SubResource("RectangleShape2D_box")
+
+[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box2"]
+offset_left = -32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = 32.0
+color = Color(0.423529, 0.470588, 0.54902, 1)
+
+[node name="Box3" type="StaticBody2D" parent="Environment/Obstacles"]
+position = Vector2(400, 470)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box3"]
+shape = SubResource("RectangleShape2D_box")
+
+[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box3"]
+offset_left = -32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = 32.0
+color = Color(0.423529, 0.470588, 0.54902, 1)
+
+[node name="Box4" type="StaticBody2D" parent="Environment/Obstacles"]
+position = Vector2(880, 470)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box4"]
+shape = SubResource("RectangleShape2D_box")
+
+[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box4"]
+offset_left = -32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = 32.0
+color = Color(0.423529, 0.470588, 0.54902, 1)
+
+[node name="Slime1" parent="." instance=ExtResource("3_slime")]
+position = Vector2(460, 360)
+
+[node name="Slime2" parent="." instance=ExtResource("3_slime")]
+position = Vector2(820, 360)
+
+[node name="Slime3" parent="." instance=ExtResource("3_slime")]
+position = Vector2(240, 240)
+
+[node name="Slime4" parent="." instance=ExtResource("3_slime")]
+position = Vector2(240, 480)
+
+[node name="Slime5" parent="." instance=ExtResource("3_slime")]
+position = Vector2(740, 220)
+
+[node name="Slime6" parent="." instance=ExtResource("3_slime")]
+position = Vector2(540, 490)
+
+[node name="Slime7" parent="." instance=ExtResource("3_slime")]
+position = Vector2(880, 500)
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector2(640, 360)
+
+[node name="TestBoss" parent="." instance=ExtResource("4_test_boss")]
+position = Vector2(960, 420)
+
+[node name="DebugPanel" parent="." instance=ExtResource("5_debug_panel")]
+
+[node name="DiscoveryPoint" parent="." instance=ExtResource("6_discovery_pt")]
+position = Vector2(640, 110)
+
+[node name="QuestJournal" parent="." instance=ExtResource("7_quest_journal")]
+
+[node name="PauseMenu" parent="." instance=ExtResource("8_pause_menu")]
+
+[node name="InventoryUI" parent="." instance=ExtResource("9_inv_ui")]
+
+[node name="CraftingStation" parent="." instance=ExtResource("11_craft_station")]
+position = Vector2(560, 340)
+
+[node name="CraftingUI" parent="." instance=ExtResource("12_craft_ui")]
+
+[node name="ResourceNodes" type="Node2D" parent="."]
+
+[node name="Tree01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(280, 160)
+node_id = &"tree_01"
+node_type = "tree"
+resource_id = &"wood"
+yield_amount = 3
+
+[node name="Tree02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(480, 220)
+node_id = &"tree_02"
+node_type = "tree"
+resource_id = &"wood"
+yield_amount = 3
+
+[node name="Rock01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(200, 320)
+node_id = &"rock_01"
+node_type = "rock"
+resource_id = &"stone"
+yield_amount = 3
+
+[node name="Rock02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(520, 440)
+node_id = &"rock_02"
+node_type = "rock"
+resource_id = &"stone"
+yield_amount = 3
+
+[node name="Herb01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(380, 290)
+node_id = &"herb_01"
+node_type = "herb"
+resource_id = &"herb"
+yield_amount = 2
+
+[node name="Herb02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(740, 180)
+node_id = &"herb_02"
+node_type = "herb"
+resource_id = &"herb"
+yield_amount = 2
+
+[node name="UI" type="CanvasLayer" parent="."]
+script = ExtResource("2_hud_script")
+
+[node name="StatusContainer" type="VBoxContainer" parent="UI"]
+offset_left = 14.0
+offset_top = 10.0
+offset_right = 180.0
+offset_bottom = 110.0
+theme_override_constants/separation = 5
+
+[node name="HealthContainer" type="VBoxContainer" parent="UI/StatusContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="HealthLabel" type="Label" parent="UI/StatusContainer/HealthContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Máu: 100 / 100"
+
+[node name="HealthBar" type="ProgressBar" parent="UI/StatusContainer/HealthContainer"]
+custom_minimum_size = Vector2(160, 9)
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_hp_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_hp_fill")
+step = 0.5
+value = 100.0
+show_percentage = false
+
+[node name="StaminaContainer" type="VBoxContainer" parent="UI/StatusContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="StaminaLabel" type="Label" parent="UI/StatusContainer/StaminaContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Thể lực: 100 / 100"
+
+[node name="StaminaBar" type="ProgressBar" parent="UI/StatusContainer/StaminaContainer"]
+custom_minimum_size = Vector2(160, 9)
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_stamina_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_stamina_fill")
+step = 0.1
+value = 100.0
+show_percentage = false
+
+[node name="EnergyContainer" type="VBoxContainer" parent="UI/StatusContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="EnergyLabel" type="Label" parent="UI/StatusContainer/EnergyContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.95, 0.85, 1)
+theme_override_font_sizes/font_size = 11
+text = "Năng lượng: 0 / 100"
+
+[node name="EnergyBar" type="ProgressBar" parent="UI/StatusContainer/EnergyContainer"]
+custom_minimum_size = Vector2(160, 9)
+layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_energy_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_energy_fill")
+step = 1.0
+value = 0.0
+show_percentage = false
+
+[node name="Instructions" type="Label" parent="UI"]
+offset_left = 14.0
+offset_top = 120.0
+offset_right = 626.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 8
+text = "WASD: Di chuyển | Chuột phải: Tăng tốc | Space: Né | Chuột trái: Chém | E/R: Kỹ năng | F: Tương tác | B: Balo/Túi đồ | J: Nhiệm vụ | Esc: Tạm dừng | F5/F9: Lưu/Tải"
+
+[node name="SkillFeedbackLabel" type="Label" parent="UI"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 70.0
+offset_right = 200.0
+offset_bottom = 90.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+
+[node name="SkillContainer" type="HBoxContainer" parent="UI"]
+offset_left = 494.0
+offset_top = 308.0
+offset_right = 626.0
+offset_bottom = 348.0
+theme_override_constants/separation = 6
+
+[node name="SlotE" type="PanelContainer" parent="UI/SkillContainer"]
+custom_minimum_size = Vector2(62, 40)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_skill_slot")
+
+[node name="VBox" type="VBoxContainer" parent="UI/SkillContainer/SlotE"]
+layout_mode = 2
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="KeyLabel" type="Label" parent="UI/SkillContainer/SlotE/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.95, 0.95, 1)
+theme_override_font_sizes/font_size = 9
+text = "[ E ] Phong Nhận"
+horizontal_alignment = 1
+
+[node name="DescLabel" type="Label" parent="UI/SkillContainer/SlotE/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.9, 0.82, 1)
+theme_override_font_sizes/font_size = 8
+text = "30 ST (5s)"
+horizontal_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="UI/SkillContainer/SlotE"]
+visible = false
+layout_mode = 2
+color = Color(0.06, 0.08, 0.1, 0.8)
+
+[node name="CooldownLabel" type="Label" parent="UI/SkillContainer/SlotE"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SlotR" type="PanelContainer" parent="UI/SkillContainer"]
+custom_minimum_size = Vector2(62, 40)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_skill_slot")
+
+[node name="VBox" type="VBoxContainer" parent="UI/SkillContainer/SlotR"]
+layout_mode = 2
+theme_override_constants/separation = 1
+alignment = 1
+
+[node name="KeyLabel" type="Label" parent="UI/SkillContainer/SlotR/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.95, 0.95, 1)
+theme_override_font_sizes/font_size = 9
+text = "[ R ] Bão Phong"
+horizontal_alignment = 1
+
+[node name="CostLabel" type="Label" parent="UI/SkillContainer/SlotR/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 0.7)
+theme_override_font_sizes/font_size = 8
+text = "100 NL"
+horizontal_alignment = 1
+
+[node name="CooldownOverlay" type="ColorRect" parent="UI/SkillContainer/SlotR"]
+visible = false
+layout_mode = 2
+color = Color(0.06, 0.08, 0.1, 0.8)
+
+[node name="CooldownLabel" type="Label" parent="UI/SkillContainer/SlotR"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="GameOverPanel" type="PanelContainer" parent="UI"]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_top = -65.0
+offset_right = 110.0
+offset_bottom = 65.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_game_over")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/GameOverPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Title" type="Label" parent="UI/GameOverPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.45, 0.45, 1)
+theme_override_font_sizes/font_size = 15
+text = "BẠN ĐÃ BỊ HẠ GỤC!"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="UI/GameOverPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.75, 0.8, 1)
+theme_override_font_sizes/font_size = 10
+text = "Hãy thử lại để tiếp tục thử nghiệm."
+horizontal_alignment = 1
+
+[node name="RetryButton" type="Button" parent="UI/GameOverPanel/VBoxContainer"]
+custom_minimum_size = Vector2(90, 26)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 12
+text = "Thử lại"

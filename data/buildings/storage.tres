@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BuildingDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/building_definition.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/base_building.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+building_type_id = &"storage"
+display_name = "Kho chứa"
+description = "Công trình lưu trữ cơ bản."
+category = "Tiện ích"
+footprint_cells = Vector2i(3, 2)
+costs = {"wooden_plank": 4, "processed_stone": 2}
+scene = ExtResource("2")
+color = Color(0.55, 0.38, 0.22, 1)

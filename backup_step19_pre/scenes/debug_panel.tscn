@@ -1,0 +1,298 @@
+[gd_scene format=3 uid="uid://ddebugpanel001"]
+
+[ext_resource type="Script" path="res://scripts/debug_panel.gd" id="1_debug_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_debug_bg"]
+bg_color = Color(0.08, 0.09, 0.12, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.75, 0.65, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box_inner"]
+bg_color = Color(0.05, 0.06, 0.08, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.3, 0.35, 0.8)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_close_btn"]
+bg_color = Color(0.22, 0.1, 0.12, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.8, 0.3, 0.35, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[node name="DebugPanel" type="CanvasLayer"]
+process_mode = 3
+visible = false
+layer = 105
+script = ExtResource("1_debug_script")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.03, 0.04, 0.06, 0.75)
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -270.0
+offset_top = -150.0
+offset_right = 270.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_debug_bg")
+
+[node name="Margin" type="MarginContainer" parent="PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="PanelContainer/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Header" type="HBoxContainer" parent="PanelContainer/Margin/VBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="PanelContainer/Margin/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.85, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+text = "BẢNG ĐIỀU KHIỂN DEBUG (F3)"
+
+[node name="CloseBtn" type="Button" parent="PanelContainer/Margin/VBox/Header"]
+custom_minimum_size = Vector2(22, 18)
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+theme_override_styles/normal = SubResource("StyleBoxFlat_close_btn")
+text = "✕"
+
+[node name="TabContainer" type="TabContainer" parent="PanelContainer/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 9
+
+[node name="Kiểm thử Túi đồ" type="MarginContainer" parent="PanelContainer/Margin/VBox/TabContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="PanelContainer/Margin/VBox/TabContainer/Kiểm thử Túi đồ"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="InvStatusLabel" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/Kiểm thử Túi đồ/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 0.75, 1)
+theme_override_font_sizes/font_size = 9
+text = "Túi đồ: 0/24 ô đang dùng | Trạng thái: Bình thường"
+
+[node name="HSeparator1" type="HSeparator" parent="PanelContainer/Margin/VBox/TabContainer/Kiểm thử Túi đồ/VBox"]
+layout_mode = 2
+
+[node name="BtnsGrid" type="GridContainer" parent="PanelContainer/Margin/VBox/TabContainer/Kiểm thử Túi đồ/VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 4
+columns = 2
+
+[node name="BtnFillFull" type="Button" parent="PanelContainer/Margin/VBox/TabContainer/Kiểm thử Túi đồ/VBox/BtnsGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 9
+text = "[1] Làm đầy 24/24 ô (x99)"
+
+[node name="BtnFillPartial" type="Button" parent="PanelContainer/Margin/VBox/TabContainer/Kiểm thử Túi đồ/VBox/BtnsGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 9
+text = "[2] Tạo 1 ô dở (Thử cộng dồn)"
+
+[node name="BtnSpawnLoot" type="Button" parent="PanelContainer/Margin/VBox/TabContainer/Kiểm thử Túi đồ/VBox/BtnsGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 9
+text = "[3] Rơi vật phẩm gần Player"
+
+[node name="BtnRestoreInv" type="Button" parent="PanelContainer/Margin/VBox/TabContainer/Kiểm thử Túi đồ/VBox/BtnsGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 9
+text = "[4] Khôi phục túi ban đầu"
+
+[node name="HSeparator2" type="HSeparator" parent="PanelContainer/Margin/VBox/TabContainer/Kiểm thử Túi đồ/VBox"]
+layout_mode = 2
+
+[node name="HelpLabel" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/Kiểm thử Túi đồ/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.75, 0.8, 0.85, 1)
+theme_override_font_sizes/font_size = 8
+text = "Quy trình kiểm thử Bước 17:
+• Nhấn [1] để làm đầy 24/24 ô (x99). Ra ngoài nhấn F nhặt đồ -> Thông báo 'Túi đồ đã đầy!', đồ dưới đất không mất, không nhặt được.
+• Nhấn [2] để tạo 23 ô x99 và 1 ô chứa 50 Gỗ. Nhặt Gỗ dưới đất sẽ cộng dồn vào ô 50.
+• Nhấn [4] để khôi phục túi đồ thật. Lưu game (F5) sẽ tự động bị chặn nếu đang bật kiểm thử."
+autowrap_mode = 2
+
+[node name="Thế giới & Nhiệm vụ" type="MarginContainer" parent="PanelContainer/Margin/VBox/TabContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="PanelContainer/Margin/VBox/TabContainer/Thế giới & Nhiệm vụ"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="StatusGrid" type="GridContainer" parent="PanelContainer/Margin/VBox/TabContainer/Thế giới & Nhiệm vụ/VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 2
+columns = 2
+
+[node name="RegionsLabel" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/Thế giới & Nhiệm vụ/VBox/StatusGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 0.8, 1)
+theme_override_font_sizes/font_size = 9
+text = "Khu vực đã mở:"
+
+[node name="RegionsValue" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/Thế giới & Nhiệm vụ/VBox/StatusGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 9
+text = "forest_clearing"
+autowrap_mode = 2
+
+[node name="BossesLabel" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/Thế giới & Nhiệm vụ/VBox/StatusGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 0.8, 1)
+theme_override_font_sizes/font_size = 9
+text = "Boss đã hạ:"
+
+[node name="BossesValue" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/Thế giới & Nhiệm vụ/VBox/StatusGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "(Chưa có)"
+
+[node name="QuestsLabel" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/Thế giới & Nhiệm vụ/VBox/StatusGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 0.8, 1)
+theme_override_font_sizes/font_size = 9
+text = "Nhiệm vụ:"
+
+[node name="QuestsValue" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/Thế giới & Nhiệm vụ/VBox/StatusGrid"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 9
+text = "-"
+
+[node name="HSeparator" type="HSeparator" parent="PanelContainer/Margin/VBox/TabContainer/Thế giới & Nhiệm vụ/VBox"]
+layout_mode = 2
+
+[node name="FlagsTitle" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/Thế giới & Nhiệm vụ/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
+theme_override_font_sizes/font_size = 9
+text = "Cờ thế giới (World Flags) - Cuộn để xem:"
+
+[node name="ScrollFlags" type="ScrollContainer" parent="PanelContainer/Margin/VBox/TabContainer/Thế giới & Nhiệm vụ/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_box_inner")
+
+[node name="FlagsLabel" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/Thế giới & Nhiệm vụ/VBox/ScrollFlags"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85, 0.9, 0.95, 1)
+theme_override_font_sizes/font_size = 8
+text = "(Trống)"
+autowrap_mode = 2
+
+[node name="EventBus & Thao tác" type="MarginContainer" parent="PanelContainer/Margin/VBox/TabContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="PanelContainer/Margin/VBox/TabContainer/EventBus & Thao tác"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="EventsTitle" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/EventBus & Thao tác/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 9
+text = "Nhật ký sự kiện gần nhất (EventBus):"
+
+[node name="ScrollEvents" type="ScrollContainer" parent="PanelContainer/Margin/VBox/TabContainer/EventBus & Thao tác/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_box_inner")
+
+[node name="EventsLabel" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/EventBus & Thao tác/VBox/ScrollEvents"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.85, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 8
+text = "(Chưa có sự kiện nào)"
+
+[node name="HBoxButtons" type="HBoxContainer" parent="PanelContainer/Margin/VBox/TabContainer/EventBus & Thao tác/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="BtnUnlockRegion" type="Button" parent="PanelContainer/Margin/VBox/TabContainer/EventBus & Thao tác/VBox/HBoxButtons"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Mở deep_forest"
+
+[node name="BtnSetFlag" type="Button" parent="PanelContainer/Margin/VBox/TabContainer/EventBus & Thao tác/VBox/HBoxButtons"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Set Flag Test"
+
+[node name="BtnTestRoundtrip" type="Button" parent="PanelContainer/Margin/VBox/TabContainer/EventBus & Thao tác/VBox/HBoxButtons"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Test JSON"
+
+[node name="BtnHeal" type="Button" parent="PanelContainer/Margin/VBox/TabContainer/EventBus & Thao tác/VBox/HBoxButtons"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Hồi HP/NL"
+
+[node name="RoundtripStatus" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/EventBus & Thao tác/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = ""

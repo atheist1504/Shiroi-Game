@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://dcyclone001"]
+
+[ext_resource type="Script" path="res://scripts/cyclone.gd" id="1_cyclone_script"]
+
+[node name="Cyclone" type="Node2D"]
+script = ExtResource("1_cyclone_script")
