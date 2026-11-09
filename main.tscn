@@ -20,12 +20,14 @@
 [ext_resource type="Script" path="res://scripts/worker_manager.gd" id="18_worker_manager"]
 [ext_resource type="Script" path="res://scripts/base_raid_manager.gd" id="19_base_raid"]
 [ext_resource type="Script" path="res://scripts/narrative_ui.gd" id="20_narrative_ui"]
+[ext_resource type="Script" path="res://scripts/world_terrain.gd" id="21_world_terrain"]
+[ext_resource type="Script" path="res://scripts/region_gate.gd" id="22_region_gate"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_wall"]
 size = Vector2(2560, 24)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vert_wall"]
-size = Vector2(24, 720)
+size = Vector2(24, 1440)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_box"]
 size = Vector2(64, 64)
@@ -117,36 +119,11 @@ corner_radius_bottom_left = 6
 
 [node name="FloorBackground" type="ColorRect" parent="Environment"]
 offset_right = 2560.0
-offset_bottom = 720.0
+offset_bottom = 1440.0
 color = Color(0.137255, 0.152941, 0.180392, 1)
 
-[node name="FloorTile1" type="ColorRect" parent="Environment"]
-offset_left = 160.0
-offset_top = 90.0
-offset_right = 480.0
-offset_bottom = 270.0
-color = Color(0.168627, 0.188235, 0.219608, 1)
-
-[node name="FloorTile2" type="ColorRect" parent="Environment"]
-offset_left = 800.0
-offset_top = 90.0
-offset_right = 1120.0
-offset_bottom = 270.0
-color = Color(0.168627, 0.188235, 0.219608, 1)
-
-[node name="FloorTile3" type="ColorRect" parent="Environment"]
-offset_left = 160.0
-offset_top = 450.0
-offset_right = 480.0
-offset_bottom = 630.0
-color = Color(0.168627, 0.188235, 0.219608, 1)
-
-[node name="FloorTile4" type="ColorRect" parent="Environment"]
-offset_left = 800.0
-offset_top = 450.0
-offset_right = 1120.0
-offset_bottom = 630.0
-color = Color(0.168627, 0.188235, 0.219608, 1)
+[node name="Terrain" type="Node2D" parent="Environment"]
+script = ExtResource("21_world_terrain")
 
 [node name="HopeValleyBasePlot" type="Node2D" parent="Environment"]
 position = Vector2(672, 520)
@@ -168,7 +145,7 @@ offset_bottom = 12.0
 color = Color(0.298039, 0.337255, 0.415686, 1)
 
 [node name="WallBottom" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(1280, 708)
+position = Vector2(1280, 1428)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallBottom"]
 shape = SubResource("RectangleShape2D_horiz_wall")
@@ -181,29 +158,29 @@ offset_bottom = 12.0
 color = Color(0.298039, 0.337255, 0.415686, 1)
 
 [node name="WallLeft" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(12, 360)
+position = Vector2(12, 720)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLeft"]
 shape = SubResource("RectangleShape2D_vert_wall")
 
 [node name="Visual" type="ColorRect" parent="Environment/Walls/WallLeft"]
 offset_left = -12.0
-offset_top = -360.0
+offset_top = -720.0
 offset_right = 12.0
-offset_bottom = 360.0
+offset_bottom = 720.0
 color = Color(0.298039, 0.337255, 0.415686, 1)
 
 [node name="WallRight" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(2548, 360)
+position = Vector2(2548, 720)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRight"]
 shape = SubResource("RectangleShape2D_vert_wall")
 
 [node name="Visual" type="ColorRect" parent="Environment/Walls/WallRight"]
 offset_left = -12.0
-offset_top = -360.0
+offset_top = -720.0
 offset_right = 12.0
-offset_bottom = 360.0
+offset_bottom = 720.0
 color = Color(0.298039, 0.337255, 0.415686, 1)
 
 [node name="Zones" type="Node2D" parent="Environment"]
@@ -247,6 +224,34 @@ zone_title = "MỎ VÀNG"
 region_id = &"zone_gold_mine"
 zone_size = Vector2(560, 280)
 zone_color = Color(1, 0.82, 0.25, 1)
+
+[node name="SwampZone" type="Node2D" parent="Environment/Zones"]
+position = Vector2(60, 780)
+script = ExtResource("17_map_zone")
+zone_title = "ĐẦM LẦY"
+zone_size = Vector2(760, 620)
+zone_color = Color(0.5, 0.72, 0.42, 1)
+region_id = &"zone_swamp"
+
+[node name="DunesZone" type="Node2D" parent="Environment/Zones"]
+position = Vector2(880, 780)
+script = ExtResource("17_map_zone")
+zone_title = "ĐỒI CÁT"
+zone_size = Vector2(760, 620)
+zone_color = Color(0.95, 0.78, 0.45, 1)
+region_id = &"zone_dunes"
+
+[node name="RuinsZone" type="Node2D" parent="Environment/Zones"]
+position = Vector2(1700, 780)
+script = ExtResource("17_map_zone")
+zone_title = "TÀN TÍCH"
+zone_size = Vector2(800, 620)
+zone_color = Color(0.72, 0.6, 0.95, 1)
+region_id = &"zone_ruins"
+
+[node name="RuinsGate" type="StaticBody2D" parent="Environment"]
+position = Vector2(2128, 736)
+script = ExtResource("22_region_gate")
 
 [node name="Obstacles" type="Node2D" parent="Environment"]
 
@@ -356,9 +361,39 @@ region_id = &"mine_fields"
 persistent_id = &"mine_fields_slime_05"
 
 [node name="AncientArchive" parent="." instance=ExtResource("6_discovery_pt")]
-position = Vector2(2490, 650)
+position = Vector2(2300, 1250)
 region_id = &"ancient_archive"
 prompt_text = "[F] Khám phá di tích"
+
+[node name="FarSlime1" parent="." instance=ExtResource("3_slime")]
+position = Vector2(300, 1200)
+region_id = &"south_lands"
+persistent_id = &"south_lands_slime_01"
+
+[node name="FarSlime2" parent="." instance=ExtResource("3_slime")]
+position = Vector2(700, 1050)
+region_id = &"south_lands"
+persistent_id = &"south_lands_slime_02"
+
+[node name="FarSlime3" parent="." instance=ExtResource("3_slime")]
+position = Vector2(1100, 1000)
+region_id = &"south_lands"
+persistent_id = &"south_lands_slime_03"
+
+[node name="FarSlime4" parent="." instance=ExtResource("3_slime")]
+position = Vector2(1450, 1250)
+region_id = &"south_lands"
+persistent_id = &"south_lands_slime_04"
+
+[node name="FarSlime5" parent="." instance=ExtResource("3_slime")]
+position = Vector2(2000, 1000)
+region_id = &"ruins"
+persistent_id = &"ruins_slime_05"
+
+[node name="FarSlime6" parent="." instance=ExtResource("3_slime")]
+position = Vector2(2300, 1050)
+region_id = &"ruins"
+persistent_id = &"ruins_slime_06"
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
 position = Vector2(640, 360)
@@ -662,6 +697,83 @@ yield_amount = 2
 [node name="ZoneGold05" parent="ResourceNodes" instance=ExtResource("10_res_node")]
 position = Vector2(2360, 630)
 node_id = &"zone_gold_05"
+node_type = "gold"
+resource_id = &"gold_ore"
+yield_amount = 2
+
+[node name="FarHerb01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(240, 880)
+node_id = &"far_herb_01"
+node_type = "herb"
+resource_id = &"herb"
+yield_amount = 3
+
+[node name="FarHerb02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(420, 940)
+node_id = &"far_herb_02"
+node_type = "herb"
+resource_id = &"herb"
+yield_amount = 3
+
+[node name="FarHerb03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(620, 900)
+node_id = &"far_herb_03"
+node_type = "herb"
+resource_id = &"herb"
+yield_amount = 3
+
+[node name="FarHerb04" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(760, 1340)
+node_id = &"far_herb_04"
+node_type = "herb"
+resource_id = &"herb"
+yield_amount = 3
+
+[node name="FarTree01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(140, 1300)
+node_id = &"far_tree_01"
+node_type = "tree"
+resource_id = &"wood"
+yield_amount = 3
+
+[node name="FarTree02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(460, 1340)
+node_id = &"far_tree_02"
+node_type = "tree"
+resource_id = &"wood"
+yield_amount = 3
+
+[node name="FarRock01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(980, 900)
+node_id = &"far_rock_01"
+node_type = "rock"
+resource_id = &"stone"
+yield_amount = 3
+
+[node name="FarRock02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1300, 860)
+node_id = &"far_rock_02"
+node_type = "rock"
+resource_id = &"stone"
+yield_amount = 3
+
+[node name="FarRock03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1500, 1100)
+node_id = &"far_rock_03"
+node_type = "rock"
+resource_id = &"stone"
+yield_amount = 3
+
+[node name="FarGold01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1120, 1240)
+node_id = &"far_gold_01"
+node_type = "gold"
+resource_id = &"gold_ore"
+yield_amount = 2
+
+[node name="FarGold02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1520, 1320)
+node_id = &"far_gold_02"
 node_type = "gold"
 resource_id = &"gold_ore"
 yield_amount = 2

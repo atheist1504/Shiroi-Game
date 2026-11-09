@@ -55,7 +55,7 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 
 	# Va chạm tường / vật cản (Layer 1): Dừng lại ngay lập tức, không xuyên tường!
-	if body is StaticBody2D or (body.get("collision_layer") != null and (body.collision_layer & 1) != 0):
+	if body is StaticBody2D or body is TileMapLayer or (body.get("collision_layer") != null and (body.collision_layer & 1) != 0):
 		_dissipate()
 		return
 

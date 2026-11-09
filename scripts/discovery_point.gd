@@ -46,7 +46,7 @@ func _update_prompt() -> void:
 	var world_state = get_node_or_null("/root/WorldState")
 	if world_state and world_state.has_method("is_region_discovered") and world_state.is_region_discovered(region_id):
 		is_discovered = true
-		prompt_label.text = "✓ Đã khám phá: %s" % str(region_id)
+		prompt_label.text = "✓ Đã khám phá"
 		prompt_label.modulate = Color(0.4, 1.0, 0.7)
 		prompt_label.visible = true
 	else:
@@ -61,7 +61,7 @@ func _discover() -> void:
 		world_state.discover_region(region_id)
 	
 	if prompt_label:
-		prompt_label.text = "✓ Đã khám phá: %s" % str(region_id)
+		prompt_label.text = "✓ Đã khám phá"
 		prompt_label.modulate = Color(0.4, 1.0, 0.7)
 
 func _draw() -> void:

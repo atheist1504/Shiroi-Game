@@ -11,6 +11,11 @@ enum Type {
 const MAX_TOASTS: int = 3
 const TOAST_DURATION: float = 3.0
 const ANTI_SPAM_WINDOW_MS: int = 800
+const REGION_NAMES: Dictionary = {
+	&"hope_valley_area": "Thung Lũng Hy Vọng", &"zone_forest": "Khu Rừng", &"zone_stone_mine": "Mỏ Đá",
+	&"zone_iron_mine": "Mỏ Sắt", &"zone_gold_mine": "Mỏ Vàng", &"zone_swamp": "Đầm Lầy", &"zone_dunes": "Đồi Cát",
+	&"zone_ruins": "Tàn Tích", &"ruins": "Tàn Tích", &"ancient_archive": "Bản ghi cổ", &"forest_traces": "Di Tích Cổ"
+}
 
 var _canvas_layer: CanvasLayer = null
 var _vbox: VBoxContainer = null
@@ -52,15 +57,15 @@ func _connect_game_signals() -> void:
 	if event_bus:
 		if event_bus.has_signal("region_discovered"):
 			event_bus.region_discovered.connect(func(r_id: StringName):
-				show_info("Khám phá vùng đất: %s" % str(r_id))
+				show_info("Khám phá vùng đất: %s" % str(REGION_NAMES.get(r_id, r_id)))
 			)
 		if event_bus.has_signal("region_unlocked"):
 			event_bus.region_unlocked.connect(func(r_id: StringName):
-				show_success("Mở khóa khu vực mới: %s" % str(r_id))
+				show_success("Mở khóa khu vực mới: %s" % str(REGION_NAMES.get(r_id, r_id)))
 			)
 		if event_bus.has_signal("quest_completed"):
 			event_bus.quest_completed.connect(func(q_id: StringName):
-				show_success("Hoàn thành nhiệm vụ: %s!" % str(q_id))
+				show_success("Hoàn thành nhiệm vụ: %s!" % str(get_node("/root/QuestManager").get_quest_definition(q_id).get("title", q_id)))
 			)
 
 	# Lắng nghe QuestManager

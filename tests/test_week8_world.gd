@@ -47,14 +47,14 @@ func _run() -> void:
 	npc_manager.call("refresh_navigation")
 	var refresh_ms := (Time.get_ticks_usec() - started) / 1000.0
 	_check(refresh_ms < 100.0, "Cập nhật lưới đường đủ nhanh (%.1f ms)" % refresh_ms)
-	_check(npc_manager.call("get_map_rect").size == Vector2(2560, 720), "Bản đồ mở rộng 2560x720")
+	_check(npc_manager.call("get_map_rect").size == Vector2(2560, 1440), "Bản đồ mở rộng 2560x1440")
 	var counts := {}
 	for node in get_nodes_in_group("resource_nodes"):
 		if str(node.get("node_id")).begins_with("zone_"):
 			counts[node.get("resource_id")] = int(counts.get(node.get("resource_id"), 0)) + 1
 	_check(counts.get(&"wood") == 6 and counts.get(&"herb") == 3 and counts.get(&"stone") == 6, "Khu rừng và mỏ đá đủ điểm tài nguyên")
 	_check(counts.get(&"iron_ore") == 6 and counts.get(&"gold_ore") == 5, "Mỏ sắt và mỏ vàng đủ điểm tài nguyên")
-	_check(scene.get_node("Environment/Zones").get_child_count() == 5, "Có đủ 4 khu khai thác và vùng căn cứ trên bản đồ")
+	_check(scene.get_node("Environment/Zones").get_child_count() == 8, "Có đủ các khu trên bản đồ (4 khu khai thác, 3 vùng phía nam, căn cứ)")
 	_check(inventory.get_item_def(&"iron_ore") != null and inventory.get_item_def(&"gold_ore") != null, "Có vật phẩm quặng sắt và quặng vàng")
 	var far_path: PackedVector2Array = npc_manager.call("get_world_path", Vector2(704, 600), Vector2(2240, 500))
 	_check(not far_path.is_empty() and far_path[far_path.size() - 1].distance_to(Vector2(2240, 500)) < 24.0, "Có đường từ căn cứ tới mỏ vàng")

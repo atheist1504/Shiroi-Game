@@ -108,11 +108,11 @@ var _quest_definitions: Dictionary = {
 		"description": "Đẩy lùi một đợt quái vật tấn công căn cứ.",
 		"quest_type": "system", "requires": &"sys_04_survey", "auto_activate": true,
 		"objectives": [{"id": &"repel_raid", "description": "Đẩy lùi một đợt quái", "type": "repel_raid", "target_id": &"", "region_id": &"", "required_amount": 1}],
-		"rewards": {"tinh_van": 100, "ledger": ["100 Tinh Vẫn"]}
+		"rewards": {"tinh_van": 100, "unlock_regions": [&"ruins"], "ledger": ["100 Tinh Vẫn", "Mở cổng vào Tàn Tích"]}
 	},
 	&"sys_06_archive": {
-		"id": &"sys_06_archive", "title": "[Hệ Thống] Di Tích Cuối Mỏ Vàng",
-		"description": "Hệ thống phát hiện một bản ghi cũ ở góc xa nhất của Mỏ Vàng. Hãy tìm nó.",
+		"id": &"sys_06_archive", "title": "[Hệ Thống] Bản Ghi Trong Tàn Tích",
+		"description": "Cổng Tàn Tích ở phía nam Mỏ Vàng đã mở. Hệ thống phát hiện một bản ghi cũ bên trong. Hãy tìm nó.",
 		"quest_type": "system", "requires": &"sys_05_defend", "auto_activate": true,
 		"objectives": [{"id": &"find_archive", "description": "Khám phá di tích", "type": "discover_region", "target_id": &"ancient_archive", "region_id": &"", "required_amount": 1}],
 		"rewards": {"tinh_van": 150, "flags": {&"demo_completed": true}, "ledger": ["150 Tinh Vẫn"]}
