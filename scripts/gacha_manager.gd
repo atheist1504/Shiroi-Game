@@ -8,8 +8,8 @@ signal roster_changed
 
 const SCHEMA_VERSION: int = 1
 const COST_PER_PULL: int = 10
-const RATE_FIVE_STAR: float = 0.08
-const PITY_PULLS: int = 30
+const RATE_FIVE_STAR: float = 0.02
+const PITY_PULLS: int = 40
 const MAX_RANK: int = 5
 const RANK_SPEED_BONUS: float = 0.1
 const GOLD_PER_OVERFLOW_ITEM: int = 5
@@ -24,7 +24,7 @@ const CHARACTERS: Array = [
 	{"id": &"gacha_char_05", "name": "Nhân vật 05", "job": &"guard", "job_name": "Lính canh", "work_speed": 2.0, "color": Color(0.8, 0.3, 0.45)}
 ]
 
-# Trọng số tổng 92 tương ứng 92% lượt không ra nhân vật.
+# Trọng số tương đối giữa các phần thưởng của lượt không ra nhân vật.
 const LOOT_TABLE: Array = [
 	{"weight": 37, "gold": true, "min": 20, "max": 60},
 	{"weight": 14, "item_id": &"wood", "min": 3, "max": 6},

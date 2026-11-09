@@ -78,8 +78,8 @@ func _run() -> void:
 		else:
 			loot_kinds[entry.get("item_id", &"gold")] = true
 	var rate := float(five_stars) / 3000.0
-	_check(max_gap <= 30, "Không lượt nào vượt quá bảo hiểm 30 (dài nhất %d)" % max_gap)
-	_check(rate > 0.07 and rate < 0.11, "Tỉ lệ 5 sao đúng khoảng mong đợi (%.3f)" % rate)
+	_check(max_gap <= 40, "Không lượt nào vượt quá bảo hiểm 40 (dài nhất %d)" % max_gap)
+	_check(rate > 0.025 and rate < 0.05, "Tỉ lệ 5 sao đúng khoảng mong đợi (%.3f)" % rate)
 	_check(loot_kinds.size() == 6, "Ra đủ vàng và 5 loại nguyên liệu")
 	var owned := 0
 	for character in gacha.get_characters():
