@@ -429,7 +429,10 @@ func load_game(slot_id: int = DEFAULT_SLOT) -> bool:
 		var saved_hp: float = float(p_data.get("current_health", player.get("max_health")))
 		var max_hp: float = float(player.get("max_health"))
 		player.set("current_health", clampf(saved_hp, 1.0, max_hp))
+		var was_dead := bool(player.get("is_dead"))
 		player.set("is_dead", false)
+		if was_dead and player.has_method("clear_death_visuals"):
+			player.call("clear_death_visuals")
 
 		# Khôi phục Stamina
 		var saved_sta: float = float(p_data.get("stamina", player.get("max_stamina")))

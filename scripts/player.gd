@@ -260,6 +260,34 @@ func take_damage(amount: float) -> void:
 	else:
 		_play_damage_flash()
 
+# Chơi lại sau khi cả đội gục: hồi sinh ngay trong thế giới hiện tại, căn cứ giữ nguyên.
+func respawn_at(world_position: Vector2) -> void:
+	is_dead = false
+	is_dodging = false
+	velocity = Vector2.ZERO
+	global_position = world_position
+	stamina = max_stamina
+	stamina_changed.emit(stamina, max_stamina)
+	clear_death_visuals()
+	var party := get_node_or_null("/root/PartyManager")
+	if party:
+		party.call("bind_player", self)
+	else:
+		current_health = max_health
+		health_changed.emit(current_health, max_health)
+	var camera := get_node_or_null("Camera2D") as Camera2D
+	if camera:
+		camera.reset_smoothing()
+
+func clear_death_visuals() -> void:
+	if is_instance_valid(_damage_flash_tween) and _damage_flash_tween.is_running():
+		_damage_flash_tween.kill()
+	if sprite_2d:
+		sprite_2d.modulate = Color.WHITE
+	if anim_ctrl:
+		anim_ctrl.set("is_locked", false)
+		anim_ctrl.call("_play_anim", "idle_" + str(anim_ctrl.get("current_facing")))
+
 func _play_damage_flash() -> void:
 	if not sprite_2d:
 		return

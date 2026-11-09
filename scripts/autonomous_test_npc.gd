@@ -166,7 +166,8 @@ func _physics_process(delta: float) -> void:
 	var direction := (waypoint - global_position).normalized()
 	if direction.length_squared() > 0.001:
 		movement_direction = direction
-	velocity = direction * move_speed
+	# Không bước quá điểm đến để tránh lắc qua lại quanh waypoint khi delta lớn.
+	velocity = direction * minf(move_speed, global_position.distance_to(waypoint) / maxf(delta, 0.0001))
 	move_and_slide()
 	if previous_position.distance_to(global_position) < 0.15:
 		_stuck_time += delta
