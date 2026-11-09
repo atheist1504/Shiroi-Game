@@ -165,6 +165,10 @@ func save_game(slot_id: int = DEFAULT_SLOT) -> bool:
 	var base_manager := get_node_or_null("/root/BaseManager")
 	if base_manager and base_manager.has_method("to_dict"):
 		base_state = base_manager.to_dict()
+	var npc_state: Dictionary = {}
+	var npc_manager := get_tree().current_scene.get_node_or_null("NPCManager") if get_tree().current_scene else null
+	if npc_manager and npc_manager.has_method("to_dict"):
+		npc_state = npc_manager.call("to_dict")
 
 	var save_dict: Dictionary = {
 		"schema_version": SCHEMA_VERSION,
@@ -179,7 +183,8 @@ func save_game(slot_id: int = DEFAULT_SLOT) -> bool:
 		"harvested_resources": harvested_nodes,
 		"ground_pickups": pickups_data,
 		"enemy_states": enemy_snapshot.get("states", {}),
-		"base_state": base_state
+		"base_state": base_state,
+		"npc_state": npc_state
 	}
 	var save_validation := _validate_snapshot(save_dict)
 	if not bool(save_validation.get("valid", false)):
@@ -342,7 +347,16 @@ func load_game(slot_id: int = DEFAULT_SLOT) -> bool:
 	else:
 		push_warning("Save cũ không có enemy_states; giữ enemy runtime hiện tại vì không có HP lịch sử để khôi phục.")
 
-	# 7. Khôi phục trạng thái thu thập tài nguyên ResourceNode
+	# 7. Khôi phục NPC sau công trình để A* đọc đúng vật cản mới.
+	# Save cũ không có npc_state sẽ xóa NPC thử nghiệm mặc định.
+	var npc_manager := get_tree().current_scene.get_node_or_null("NPCManager") if get_tree().current_scene else null
+	if npc_manager:
+		var npc_snapshot: Dictionary = data.get("npc_state", {"schema_version": 1, "npcs": []})
+		if npc_manager.has_method("load_from_dict") and not bool(npc_manager.call("load_from_dict", npc_snapshot)):
+			_finish_load(slot_id, false, "Không thể khôi phục NPC từ file lưu.")
+			return false
+
+	# 8. Khôi phục trạng thái thu thập tài nguyên ResourceNode
 	var harvested_arr = data.get("harvested_resources", [])
 	if harvested_arr is Array:
 		var res_nodes = get_tree().get_nodes_in_group("resource_nodes")
@@ -354,7 +368,7 @@ func load_game(slot_id: int = DEFAULT_SLOT) -> bool:
 				else:
 					r.call("set_harvested", false, false)
 
-	# 8. Khôi phục vật phẩm rơi trên mặt đất PickupItem
+	# 9. Khôi phục vật phẩm rơi trên mặt đất PickupItem
 	var existing_pickups = get_tree().get_nodes_in_group("pickup_items")
 	for ep in existing_pickups:
 		if is_instance_valid(ep):
@@ -376,7 +390,7 @@ func load_game(slot_id: int = DEFAULT_SLOT) -> bool:
 						new_p.global_position = Vector2(float(pd.get("x", 0)), float(pd.get("y", 0)))
 						current_sc.add_child(new_p)
 
-	# 9. Khôi phục Player trong scene hiện tại
+	# 10. Khôi phục Player trong scene hiện tại
 	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
 	if not player:
 		var root := get_tree().current_scene
@@ -533,6 +547,10 @@ func _validate_snapshot(data: Dictionary) -> Dictionary:
 		var base_manager := get_node_or_null("/root/BaseManager")
 		if not base_manager or not bool(base_manager.call("validate_save_data", data["base_state"])):
 			return {"valid": false, "error": "Base snapshot không hợp lệ."}
+	if data.has("npc_state"):
+		var npc_manager := get_tree().current_scene.get_node_or_null("NPCManager") if get_tree().current_scene else null
+		if npc_manager and npc_manager.has_method("validate_save_data") and not bool(npc_manager.call("validate_save_data", data["npc_state"])):
+			return {"valid": false, "error": "NPC snapshot không hợp lệ."}
 	return {"valid": true, "error": ""}
 
 func _validate_enemy_states(snapshot: Variant) -> bool:

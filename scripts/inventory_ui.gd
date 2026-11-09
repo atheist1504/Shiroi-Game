@@ -111,8 +111,7 @@ func _build_slot_grid() -> void:
 		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_rect.custom_minimum_size = Vector2(22, 22)
-		icon_rect.layout_mode = 1
-		icon_rect.anchors_preset = Control.PRESET_FULL_RECT
+		icon_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		slot_p.add_child(icon_rect)
 
@@ -123,8 +122,7 @@ func _build_slot_grid() -> void:
 		amt_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 		amt_label.add_theme_font_size_override("font_size", 8)
 		amt_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.7))
-		amt_label.layout_mode = 1
-		amt_label.anchors_preset = Control.PRESET_FULL_RECT
+		amt_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		amt_label.offset_right = -2
 		amt_label.offset_bottom = -1
 		amt_label.mouse_filter = Control.MOUSE_FILTER_IGNORE

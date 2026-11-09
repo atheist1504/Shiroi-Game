@@ -6,6 +6,9 @@ var _total: int = 0
 var _test_save_path: String = "user://saves/slot_98.json"
 var _backup_save_path: String = "user://saves/slot_98.step19_test_backup"
 var _had_previous_save: bool = false
+var _test_event_bus: Node = null
+var _placed_event_count: int = 0
+var _defeated_event_count: int = 0
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -30,8 +33,8 @@ func _run() -> void:
 
 	var main_packed_scene := load("res://main.tscn") as PackedScene
 	var scene := main_packed_scene.instantiate()
-	current_scene = scene
 	root.add_child(scene)
+	current_scene = scene
 	await process_frame
 	await physics_frame
 	for enemy in get_nodes_in_group("enemies"):
@@ -42,9 +45,9 @@ func _run() -> void:
 	var player := scene.get_node("Player") as Node2D
 	var slime := scene.get_node("Slime1")
 	var bus := root.get_node("EventBus")
+	_test_event_bus = bus
 	var quest_manager := root.get_node("QuestManager")
-	var placed_events := [0]
-	bus.connect("building_placed", func(_id, _type, _base): placed_events[0] += 1)
+	bus.building_placed.connect(_on_test_building_placed)
 
 	# E1/E2 and health bar synchronization.
 	slime.set("current_health", 30.0)
@@ -64,19 +67,18 @@ func _run() -> void:
 	_check(get_nodes_in_group("pickup_items").size() == loot_count_at_save, "Post-save loot is replaced by saved loot snapshot")
 
 	# E4/E6/E7: saved-dead state remains dead, repeated loads are idempotent and silent.
-	var defeated_events := [0]
-	bus.connect("enemy_defeated", func(_id, _region): defeated_events[0] += 1)
+	bus.enemy_defeated.connect(_on_test_enemy_defeated)
 	quest_manager.call("activate_quest", &"main_clear_slimes")
 	slime.set("current_health", 0.0)
 	slime.call("_die")
 	await create_timer(0.45).timeout
 	_check(await _save(save_manager), "Save dead Slime snapshot")
-	var defeated_before_load: int = int(defeated_events[0])
+	var defeated_before_load: int = _defeated_event_count
 	var quest_kills_before_load := int(quest_manager.call("get_objective_progress", &"main_clear_slimes", &"defeat_3_slimes"))
 	for i in 3:
 		_check(await _load(save_manager), "Repeated enemy load %d" % (i + 1))
 	_check(bool(slime.get("is_dead")) and is_equal_approx(float(slime.get("current_health")), 0.0), "Enemy dead before save stays dead")
-	_check(defeated_events[0] == defeated_before_load, "Load does not emit enemy_defeated or increment quest kills")
+	_check(_defeated_event_count == defeated_before_load, "Load does not emit enemy_defeated or increment quest kills")
 	_check(int(quest_manager.call("get_objective_progress", &"main_clear_slimes", &"defeat_3_slimes")) == quest_kills_before_load, "Load leaves saved quest kill count unchanged")
 	_check(get_nodes_in_group("enemies").size() == 8, "Repeated loads do not duplicate scene-authored enemies")
 
@@ -107,13 +109,26 @@ func _run() -> void:
 	base_manager.call("_input", toggle_build)
 	_check(bool(base_manager.get("is_build_mode")) and bool(base_manager.call("select_building", &"storage")), "G build mode can select Storage")
 	_check(bool(base_manager.get("_build_ui").get("visible")), "Build Mode CanvasLayer is visible after pressing G")
+	var floor_background := scene.get_node("Environment/FloorBackground") as Control
+	_check(bool(base_manager.call("_is_world_environment_control", floor_background)), "FloorBackground does not block map placement")
 	_check(InputMap.has_action("toggle_build_mode") and _inventory_uses_b(), "Build mode adds G while preserving B inventory")
 	_check(_action_uses_key("quick_load", KEY_F9), "F9 remains mapped to quick load")
 	var storage_grid := Vector2i(50, 34)
+	var plank_count_before_invalid: int = int(inventory.call("get_item_count", &"wooden_plank"))
+	var stone_count_before_invalid: int = int(inventory.call("get_item_count", &"processed_stone"))
+	var blocked_reason: String = base_manager.call("_get_placement_block_reason", &"storage", Vector2i(50, 38))
+	_check(blocked_reason.contains("lối đi"), "Invalid placement reports the base corridor restriction")
+	_check(not bool(base_manager.call("place_building", &"storage", Vector2i(50, 38))), "Building cannot be placed on the corridor")
+	_check(int(inventory.call("get_item_count", &"wooden_plank")) == plank_count_before_invalid and int(inventory.call("get_item_count", &"processed_stone")) == stone_count_before_invalid, "Invalid placement consumes no materials")
 	_check(bool(base_manager.call("can_place_at", &"storage", storage_grid)), "Storage footprint is clear inside the base")
-	_check(bool(base_manager.call("place_building", &"storage", storage_grid)), "Storage placement commits successfully")
+	var left_click := InputEventMouseButton.new()
+	left_click.pressed = true
+	left_click.button_index = MOUSE_BUTTON_LEFT
+	left_click.position = get_root().get_viewport().get_canvas_transform() * (Vector2(storage_grid) * 16.0)
+	base_manager.call("_input", left_click)
+	_check(int(base_manager.call("get_building_count")) == 1, "Left click input places the selected building")
 	_check(int(inventory.call("get_item_count", &"wooden_plank")) == 0 and int(inventory.call("get_item_count", &"processed_stone")) == 0, "Storage consumes exact material costs")
-	_check(int(base_manager.call("get_building_count")) == 1 and placed_events[0] == 1, "Successful placement emits one building_placed signal")
+	_check(int(base_manager.call("get_building_count")) == 1 and _placed_event_count == 1, "Successful placement emits one building_placed signal")
 	_check(not bool(base_manager.call("can_place_at", &"storage", storage_grid)), "Overlapping building placement is rejected")
 	_check(not bool(base_manager.call("can_place_at", &"storage", Vector2i(50, 38))), "Essential base walkway is kept clear")
 	_check(_has_costs(&"house", {"wooden_plank": 6, "processed_stone": 4}), "House definition has specified costs")
@@ -122,7 +137,7 @@ func _run() -> void:
 	var right_click := InputEventMouseButton.new()
 	right_click.pressed = true
 	right_click.button_index = MOUSE_BUTTON_RIGHT
-	base_manager.call("_unhandled_input", right_click)
+	base_manager.call("_input", right_click)
 	_check(bool(base_manager.get("is_build_mode")) and base_manager.get("_selected_type") == StringName(), "Right click cancels placement without leaving Build Mode")
 	_check(await _save(save_manager), "Save base and building snapshot")
 	var player_pos_at_save: Vector2 = player.global_position
@@ -132,7 +147,7 @@ func _run() -> void:
 		building.get_parent().remove_child(building)
 		building.free()
 	_check(await _load(save_manager), "Load base and building snapshot")
-	_check(int(base_manager.call("get_building_count")) == 1 and placed_events[0] == 1, "Building loads once without placement event")
+	_check(int(base_manager.call("get_building_count")) == 1 and _placed_event_count == 1, "Building loads once without placement event")
 	_check(player.global_position.distance_to(player_pos_at_save) < 0.1 and int(inventory.call("get_item_count", &"wood")) == 0, "Unified load restores player and inventory snapshot")
 	for i in 3:
 		_check(await _load(save_manager), "Repeated building load %d" % (i + 1))
@@ -166,18 +181,37 @@ func _run() -> void:
 	_check(is_equal_approx(float(slime.get("current_health")), 23.0) and FileAccess.get_file_as_string(_test_save_path) == invalid_text, "Rejected load leaves runtime and save file untouched")
 
 	var debug_panel := scene.get_node("DebugPanel")
+	var pickup_ids_before: Dictionary = {}
+	for pickup in get_nodes_in_group("pickup_items"):
+		pickup_ids_before[StringName(str(pickup.get("pickup_id")))] = true
 	debug_panel.call("_on_btn_spawn_loot_pressed")
 	await process_frame
-	var dropped_processed_stone := false
+	var dropped_material := false
+	var material_ids: Array[StringName] = inventory.call("get_item_ids_by_category", ItemDefinition.Category.MATERIAL)
 	for pickup in get_nodes_in_group("pickup_items"):
-		if pickup.get("item_id") == &"processed_stone" and int(pickup.get("amount")) == 2:
-			dropped_processed_stone = true
+		if not pickup_ids_before.has(StringName(str(pickup.get("pickup_id")))) and material_ids.has(StringName(pickup.get("item_id"))) and int(pickup.get("amount")) == 2:
+			dropped_material = true
 			break
-	_check(dropped_processed_stone, "Debug loot button creates two processed stones")
+	_check(dropped_material, "Debug loot button creates two units of a random material")
 
 	_print_results()
 	_restore_test_slot()
+	_disconnect_test_event_handlers()
 	quit(0 if _passed == _total else 1)
+
+func _on_test_building_placed(_instance_id: StringName, _building_type_id: StringName, _base_id: StringName) -> void:
+	_placed_event_count += 1
+
+func _on_test_enemy_defeated(_enemy_id: StringName, _region_id: StringName) -> void:
+	_defeated_event_count += 1
+
+func _disconnect_test_event_handlers() -> void:
+	if not is_instance_valid(_test_event_bus):
+		return
+	if _test_event_bus.building_placed.is_connected(_on_test_building_placed):
+		_test_event_bus.building_placed.disconnect(_on_test_building_placed)
+	if _test_event_bus.enemy_defeated.is_connected(_on_test_enemy_defeated):
+		_test_event_bus.enemy_defeated.disconnect(_on_test_enemy_defeated)
 
 func _save(save_manager: Node) -> bool:
 	await create_timer(0.45).timeout

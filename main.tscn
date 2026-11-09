@@ -13,6 +13,7 @@
 [ext_resource type="PackedScene" uid="uid://c8s7t9a1b2c3d" path="res://scenes/crafting_station.tscn" id="11_craft_station"]
 [ext_resource type="PackedScene" uid="uid://b7v6c5d4e3f2g" path="res://scenes/crafting_ui.tscn" id="12_craft_ui"]
 [ext_resource type="Script" path="res://scripts/base_plot.gd" id="13_base_plot"]
+[ext_resource type="Script" path="res://scripts/npc_manager.gd" id="14_npc_manager"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_wall"]
 size = Vector2(1280, 24)
@@ -289,6 +290,9 @@ position = Vector2(960, 420)
 persistent_id = &"forest_clearing_boss_01"
 
 [node name="DebugPanel" parent="." instance=ExtResource("5_debug_panel")]
+
+[node name="NPCManager" type="Node2D" parent="."]
+script = ExtResource("14_npc_manager")
 
 [node name="DiscoveryPoint" parent="." instance=ExtResource("6_discovery_pt")]
 position = Vector2(640, 110)

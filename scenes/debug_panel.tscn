@@ -313,3 +313,55 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 8
 text = "Kẻ địch: -"
 autowrap_mode = 2
+
+[node name="NPC thử nghiệm" type="MarginContainer" parent="PanelContainer/Margin/VBox/TabContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="PanelContainer/Margin/VBox/TabContainer/NPC thử nghiệm"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="NPCStatusLabel" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/NPC thử nghiệm/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 0.75, 1)
+theme_override_font_sizes/font_size = 8
+text = "Đang đọc trạng thái NPC..."
+autowrap_mode = 2
+
+[node name="NPCInstructions" type="Label" parent="PanelContainer/Margin/VBox/TabContainer/NPC thử nghiệm/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "NPC thử nghiệm dùng A* để đi trong ranh giới Thung Lũng Hy Vọng. Chọn một điểm đích bên dưới."
+autowrap_mode = 2
+
+[node name="SpawnNPCButton" type="Button" parent="PanelContainer/Margin/VBox/TabContainer/NPC thử nghiệm/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 8
+text = "Tạo / kiểm tra NPC (không tạo trùng)"
+
+[node name="DestinationRow" type="HBoxContainer" parent="PanelContainer/Margin/VBox/TabContainer/NPC thử nghiệm/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="DestinationWestButton" type="Button" parent="PanelContainer/Margin/VBox/TabContainer/NPC thử nghiệm/VBox/DestinationRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 8
+text = "Sân Tây"
+
+[node name="DestinationEastButton" type="Button" parent="PanelContainer/Margin/VBox/TabContainer/NPC thử nghiệm/VBox/DestinationRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 8
+text = "Sân Đông"
+
+[node name="DestinationSouthButton" type="Button" parent="PanelContainer/Margin/VBox/TabContainer/NPC thử nghiệm/VBox/DestinationRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 8
+text = "Vườn Nam"

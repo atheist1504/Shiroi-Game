@@ -9,6 +9,7 @@ var player_inside: bool = false
 var is_discovered: bool = false
 
 func _ready() -> void:
+	add_to_group("discovery_points")
 	collision_layer = 0
 	collision_mask = 2 # Player ở Layer 2
 	

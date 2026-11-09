@@ -68,8 +68,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if player_body and player_body.get("is_dead") == true:
 		return
+	var base_manager := get_node_or_null("/root/BaseManager")
+	if base_manager and base_manager.get("is_storage_interaction_open") == true:
+		return
 
-	# Không thi triển kỹ năng khi đang mở bảng Nhật ký, Debug hoặc Pause Menu
+	# Không thi triển kỹ năng khi đang mở giao diện modal.
 	var root := get_tree().current_scene
 	if root:
 		var journal = root.get_node_or_null("QuestJournal")

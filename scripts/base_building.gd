@@ -10,6 +10,7 @@ class_name BaseBuilding
 var _footprint: Vector2 = Vector2(32, 32)
 var _building_color: Color = Color(0.55, 0.38, 0.22, 1)
 var _placement_valid: bool = false
+var _storage_prompt: Label = null
 
 func _ready() -> void:
 	if not is_preview:
@@ -17,6 +18,8 @@ func _ready() -> void:
 	collision_layer = 0 if is_preview else 1
 	collision_mask = 0
 	_configure_collision()
+	if not is_preview and building_type_id == &"storage":
+		_create_storage_prompt()
 
 func configure(definition: BuildingDefinition, p_instance_id: StringName, p_base_id: StringName, p_grid_position: Vector2i, preview: bool = false) -> void:
 	building_type_id = definition.building_type_id
@@ -37,6 +40,29 @@ func set_preview_valid(valid: bool) -> void:
 		return
 	_placement_valid = valid
 	queue_redraw()
+
+func set_storage_prompt_visible(is_visible: bool) -> void:
+	if is_instance_valid(_storage_prompt):
+		_storage_prompt.visible = is_visible and not is_preview and building_type_id == &"storage"
+
+func is_storage_prompt_visible() -> bool:
+	return is_instance_valid(_storage_prompt) and _storage_prompt.visible
+
+func _create_storage_prompt() -> void:
+	if is_instance_valid(_storage_prompt):
+		return
+	_storage_prompt = Label.new()
+	_storage_prompt.name = "StoragePrompt"
+	_storage_prompt.position = Vector2(-72, -46)
+	_storage_prompt.size = Vector2(144, 18)
+	_storage_prompt.z_index = 10
+	_storage_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_storage_prompt.text = "Nhấn F để mở kho"
+	_storage_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_storage_prompt.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4, 1.0))
+	_storage_prompt.add_theme_font_size_override("font_size", 8)
+	_storage_prompt.visible = false
+	add_child(_storage_prompt)
 
 func _configure_collision() -> void:
 	var col := get_node_or_null("CollisionShape2D") as CollisionShape2D

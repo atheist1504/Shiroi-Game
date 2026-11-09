@@ -26,6 +26,11 @@ extends CanvasLayer
 @onready var btn_unlock_base: Button = $"PanelContainer/Margin/VBox/TabContainer/EventBus & Thao tác/VBox/BtnUnlockBase"
 @onready var base_status_label: Label = $"PanelContainer/Margin/VBox/TabContainer/EventBus & Thao tác/VBox/BaseStatusLabel"
 @onready var enemies_status_label: Label = $"PanelContainer/Margin/VBox/TabContainer/EventBus & Thao tác/VBox/EnemiesStatusLabel"
+@onready var npc_status_label: Label = $"PanelContainer/Margin/VBox/TabContainer/NPC thử nghiệm/VBox/NPCStatusLabel"
+@onready var spawn_npc_button: Button = $"PanelContainer/Margin/VBox/TabContainer/NPC thử nghiệm/VBox/SpawnNPCButton"
+@onready var destination_west_button: Button = $"PanelContainer/Margin/VBox/TabContainer/NPC thử nghiệm/VBox/DestinationRow/DestinationWestButton"
+@onready var destination_east_button: Button = $"PanelContainer/Margin/VBox/TabContainer/NPC thử nghiệm/VBox/DestinationRow/DestinationEastButton"
+@onready var destination_south_button: Button = $"PanelContainer/Margin/VBox/TabContainer/NPC thử nghiệm/VBox/DestinationRow/DestinationSouthButton"
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -55,6 +60,17 @@ func _ready() -> void:
 		btn_heal.pressed.connect(_on_btn_heal_pressed)
 	if btn_unlock_base:
 		btn_unlock_base.pressed.connect(_on_btn_unlock_base_pressed)
+	if spawn_npc_button:
+		spawn_npc_button.pressed.connect(_on_spawn_npc_pressed)
+	if destination_west_button:
+		destination_west_button.pressed.connect(_on_npc_destination_pressed.bind(Vector2(720, 560)))
+	if destination_east_button:
+		destination_east_button.pressed.connect(_on_npc_destination_pressed.bind(Vector2(1168, 560)))
+	if destination_south_button:
+		destination_south_button.pressed.connect(_on_npc_destination_pressed.bind(Vector2(944, 648)))
+	var npc_manager := get_tree().current_scene.get_node_or_null("NPCManager") if get_tree().current_scene else null
+	if npc_manager and npc_manager.has_signal("npc_status_changed"):
+		npc_manager.npc_status_changed.connect(_on_npc_status_changed)
 
 	# Lắng nghe EventBus & InventoryManager
 	var event_bus = get_node_or_null("/root/EventBus")
@@ -166,11 +182,17 @@ func _on_btn_spawn_loot_pressed() -> void:
 	var pickup_scene: PackedScene = load("res://scenes/pickup_item.tscn") as PackedScene
 	if not pickup_scene:
 		return
+	var inv_mgr = get_node_or_null("/root/InventoryManager")
+	if not inv_mgr:
+		return
+	var material_ids: Array[StringName] = inv_mgr.call("get_item_ids_by_category", ItemDefinition.Category.MATERIAL)
+	if material_ids.is_empty():
+		return
 
 	var p: Node2D = pickup_scene.instantiate() as Node2D
 	if p:
-		# Cấp đúng nguyên liệu xây dựng để có thể kiểm thử công trình từ Debug.
-		var chosen_item: StringName = &"processed_stone"
+		# Chọn ngẫu nhiên một nguyên liệu đã đăng ký trong ItemDefinitions.
+		var chosen_item: StringName = material_ids[randi_range(0, material_ids.size() - 1)]
 		p.set("item_id", chosen_item)
 		p.set("amount", 2)
 		var offset := Vector2(randf_range(-30.0, 30.0), randf_range(20.0, 35.0))
@@ -179,7 +201,6 @@ func _on_btn_spawn_loot_pressed() -> void:
 
 		var notif_mgr = get_node_or_null("/root/NotificationManager")
 		if notif_mgr:
-			var inv_mgr = get_node_or_null("/root/InventoryManager")
 			var item_def = inv_mgr.get_item_def(chosen_item) if inv_mgr else null
 			var item_name: String = item_def.name if item_def else str(chosen_item)
 			notif_mgr.show_info("Đã tạo %s x2 rơi gần Player!" % item_name)
@@ -221,6 +242,30 @@ func _on_btn_unlock_base_pressed() -> void:
 	if base_manager and base_manager.has_method("unlock_base_for_debug"):
 		base_manager.call("unlock_base_for_debug")
 		_update_display()
+
+func _on_spawn_npc_pressed() -> void:
+	var npc_manager := get_tree().current_scene.get_node_or_null("NPCManager") if get_tree().current_scene else null
+	if npc_manager and npc_manager.has_method("spawn_test_npc"):
+		npc_manager.call("spawn_test_npc")
+		_update_npc_status()
+
+func _on_npc_destination_pressed(destination: Vector2) -> void:
+	var npc_manager := get_tree().current_scene.get_node_or_null("NPCManager") if get_tree().current_scene else null
+	if npc_manager and npc_manager.has_method("request_destination"):
+		npc_manager.call("request_destination", destination)
+		_update_npc_status()
+
+func _on_npc_status_changed(_status_text: String) -> void:
+	_update_npc_status()
+
+func _update_npc_status() -> void:
+	if not is_instance_valid(npc_status_label):
+		return
+	var npc_manager := get_tree().current_scene.get_node_or_null("NPCManager") if get_tree().current_scene else null
+	if npc_manager and npc_manager.has_method("get_debug_status"):
+		npc_status_label.text = str(npc_manager.call("get_debug_status"))
+	else:
+		npc_status_label.text = "NPCManager chưa sẵn sàng."
 
 func _on_btn_set_flag_pressed() -> void:
 	var world_state = get_node_or_null("/root/WorldState")
@@ -314,3 +359,4 @@ func _update_display() -> void:
 		if enemies_status_label:
 			var enemy_rows: Array[String] = base_manager.call("get_enemy_debug_rows")
 			enemies_status_label.text = "Kẻ địch (%d): %s" % [enemy_rows.size(), ", ".join(PackedStringArray(enemy_rows))]
+	_update_npc_status()

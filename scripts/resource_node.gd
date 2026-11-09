@@ -11,6 +11,7 @@ extends Area2D
 
 var player_inside: bool = false
 var is_harvested: bool = false
+var _reserved_by_npc: StringName = &""
 
 func _ready() -> void:
 	collision_layer = 0
@@ -88,6 +89,27 @@ func set_harvested(harvested: bool, notify: bool = false) -> void:
 		modulate.a = 1.0
 		if collision_shape:
 			collision_shape.set_deferred("disabled", false)
+	_reserved_by_npc = &""
+
+func is_available_for_npc(npc_id: StringName) -> bool:
+	return not is_harvested and (_reserved_by_npc == StringName() or _reserved_by_npc == npc_id)
+
+func reserve_for_npc(npc_id: StringName) -> bool:
+	if npc_id == StringName() or not is_available_for_npc(npc_id):
+		return false
+	_reserved_by_npc = npc_id
+	return true
+
+func release_npc_reservation(npc_id: StringName) -> void:
+	if _reserved_by_npc == npc_id:
+		_reserved_by_npc = &""
+
+func harvest_for_npc(npc_id: StringName) -> int:
+	if npc_id == StringName() or _reserved_by_npc != npc_id or is_harvested or yield_amount <= 0:
+		return 0
+	# NPC harvesting marks the world node depleted without player inventory/reward events.
+	set_harvested(true, false)
+	return yield_amount
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player") and not is_harvested:

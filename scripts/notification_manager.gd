@@ -14,6 +14,7 @@ const ANTI_SPAM_WINDOW_MS: int = 800
 
 var _canvas_layer: CanvasLayer = null
 var _vbox: VBoxContainer = null
+var _toast_tweens: Dictionary = {}
 
 # Lịch sử chống spam: {"hash": last_tick_ms}
 var _recent_messages: Dictionary = {}
@@ -122,11 +123,16 @@ func show_notification(text: String, type: Type = Type.INFO) -> void:
 			return
 	_recent_messages[text] = now
 
-	# Dọn dẹp nếu vượt quá số lượng tối đa đồng thời
-	if _vbox.get_child_count() >= MAX_TOASTS:
-		var oldest := _vbox.get_child(0)
-		if oldest:
-			oldest.queue_free()
+	# Dọn các toast cũ cùng tween của chúng trước khi vượt giới hạn.
+	while _vbox.get_child_count() >= MAX_TOASTS:
+		var oldest: Control = null
+		for child in _vbox.get_children():
+			if child is Control and not child.is_queued_for_deletion():
+				oldest = child as Control
+				break
+		if not oldest:
+			break
+		_remove_toast(oldest)
 
 	# Tạo Toast PanelContainer
 	var panel := PanelContainer.new()
@@ -188,11 +194,24 @@ func show_notification(text: String, type: Type = Type.INFO) -> void:
 	# Hiệu ứng mờ dần và trượt mượt mà
 	panel.modulate.a = 0.0
 	var tween := create_tween()
+	var toast_instance_id := panel.get_instance_id()
+	_toast_tweens[toast_instance_id] = tween
 	tween.set_parallel(false)
 	tween.tween_property(panel, "modulate:a", 1.0, 0.15)
 	tween.tween_interval(TOAST_DURATION)
 	tween.tween_property(panel, "modulate:a", 0.0, 0.3)
-	tween.tween_callback(func():
-		if is_instance_valid(panel):
-			panel.queue_free()
-	)
+	tween.tween_callback(_finish_toast.bind(toast_instance_id))
+
+func _remove_toast(panel: Control) -> void:
+	var toast_instance_id := panel.get_instance_id()
+	var tween := _toast_tweens.get(toast_instance_id) as Tween
+	if tween and tween.is_valid():
+		tween.kill()
+	_toast_tweens.erase(toast_instance_id)
+	panel.queue_free()
+
+func _finish_toast(toast_instance_id: int) -> void:
+	_toast_tweens.erase(toast_instance_id)
+	var toast := instance_from_id(toast_instance_id)
+	if is_instance_valid(toast) and toast is Node:
+		(toast as Node).queue_free()

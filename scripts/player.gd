@@ -45,6 +45,7 @@ var last_move_direction: Vector2 = Vector2.DOWN
 
 var attack_cooldown_timer: float = 0.0
 var is_dead: bool = false
+var _damage_flash_tween: Tween = null
 
 @onready var sprite_2d: Sprite2D = $Sprite2D
 @onready var slash_effect: Node2D = get_node_or_null("SlashEffect")
@@ -68,6 +69,10 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
+	if _is_storage_interaction_open():
 		velocity = Vector2.ZERO
 		move_and_slide()
 		return
@@ -214,19 +219,25 @@ func take_damage(amount: float) -> void:
 	current_health = maxf(0.0, current_health - amount)
 	health_changed.emit(current_health, max_health)
 
-	# Hiệu ứng chớp đỏ khi bị đánh trúng
-	if anim_ctrl:
-		anim_ctrl.play_hurt()
-	elif sprite_2d:
-		sprite_2d.modulate = Color(1.0, 0.35, 0.35, 1.0)
-		var tween := create_tween()
-		tween.tween_property(sprite_2d, "modulate", Color.WHITE, 0.12)
-
 	if current_health <= 0.0:
 		_die()
+	else:
+		_play_damage_flash()
+
+func _play_damage_flash() -> void:
+	if not sprite_2d:
+		return
+	if is_instance_valid(_damage_flash_tween) and _damage_flash_tween.is_running():
+		_damage_flash_tween.kill()
+	var alpha := sprite_2d.modulate.a
+	sprite_2d.modulate = Color(1.0, 0.35, 0.35, alpha)
+	_damage_flash_tween = create_tween()
+	_damage_flash_tween.tween_property(sprite_2d, "modulate", Color(1.0, 1.0, 1.0, alpha), 0.12)
 
 func _die() -> void:
 	is_dead = true
+	if is_instance_valid(_damage_flash_tween) and _damage_flash_tween.is_running():
+		_damage_flash_tween.kill()
 	player_died.emit()
 	if anim_ctrl:
 		anim_ctrl.play_die()
@@ -311,6 +322,8 @@ func _is_ui_modal_open() -> bool:
 	var base_manager = get_node_or_null("/root/BaseManager")
 	if base_manager and base_manager.get("is_build_mode") == true:
 		return true
+	if base_manager and base_manager.get("is_storage_interaction_open") == true:
+		return true
 	var root := get_tree().current_scene
 	if not root:
 		return false
@@ -327,6 +340,10 @@ func _is_ui_modal_open() -> bool:
 	if inv_ui and inv_ui.visible:
 		return true
 	return false
+
+func _is_storage_interaction_open() -> bool:
+	var base_manager := get_node_or_null("/root/BaseManager")
+	return base_manager != null and base_manager.get("is_storage_interaction_open") == true
 
 # Tự động khởi tạo Action nếu trong Project Settings chưa có
 func _setup_fallback_input_actions() -> void:

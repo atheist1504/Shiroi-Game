@@ -108,6 +108,14 @@ func get_item_def(item_id: StringName) -> ItemDefinition:
 		return _catalog[item_id] as ItemDefinition
 	return null
 
+func get_item_ids_by_category(category: ItemDefinition.Category) -> Array[StringName]:
+	var result: Array[StringName] = []
+	for item_id in _catalog:
+		var definition := _catalog[item_id] as ItemDefinition
+		if definition and definition.category == category:
+			result.append(StringName(item_id))
+	return result
+
 # Kiểm tra túi đồ có đủ chỗ chứa lượng vật phẩm này không (không làm thay đổi dữ liệu)
 func can_add_item(item_id: StringName, amount: int) -> bool:
 	if amount <= 0:
