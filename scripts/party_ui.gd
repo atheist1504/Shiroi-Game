@@ -101,6 +101,7 @@ func _build_modal() -> void:
 	header.add_child(close_button)
 
 	root_box.add_child(_label("Phím 1/2/3 đổi người. Đánh rồi đổi sang nguyên tố khác trong %d giây để kích hoạt phối hợp." % int(_party().COMBO_WINDOW), 9, MUTED_COLOR))
+	root_box.add_child(_label("Nhân vật không ở trong đội sẽ tự làm việc theo nghề; cần có kho chứa để giao hàng.", 9, MUTED_COLOR))
 
 	var columns := HBoxContainer.new()
 	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -205,7 +206,7 @@ func _add_roster_row(character_id: StringName, party_ids: Array[StringName]) -> 
 	var party := _party()
 	var row := HBoxContainer.new()
 	_roster_list.add_child(row)
-	var info := _label(_describe(character_id), 9, NORMAL_COLOR)
+	var info := _label("%s · %s" % [_describe(character_id), party.get_profile(character_id)["job_name"]], 9, NORMAL_COLOR)
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(info)
 	var join_button := _button("Trong đội" if character_id in party_ids else "Vào đội")

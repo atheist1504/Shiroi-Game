@@ -41,6 +41,17 @@ func _init_catalog() -> void:
 	var essence_tex: Texture2D = load("res://assets/items/wind_essence.png") as Texture2D
 	var kit_tex: Texture2D = load("res://assets/items/basic_building_kit.png") as Texture2D
 
+	# Quặng dùng tạm icon đá đổi màu cho tới khi có hình riêng.
+	_catalog[&"iron_ore"] = ItemDefinition.new(
+		&"iron_ore", "Quặng sắt",
+		"Quặng sắt thô khai thác từ mỏ sắt.",
+		_tinted_icon(stone_tex, Color(0.95, 0.62, 0.45)), ItemDefinition.Category.MATERIAL, 99
+	)
+	_catalog[&"gold_ore"] = ItemDefinition.new(
+		&"gold_ore", "Quặng vàng",
+		"Quặng vàng, được đổi thẳng thành vàng khi mang về.",
+		_tinted_icon(stone_tex, Color(1.0, 0.85, 0.3)), ItemDefinition.Category.MATERIAL, 99
+	)
 	_catalog[&"wood"] = ItemDefinition.new(
 		&"wood", "Gỗ",
 		"Thân cây gỗ chắc khỏe lấy từ rừng sâu, dùng để chế tạo và gia cố.",
@@ -103,6 +114,18 @@ func _init_empty_slots() -> void:
 		})
 
 # Lấy định nghĩa vật phẩm từ catalog
+func _tinted_icon(source: Texture2D, tint: Color) -> Texture2D:
+	var image: Image = source.get_image() if source else null
+	if not image:
+		return source
+	image = image.duplicate() as Image
+	if image.is_compressed():
+		image.decompress()
+	for y in image.get_height():
+		for x in image.get_width():
+			image.set_pixel(x, y, image.get_pixel(x, y) * tint)
+	return ImageTexture.create_from_image(image)
+
 func get_item_def(item_id: StringName) -> ItemDefinition:
 	if _catalog.has(item_id):
 		return _catalog[item_id] as ItemDefinition

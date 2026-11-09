@@ -170,6 +170,8 @@ func save_game(slot_id: int = DEFAULT_SLOT) -> bool:
 	var npc_manager := get_tree().current_scene.get_node_or_null("NPCManager") if get_tree().current_scene else null
 	if npc_manager and npc_manager.has_method("to_dict"):
 		npc_state = npc_manager.call("to_dict")
+	var worker_manager := get_tree().current_scene.get_node_or_null("WorkerManager") if get_tree().current_scene else null
+	var worker_state: Dictionary = worker_manager.call("to_dict") if worker_manager else {}
 
 	var save_dict: Dictionary = {
 		"schema_version": SCHEMA_VERSION,
@@ -189,7 +191,8 @@ func save_game(slot_id: int = DEFAULT_SLOT) -> bool:
 		"ground_pickups": pickups_data,
 		"enemy_states": enemy_snapshot.get("states", {}),
 		"base_state": base_state,
-		"npc_state": npc_state
+		"npc_state": npc_state,
+		"worker_state": worker_state
 	}
 	var save_validation := _validate_snapshot(save_dict)
 	if not bool(save_validation.get("valid", false)):
@@ -365,6 +368,10 @@ func load_game(slot_id: int = DEFAULT_SLOT) -> bool:
 		if npc_manager.has_method("load_from_dict") and not bool(npc_manager.call("load_from_dict", npc_snapshot)):
 			_finish_load(slot_id, false, "Không thể khôi phục NPC từ file lưu.")
 			return false
+	var worker_manager := get_tree().current_scene.get_node_or_null("WorkerManager") if get_tree().current_scene else null
+	if worker_manager and not bool(worker_manager.call("load_from_dict", data.get("worker_state", {}))):
+		_finish_load(slot_id, false, "Không thể khôi phục thợ từ file lưu.")
+		return false
 
 	# 8. Khôi phục trạng thái thu thập tài nguyên ResourceNode
 	var harvested_arr = data.get("harvested_resources", [])
@@ -570,6 +577,10 @@ func _validate_snapshot(data: Dictionary) -> Dictionary:
 		var npc_manager := get_tree().current_scene.get_node_or_null("NPCManager") if get_tree().current_scene else null
 		if npc_manager and npc_manager.has_method("validate_save_data") and not bool(npc_manager.call("validate_save_data", data["npc_state"])):
 			return {"valid": false, "error": "NPC snapshot không hợp lệ."}
+	if data.has("worker_state"):
+		var worker_manager := get_tree().current_scene.get_node_or_null("WorkerManager") if get_tree().current_scene else null
+		if worker_manager and not bool(worker_manager.call("validate_save_data", data["worker_state"])):
+			return {"valid": false, "error": "Dữ liệu thợ không hợp lệ."}
 	return {"valid": true, "error": ""}
 
 func _validate_enemy_states(snapshot: Variant) -> bool:

@@ -5,6 +5,7 @@ extends Node
 signal wallet_changed
 
 const SCHEMA_VERSION: int = 1
+const GOLD_PER_ORE: int = 10
 
 var _gold: int = 0
 var _tinh_van: int = 0

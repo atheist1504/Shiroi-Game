@@ -16,9 +16,12 @@
 [ext_resource type="Script" path="res://scripts/npc_manager.gd" id="14_npc_manager"]
 [ext_resource type="Script" path="res://scripts/gacha_ui.gd" id="15_gacha_ui"]
 [ext_resource type="Script" path="res://scripts/party_ui.gd" id="16_party_ui"]
+[ext_resource type="Script" path="res://scripts/map_zone.gd" id="17_map_zone"]
+[ext_resource type="Script" path="res://scripts/worker_manager.gd" id="18_worker_manager"]
+[ext_resource type="Script" path="res://scripts/base_raid_manager.gd" id="19_base_raid"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_wall"]
-size = Vector2(1280, 24)
+size = Vector2(2560, 24)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vert_wall"]
 size = Vector2(24, 720)
@@ -112,7 +115,7 @@ corner_radius_bottom_left = 6
 [node name="Environment" type="Node2D" parent="."]
 
 [node name="FloorBackground" type="ColorRect" parent="Environment"]
-offset_right = 1280.0
+offset_right = 2560.0
 offset_bottom = 720.0
 color = Color(0.137255, 0.152941, 0.180392, 1)
 
@@ -151,28 +154,28 @@ script = ExtResource("13_base_plot")
 [node name="Walls" type="Node2D" parent="Environment"]
 
 [node name="WallTop" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(640, 12)
+position = Vector2(1280, 12)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTop"]
 shape = SubResource("RectangleShape2D_horiz_wall")
 
 [node name="Visual" type="ColorRect" parent="Environment/Walls/WallTop"]
-offset_left = -640.0
+offset_left = -1280.0
 offset_top = -12.0
-offset_right = 640.0
+offset_right = 1280.0
 offset_bottom = 12.0
 color = Color(0.298039, 0.337255, 0.415686, 1)
 
 [node name="WallBottom" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(640, 708)
+position = Vector2(1280, 708)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallBottom"]
 shape = SubResource("RectangleShape2D_horiz_wall")
 
 [node name="Visual" type="ColorRect" parent="Environment/Walls/WallBottom"]
-offset_left = -640.0
+offset_left = -1280.0
 offset_top = -12.0
-offset_right = 640.0
+offset_right = 1280.0
 offset_bottom = 12.0
 color = Color(0.298039, 0.337255, 0.415686, 1)
 
@@ -190,7 +193,7 @@ offset_bottom = 360.0
 color = Color(0.298039, 0.337255, 0.415686, 1)
 
 [node name="WallRight" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(1268, 360)
+position = Vector2(2548, 360)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRight"]
 shape = SubResource("RectangleShape2D_vert_wall")
@@ -201,6 +204,36 @@ offset_top = -360.0
 offset_right = 12.0
 offset_bottom = 360.0
 color = Color(0.298039, 0.337255, 0.415686, 1)
+
+[node name="Zones" type="Node2D" parent="Environment"]
+
+[node name="ForestZone" type="Node2D" parent="Environment/Zones"]
+position = Vector2(1320, 60)
+script = ExtResource("17_map_zone")
+zone_title = "KHU RỪNG"
+zone_size = Vector2(580, 280)
+zone_color = Color(0.3, 0.72, 0.38, 1)
+
+[node name="StoneMineZone" type="Node2D" parent="Environment/Zones"]
+position = Vector2(1960, 60)
+script = ExtResource("17_map_zone")
+zone_title = "MỎ ĐÁ"
+zone_size = Vector2(560, 280)
+zone_color = Color(0.58, 0.64, 0.74, 1)
+
+[node name="IronMineZone" type="Node2D" parent="Environment/Zones"]
+position = Vector2(1320, 400)
+script = ExtResource("17_map_zone")
+zone_title = "MỎ SẮT"
+zone_size = Vector2(580, 280)
+zone_color = Color(0.82, 0.48, 0.3, 1)
+
+[node name="GoldMineZone" type="Node2D" parent="Environment/Zones"]
+position = Vector2(1960, 400)
+script = ExtResource("17_map_zone")
+zone_title = "MỎ VÀNG"
+zone_size = Vector2(560, 280)
+zone_color = Color(1, 0.82, 0.25, 1)
 
 [node name="Obstacles" type="Node2D" parent="Environment"]
 
@@ -295,6 +328,12 @@ persistent_id = &"forest_clearing_boss_01"
 
 [node name="NPCManager" type="Node2D" parent="."]
 script = ExtResource("14_npc_manager")
+
+[node name="WorkerManager" type="Node" parent="."]
+script = ExtResource("18_worker_manager")
+
+[node name="BaseRaid" type="Node" parent="."]
+script = ExtResource("19_base_raid")
 
 [node name="DiscoveryPoint" parent="." instance=ExtResource("6_discovery_pt")]
 position = Vector2(640, 110)
@@ -400,6 +439,188 @@ position = Vector2(740, 180)
 node_id = &"herb_02"
 node_type = "herb"
 resource_id = &"herb"
+yield_amount = 2
+
+[node name="ZoneTree01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1380, 130)
+node_id = &"zone_tree_01"
+node_type = "tree"
+resource_id = &"wood"
+yield_amount = 3
+
+[node name="ZoneTree02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1520, 110)
+node_id = &"zone_tree_02"
+node_type = "tree"
+resource_id = &"wood"
+yield_amount = 3
+
+[node name="ZoneTree03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1680, 140)
+node_id = &"zone_tree_03"
+node_type = "tree"
+resource_id = &"wood"
+yield_amount = 3
+
+[node name="ZoneTree04" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1820, 120)
+node_id = &"zone_tree_04"
+node_type = "tree"
+resource_id = &"wood"
+yield_amount = 3
+
+[node name="ZoneTree05" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1430, 270)
+node_id = &"zone_tree_05"
+node_type = "tree"
+resource_id = &"wood"
+yield_amount = 3
+
+[node name="ZoneTree06" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1760, 280)
+node_id = &"zone_tree_06"
+node_type = "tree"
+resource_id = &"wood"
+yield_amount = 3
+
+[node name="ZoneHerb01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1560, 220)
+node_id = &"zone_herb_01"
+node_type = "herb"
+resource_id = &"herb"
+yield_amount = 3
+
+[node name="ZoneHerb02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1650, 290)
+node_id = &"zone_herb_02"
+node_type = "herb"
+resource_id = &"herb"
+yield_amount = 3
+
+[node name="ZoneHerb03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1840, 220)
+node_id = &"zone_herb_03"
+node_type = "herb"
+resource_id = &"herb"
+yield_amount = 3
+
+[node name="ZoneRock01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(2040, 140)
+node_id = &"zone_rock_01"
+node_type = "rock"
+resource_id = &"stone"
+yield_amount = 3
+
+[node name="ZoneRock02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(2180, 110)
+node_id = &"zone_rock_02"
+node_type = "rock"
+resource_id = &"stone"
+yield_amount = 3
+
+[node name="ZoneRock03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(2330, 150)
+node_id = &"zone_rock_03"
+node_type = "rock"
+resource_id = &"stone"
+yield_amount = 3
+
+[node name="ZoneRock04" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(2450, 120)
+node_id = &"zone_rock_04"
+node_type = "rock"
+resource_id = &"stone"
+yield_amount = 3
+
+[node name="ZoneRock05" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(2120, 270)
+node_id = &"zone_rock_05"
+node_type = "rock"
+resource_id = &"stone"
+yield_amount = 3
+
+[node name="ZoneRock06" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(2380, 280)
+node_id = &"zone_rock_06"
+node_type = "rock"
+resource_id = &"stone"
+yield_amount = 3
+
+[node name="ZoneIron01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1400, 480)
+node_id = &"zone_iron_01"
+node_type = "iron"
+resource_id = &"iron_ore"
+yield_amount = 3
+
+[node name="ZoneIron02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1560, 460)
+node_id = &"zone_iron_02"
+node_type = "iron"
+resource_id = &"iron_ore"
+yield_amount = 3
+
+[node name="ZoneIron03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1740, 490)
+node_id = &"zone_iron_03"
+node_type = "iron"
+resource_id = &"iron_ore"
+yield_amount = 3
+
+[node name="ZoneIron04" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1470, 610)
+node_id = &"zone_iron_04"
+node_type = "iron"
+resource_id = &"iron_ore"
+yield_amount = 3
+
+[node name="ZoneIron05" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1680, 620)
+node_id = &"zone_iron_05"
+node_type = "iron"
+resource_id = &"iron_ore"
+yield_amount = 3
+
+[node name="ZoneIron06" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1840, 590)
+node_id = &"zone_iron_06"
+node_type = "iron"
+resource_id = &"iron_ore"
+yield_amount = 3
+
+[node name="ZoneGold01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(2060, 500)
+node_id = &"zone_gold_01"
+node_type = "gold"
+resource_id = &"gold_ore"
+yield_amount = 2
+
+[node name="ZoneGold02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(2240, 470)
+node_id = &"zone_gold_02"
+node_type = "gold"
+resource_id = &"gold_ore"
+yield_amount = 2
+
+[node name="ZoneGold03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(2420, 520)
+node_id = &"zone_gold_03"
+node_type = "gold"
+resource_id = &"gold_ore"
+yield_amount = 2
+
+[node name="ZoneGold04" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(2160, 620)
+node_id = &"zone_gold_04"
+node_type = "gold"
+resource_id = &"gold_ore"
+yield_amount = 2
+
+[node name="ZoneGold05" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(2360, 630)
+node_id = &"zone_gold_05"
+node_type = "gold"
+resource_id = &"gold_ore"
 yield_amount = 2
 
 [node name="UI" type="CanvasLayer" parent="."]

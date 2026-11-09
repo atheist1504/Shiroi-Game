@@ -53,6 +53,18 @@ const SCALE_NORMAL := Vector2(0.22, 0.18)
 
 var player_ref: Node2D = null
 
+# Quái đột kích: không thấy người chơi thì đi phá công trình gần nhất.
+const RAID_BUILDING_DAMAGE: float = 5.0
+const RAID_ATTACK_RANGE: float = 22.0
+const RAID_RETARGET_SECONDS: float = 0.5
+var raid_mode: bool = false
+var _raid_target: Node2D = null
+var _raid_retarget_timer: float = 0.0
+
+func enable_raid_mode() -> void:
+	raid_mode = true
+	add_to_group("raiders")
+
 func _ready() -> void:
 	add_to_group("enemies")
 	if persistent_id == StringName():
@@ -137,6 +149,8 @@ func _physics_process(delta: float) -> void:
 
 # Xử lý trạng thái đuổi theo người chơi
 func _process_chase() -> Vector2:
+	if raid_mode and (not is_instance_valid(player_ref) or player_ref.get("is_dead") or global_position.distance_to(player_ref.global_position) > aggro_range):
+		return _process_raid()
 	if not is_instance_valid(player_ref) or player_ref.get("is_dead"):
 		current_state = State.IDLE
 		return Vector2.ZERO
@@ -167,6 +181,42 @@ func _process_chase() -> Vector2:
 	else:
 		current_state = State.IDLE
 		return Vector2.ZERO
+
+func _process_raid() -> Vector2:
+	_raid_retarget_timer -= get_physics_process_delta_time()
+	if not is_instance_valid(_raid_target) or _raid_retarget_timer <= 0.0:
+		_raid_retarget_timer = RAID_RETARGET_SECONDS
+		_raid_target = _find_nearest_building()
+	if not is_instance_valid(_raid_target):
+		current_state = State.IDLE
+		return Vector2.ZERO
+	current_state = State.CHASE
+	if _distance_to_building(_raid_target) <= RAID_ATTACK_RANGE:
+		if attack_timer <= 0.0:
+			attack_timer = attack_cooldown
+			_raid_target.call("take_damage", RAID_BUILDING_DAMAGE)
+		return Vector2.ZERO
+	var direction := (_raid_target.global_position - global_position).normalized()
+	if sprite_2d and direction.x != 0.0:
+		sprite_2d.flip_h = direction.x < 0.0
+	var effective_speed: float = move_speed
+	if status_effect:
+		effective_speed *= status_effect.get_speed_multiplier()
+	return direction * effective_speed
+
+func _find_nearest_building() -> Node2D:
+	var best: Node2D = null
+	var best_distance := INF
+	for candidate in get_tree().get_nodes_in_group("placed_buildings"):
+		var building := candidate as Node2D
+		if building and _distance_to_building(building) < best_distance:
+			best = building
+			best_distance = _distance_to_building(building)
+	return best
+
+func _distance_to_building(building: Node2D) -> float:
+	var half: Vector2 = (building.call("get_footprint") as Vector2) * 0.5
+	return global_position.distance_to(global_position.clamp(building.global_position - half, building.global_position + half))
 
 # Giai đoạn 1: Báo hiệu trước đòn đánh (Wind-up / Telegraph)
 func _start_windup(target_dir: Vector2) -> void:
@@ -269,10 +319,13 @@ func get_persistence_data(scene_root: Node) -> Dictionary:
 		"position_x": global_position.x,
 		"position_y": global_position.y,
 		"current_hp": current_health,
-		"is_alive": not is_dead
+		"is_alive": not is_dead,
+		"raid_mode": raid_mode
 	}
 
 func restore_persistence_data(data: Dictionary) -> void:
+	if bool(data.get("raid_mode", false)):
+		enable_raid_mode()
 	current_health = clampf(float(data.get("current_hp", max_health)), 0.0, max_health)
 	is_dead = not bool(data.get("is_alive", true)) or current_health <= 0.0
 	global_position = Vector2(float(data.get("position_x", global_position.x)), float(data.get("position_y", global_position.y)))
@@ -322,9 +375,15 @@ func _die() -> void:
 		tween.set_parallel(true)
 		tween.tween_property(sprite_2d, "scale", Vector2(0.28, 0.02), 0.2)
 		tween.tween_property(sprite_2d, "modulate:a", 0.0, 0.22)
-		tween.finished.connect(func(): visible = false)
+		tween.finished.connect(_on_death_animation_finished)
 	else:
-		visible = false
+		_on_death_animation_finished()
+
+func _on_death_animation_finished() -> void:
+	visible = false
+	# Quái đột kích không cần giữ lại sau khi chết, tránh save phình theo số đợt.
+	if raid_mode:
+		queue_free()
 
 func _spawn_loot() -> void:
 	if not pickup_scene:

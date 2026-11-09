@@ -70,6 +70,11 @@ func _ready() -> void:
 		unlock_characters.text = "Mở khóa 5 nhân vật (Tổ đội)"
 		unlock_characters.pressed.connect(func(): get_node("/root/GachaManager").debug_unlock_all())
 		grant_tinh_van.add_sibling(unlock_characters)
+		var call_raid := Button.new()
+		call_raid.name = "BtnCallRaid"
+		call_raid.text = "Gọi đợt quái ngay"
+		call_raid.pressed.connect(func(): get_tree().current_scene.get_node("BaseRaid").start_raid())
+		unlock_characters.add_sibling(call_raid)
 	if spawn_npc_button:
 		spawn_npc_button.pressed.connect(_on_spawn_npc_pressed)
 	if destination_west_button:

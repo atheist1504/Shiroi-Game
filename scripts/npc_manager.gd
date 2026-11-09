@@ -14,6 +14,8 @@ const STATE_MOVING: int = 1
 
 var _npc: Node = null
 var _astar: AStarGrid2D = null
+# Lưới toàn bản đồ cho thợ đi ra các khu khai thác; _astar vẫn chỉ trong căn cứ.
+var _world_astar: AStarGrid2D = null
 var _grid_region: Rect2i = Rect2i()
 var _base_rect: Rect2 = Rect2()
 var _map_size: Vector2 = Vector2.ZERO
@@ -75,6 +77,9 @@ func _ready() -> void:
 	var event_bus := get_node_or_null("/root/EventBus")
 	if event_bus and event_bus.has_signal("building_placed"):
 		event_bus.building_placed.connect(_on_building_placed)
+	var base_manager := get_node_or_null("/root/BaseManager")
+	if base_manager:
+		base_manager.building_destroyed.connect(_on_building_destroyed)
 	call_deferred("_initialize_navigation")
 
 func _initialize_navigation() -> void:
@@ -99,12 +104,8 @@ func refresh_navigation() -> void:
 	var plot_size: Vector2 = Vector2(base_plot.get("plot_size"))
 	_base_rect = Rect2(base_plot.global_position, plot_size)
 	_grid_region = Rect2i(Vector2i.ZERO, Vector2i(ceili(_map_size.x / CELL_SIZE), ceili(_map_size.y / CELL_SIZE)))
-	var grid := AStarGrid2D.new()
-	grid.region = _grid_region
-	grid.cell_size = Vector2(CELL_SIZE, CELL_SIZE)
-	grid.offset = Vector2(CELL_SIZE * 0.5, CELL_SIZE * 0.5)
-	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
-	grid.update()
+	var grid := _create_grid()
+	var world_grid := _create_grid()
 	var physics := get_viewport().world_2d.direct_space_state
 	var probe := CircleShape2D.new()
 	probe.radius = NPC_RADIUS
@@ -118,16 +119,52 @@ func refresh_navigation() -> void:
 		for x in range(_grid_region.position.x, _grid_region.end.x):
 			var cell := Vector2i(x, y)
 			var world_position := grid.get_point_position(cell)
-			if not safe_base.has_point(world_position):
-				grid.set_point_solid(cell, true)
-				continue
 			query.transform = Transform2D(0.0, world_position)
-			if not physics.intersect_shape(query, 1).is_empty():
+			var blocked := not physics.intersect_shape(query, 1).is_empty()
+			if blocked:
+				world_grid.set_point_solid(cell, true)
+			if blocked or not safe_base.has_point(world_position):
 				grid.set_point_solid(cell, true)
 	_astar = grid
+	_world_astar = world_grid
 	_repath_attempts = 0
 	if is_instance_valid(_npc) and str(_npc.call("get_state_name")) == "MOVING" and bool(_npc.get("has_target")):
 		request_destination(_npc.get("current_target"), true)
+
+func _create_grid() -> AStarGrid2D:
+	var grid := AStarGrid2D.new()
+	grid.region = _grid_region
+	grid.cell_size = Vector2(CELL_SIZE, CELL_SIZE)
+	grid.offset = Vector2(CELL_SIZE * 0.5, CELL_SIZE * 0.5)
+	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+	grid.update()
+	return grid
+
+func has_world_navigation() -> bool:
+	return _world_astar != null
+
+func get_base_rect() -> Rect2:
+	return _base_rect
+
+func get_map_rect() -> Rect2:
+	return Rect2(Vector2.ZERO, _map_size)
+
+# Đường đi toàn bản đồ; điểm đầu và điểm cuối tự dời về ô đi được gần nhất.
+func get_world_path(from_position: Vector2, destination: Vector2) -> PackedVector2Array:
+	var result := PackedVector2Array()
+	if _world_astar == null or not is_finite(destination.x) or not is_finite(destination.y):
+		return result
+	var start_cell := _find_nearest_walkable_cell(_world_to_cell(from_position), _world_astar)
+	var target_cell := _find_nearest_walkable_cell(_world_to_cell(destination), _world_astar)
+	if start_cell == Vector2i(-1, -1) or target_cell == Vector2i(-1, -1):
+		return result
+	for cell in _world_astar.get_id_path(start_cell, target_cell):
+		result.append(_cell_to_world(cell))
+	return result
+
+func find_walkable_near(position_hint: Vector2) -> Vector2:
+	var cell := _find_nearest_walkable_cell(_world_to_cell(position_hint), _world_astar)
+	return Vector2.INF if cell == Vector2i(-1, -1) else _cell_to_world(cell)
 
 func spawn_test_npc() -> Node:
 	if is_instance_valid(_npc):
@@ -459,8 +496,9 @@ func clear_npcs() -> void:
 	_remove_current_npc()
 	_emit_status()
 
-func _find_nearest_walkable_cell(origin: Vector2i) -> Vector2i:
-	if _astar == null:
+func _find_nearest_walkable_cell(origin: Vector2i, grid: AStarGrid2D = null) -> Vector2i:
+	var search_grid := grid if grid else _astar
+	if search_grid == null:
 		return Vector2i(-1, -1)
 	for radius in range(0, 6):
 		var best := Vector2i(-1, -1)
@@ -468,7 +506,7 @@ func _find_nearest_walkable_cell(origin: Vector2i) -> Vector2i:
 		for y in range(origin.y - radius, origin.y + radius + 1):
 			for x in range(origin.x - radius, origin.x + radius + 1):
 				var cell := Vector2i(x, y)
-				if not _astar.is_in_boundsv(cell) or _astar.is_point_solid(cell):
+				if not search_grid.is_in_boundsv(cell) or search_grid.is_point_solid(cell):
 					continue
 				var distance := origin.distance_squared_to(cell)
 				if distance < best_distance:
@@ -485,6 +523,12 @@ func _cell_to_world(cell: Vector2i) -> Vector2:
 	return Vector2(cell * CELL_SIZE) + Vector2(CELL_SIZE * 0.5, CELL_SIZE * 0.5)
 
 func _on_building_placed(_instance_id: StringName, _building_type_id: StringName, _base_id: StringName) -> void:
+	refresh_navigation()
+
+func _on_building_destroyed(_instance_id: StringName) -> void:
+	# Chờ physics cập nhật việc gỡ va chạm của công trình đã bị phá.
+	await get_tree().physics_frame
+	await get_tree().physics_frame
 	refresh_navigation()
 
 func _on_npc_repath_requested(npc_id: StringName, destination: Vector2) -> void:

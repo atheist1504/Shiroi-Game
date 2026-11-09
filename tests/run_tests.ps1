@@ -15,7 +15,10 @@ param(
 $projectDir = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $godot = $env:SHIROI_GODOT
 if ([string]::IsNullOrEmpty($godot)) {
-	$godot = Join-Path ([Environment]::GetFolderPath("Desktop")) "Godot_v4.7.2-stable_win64.exe"
+	$godot = "D:\Godot\Godot_v4.7.2-stable_win64.exe"
+	if (-not (Test-Path -LiteralPath $godot)) {
+		$godot = Join-Path ([Environment]::GetFolderPath("Desktop")) "Godot_v4.7.2-stable_win64.exe"
+	}
 }
 if (-not (Test-Path -LiteralPath $godot)) {
 	Write-Error "Godot not found: $godot. Set the SHIROI_GODOT environment variable."

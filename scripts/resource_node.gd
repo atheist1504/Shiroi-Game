@@ -7,7 +7,7 @@ extends Area2D
 @export var yield_amount: int = 3
 @export var respawn_seconds: float = 0.0 # 0 = dùng mặc định theo loại tài nguyên
 
-const DEFAULT_RESPAWN_SECONDS: Dictionary = {&"wood": 60.0, &"stone": 90.0, &"herb": 45.0}
+const DEFAULT_RESPAWN_SECONDS: Dictionary = {&"wood": 60.0, &"stone": 90.0, &"herb": 45.0, &"iron_ore": 120.0, &"gold_ore": 180.0}
 const FALLBACK_RESPAWN_SECONDS: float = 60.0
 
 @onready var prompt_label: Label = $PromptLabel
@@ -61,7 +61,7 @@ func _try_gather() -> void:
 	if not inv_mgr:
 		return
 
-	if not inv_mgr.can_add_item(resource_id, yield_amount):
+	if resource_id != &"gold_ore" and not inv_mgr.can_add_item(resource_id, yield_amount):
 		var notif_mgr = get_node_or_null("/root/NotificationManager")
 		if notif_mgr:
 			notif_mgr.show_warning("Túi đồ đã đầy! Không thể thu thập thêm.")
@@ -78,7 +78,14 @@ func set_harvested(harvested: bool, notify: bool = false) -> void:
 		if collision_shape:
 			collision_shape.set_deferred("disabled", true)
 
-		if notify:
+		if notify and resource_id == &"gold_ore":
+			var wallet = get_node_or_null("/root/WalletManager")
+			if wallet:
+				wallet.add_gold(yield_amount * wallet.GOLD_PER_ORE)
+				var gold_notice = get_node_or_null("/root/NotificationManager")
+				if gold_notice:
+					gold_notice.show_success("+%d vàng" % (yield_amount * wallet.GOLD_PER_ORE))
+		elif notify:
 			var inv_mgr = get_node_or_null("/root/InventoryManager")
 			if inv_mgr:
 				inv_mgr.add_item(resource_id, yield_amount)
@@ -219,6 +226,16 @@ func _draw() -> void:
 			draw_rect(Rect2(-8, -12, 16, 14), Color(0.42, 0.48, 0.56, 1.0))
 			draw_rect(Rect2(-5, -14, 10, 8), Color(0.55, 0.62, 0.72, 1.0))
 			draw_line(Vector2(-6, -6), Vector2(4, -8), Color(0.25, 0.28, 0.35, 1.0), 1.0)
+		"iron", "gold":
+			# Mỏ quặng: khối đá với các đốm quặng theo màu loại mỏ
+			var ore := Color(0.82, 0.48, 0.3, 1.0) if node_type == "iron" else Color(1.0, 0.82, 0.25, 1.0)
+			draw_circle(Vector2(0, 3), 11.0, Color(0.0, 0.0, 0.0, 0.25))
+			draw_rect(Rect2(-10, -8, 20, 12), Color(0.24, 0.24, 0.28, 1.0))
+			draw_rect(Rect2(-8, -12, 16, 14), Color(0.34, 0.34, 0.4, 1.0))
+			draw_rect(Rect2(-6, -10, 4, 4), ore)
+			draw_rect(Rect2(2, -8, 4, 3), ore)
+			draw_rect(Rect2(-3, -4, 3, 3), ore)
+			draw_rect(Rect2(4, -2, 3, 3), ore)
 		"herb":
 			# Bụi thảo dược nhỏ phát sáng
 			draw_circle(Vector2(0, 2), 7.0, Color(0.0, 0.0, 0.0, 0.2))

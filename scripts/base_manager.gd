@@ -2,6 +2,7 @@ extends Node
 
 signal build_mode_changed(is_active: bool)
 signal storage_changed(building_id: StringName)
+signal building_destroyed(instance_id: StringName)
 
 const BASE_ID: StringName = &"hope_valley_base"
 const BASE_NAME: String = "Thung Lũng Hy Vọng"
@@ -387,6 +388,18 @@ func _place_building_transaction(building_type_id: StringName, grid_pos: Vector2
 	_notify("Đã xây %s." % definition.display_name)
 	return true
 
+# Công trình hết máu: gỡ khỏi thế giới; kho bị phá thì đồ bên trong mất theo.
+func destroy_building(building: Node2D) -> void:
+	var instance_id := StringName(str(building.get("instance_id")))
+	if is_storage_interaction_open and _active_storage_building_id == instance_id:
+		close_storage_interaction()
+	_storage_inventories.erase(instance_id)
+	if building.get_parent():
+		building.get_parent().remove_child(building)
+	building.queue_free()
+	_notify("Một công trình đã bị phá hủy!", true)
+	building_destroyed.emit(instance_id)
+
 func to_dict() -> Dictionary:
 	var buildings: Array[Dictionary] = []
 	var storage_inventories: Dictionary = {}
@@ -420,6 +433,9 @@ func validate_save_data(data: Variant) -> bool:
 			storage_buildings[instance_id] = true
 		if abs(int(entry.get("grid_x", 0))) > 100000 or abs(int(entry.get("grid_y", 0))) > 100000:
 			return false
+		var saved_health := float(entry.get("health", 1.0))
+		if not is_finite(saved_health) or saved_health <= 0.0:
+			return false
 	if data.has("storage_inventories"):
 		var inventories: Variant = data["storage_inventories"]
 		if not inventories is Dictionary:
@@ -449,6 +465,7 @@ func load_from_dict(data: Dictionary) -> bool:
 			return false
 		building.call("configure", definition, instance_id, StringName(str(entry["base_id"])), Vector2i(int(entry["grid_x"]), int(entry["grid_y"])), false)
 		building.rotation = float(entry.get("rotation", 0.0))
+		building.call("restore_health", float(entry.get("health", -1.0)))
 		staged.append(building)
 		if type_id == &"storage":
 			staged_storage[instance_id] = _deserialize_storage_slots(saved_storage.get(str(instance_id), {}))

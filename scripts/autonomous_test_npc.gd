@@ -23,6 +23,8 @@ var movement_direction: Vector2 = Vector2.DOWN
 var status_message: String = "Đang chờ lệnh."
 @export var cargo_capacity: int = 10
 var cargo: Dictionary = {}
+var tunic_color: Color = Color("4b8d79")
+var display_name: String = ""
 
 var _path: PackedVector2Array = PackedVector2Array()
 var _path_index: int = 0
@@ -194,7 +196,9 @@ func _set_state(next_state: State, message: String) -> void:
 func _draw() -> void:
 	# Placeholder pixel-art silhouette, kept independent of the player's assets.
 	draw_rect(Rect2(-5, -8, 10, 5), Color("e9c49b"), true)
-	draw_rect(Rect2(-6, -3, 12, 8), Color("4b8d79"), true)
+	draw_rect(Rect2(-6, -3, 12, 8), tunic_color, true)
+	if not display_name.is_empty():
+		draw_string(ThemeDB.fallback_font, Vector2(-24, -12), display_name, HORIZONTAL_ALIGNMENT_CENTER, 48, 7, Color(1.0, 1.0, 1.0, 0.85))
 	draw_rect(Rect2(-5, 5, 4, 4), Color("514a68"), true)
 	draw_rect(Rect2(1, 5, 4, 4), Color("514a68"), true)
 	draw_rect(Rect2(-3, -6, 2, 1), Color("252b38"), true)

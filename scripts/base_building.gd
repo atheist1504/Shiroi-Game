@@ -7,6 +7,11 @@ class_name BaseBuilding
 @export var grid_position: Vector2i = Vector2i.ZERO
 @export var is_preview: bool = false
 
+const DEFAULT_MAX_HEALTH: float = 250.0
+const MAX_HEALTH_BY_TYPE: Dictionary = {&"storage": 400.0, &"watchtower": 350.0, &"fence": 150.0}
+
+var max_health: float = DEFAULT_MAX_HEALTH
+var current_health: float = DEFAULT_MAX_HEALTH
 var _footprint: Vector2 = Vector2(32, 32)
 var _building_color: Color = Color(0.55, 0.38, 0.22, 1)
 var _placement_valid: bool = false
@@ -29,6 +34,8 @@ func configure(definition: BuildingDefinition, p_instance_id: StringName, p_base
 	_footprint = Vector2(definition.footprint_cells) * 16.0
 	_building_color = definition.color
 	is_preview = preview
+	max_health = float(MAX_HEALTH_BY_TYPE.get(building_type_id, DEFAULT_MAX_HEALTH))
+	current_health = max_health
 	position = Vector2(grid_position) * 16.0
 	if is_inside_tree():
 		collision_layer = 0 if is_preview else 1
@@ -37,6 +44,23 @@ func configure(definition: BuildingDefinition, p_instance_id: StringName, p_base
 
 func get_footprint() -> Vector2:
 	return _footprint
+
+func take_damage(amount: float) -> void:
+	if is_preview or current_health <= 0.0:
+		return
+	current_health = maxf(0.0, current_health - amount)
+	queue_redraw()
+	if current_health <= 0.0:
+		get_node("/root/BaseManager").destroy_building(self)
+
+func repair_full() -> void:
+	current_health = max_health
+	queue_redraw()
+
+# Save cũ không có máu công trình sẽ giữ đầy máu.
+func restore_health(saved_health: float) -> void:
+	if saved_health > 0.0:
+		current_health = minf(saved_health, max_health)
 
 func set_preview_valid(valid: bool) -> void:
 	if _placement_valid == valid:
@@ -102,6 +126,10 @@ func _draw() -> void:
 	if is_preview:
 		var outline := Color(0.25, 1.0, 0.4, 0.95) if _placement_valid else Color(1.0, 0.25, 0.2, 0.95)
 		draw_rect(rect, outline, false, 3.0)
+	elif current_health < max_health:
+		var bar := Rect2(-_footprint.x * 0.5, -_footprint.y * 0.5 - 6.0, _footprint.x, 3.0)
+		draw_rect(bar, Color(0.1, 0.1, 0.12, 0.9), true)
+		draw_rect(Rect2(bar.position, Vector2(bar.size.x * current_health / max_health, bar.size.y)), Color(0.9, 0.3, 0.25, 1), true)
 
 func to_save_dict() -> Dictionary:
 	return {
@@ -110,5 +138,6 @@ func to_save_dict() -> Dictionary:
 		"base_id": str(base_id),
 		"grid_x": grid_position.x,
 		"grid_y": grid_position.y,
-		"rotation": rotation
+		"rotation": rotation,
+		"health": current_health
 	}
