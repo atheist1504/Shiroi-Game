@@ -65,6 +65,11 @@ func _ready() -> void:
 		grant_tinh_van.text = "+100 Tinh Vẫn (Gacha)"
 		grant_tinh_van.pressed.connect(func(): get_node("/root/WalletManager").add_tinh_van(100))
 		btn_unlock_base.add_sibling(grant_tinh_van)
+		var unlock_characters := Button.new()
+		unlock_characters.name = "BtnUnlockCharacters"
+		unlock_characters.text = "Mở khóa 5 nhân vật (Tổ đội)"
+		unlock_characters.pressed.connect(func(): get_node("/root/GachaManager").debug_unlock_all())
+		grant_tinh_van.add_sibling(unlock_characters)
 	if spawn_npc_button:
 		spawn_npc_button.pressed.connect(_on_spawn_npc_pressed)
 	if destination_west_button:

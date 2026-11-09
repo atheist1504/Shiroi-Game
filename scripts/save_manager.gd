@@ -10,7 +10,7 @@ const SAVE_DIR: String = "user://saves"
 const DEFAULT_SLOT: int = 1
 const SCHEMA_VERSION: int = 3
 const GAME_VERSION: String = "1.0.0"
-const OPTIONAL_AUTOLOAD_SECTIONS: Dictionary = {"world_clock": "WorldClock", "wallet": "WalletManager", "gacha": "GachaManager"}
+const OPTIONAL_AUTOLOAD_SECTIONS: Dictionary = {"world_clock": "WorldClock", "wallet": "WalletManager", "gacha": "GachaManager", "party": "PartyManager"}
 
 var playtime_seconds: float = 0.0
 var is_busy: bool = false
@@ -179,6 +179,7 @@ func save_game(slot_id: int = DEFAULT_SLOT) -> bool:
 		"world_clock": _autoload_snapshot("WorldClock"),
 		"wallet": _autoload_snapshot("WalletManager"),
 		"gacha": _autoload_snapshot("GachaManager"),
+		"party": _autoload_snapshot("PartyManager"),
 		"scene": current_scene_path,
 		"player": player_data,
 		"world_state": world_state_dict,

@@ -7,6 +7,7 @@ signal skill_hit(skill_name: String, target: Node2D, damage: float)
 signal energy_changed(current: float, maximum: float)
 signal cooldown_changed(skill_name: String, remaining: float, total: float)
 signal skill_feedback(message: String)
+signal kit_changed(e_name: String, r_name: String, e_damage_value: float)
 
 @export_group("Năng lượng nguyên tố")
 @export var max_energy: float = 100.0
@@ -37,9 +38,19 @@ var r_cooldown_timer: float = 0.0
 
 var player_body: CharacterBody2D = null
 
+# Bộ kỹ năng theo nguyên tố của thành viên tổ đội đang ra sân.
+var e_skill_name: String = "Phong Nhận"
+var r_skill_name: String = "Bão Phong"
+var skill_tint: Color = Color(0.25, 0.95, 0.82)
+var _base_e_damage: float = 0.0
+var _base_r_damage: float = 0.0
+
 func _ready() -> void:
 	if get_parent() is CharacterBody2D:
 		player_body = get_parent() as CharacterBody2D
+
+	_base_e_damage = e_damage
+	_base_r_damage = r_damage_per_tick
 
 	_setup_fallback_input_actions()
 
@@ -47,6 +58,20 @@ func _ready() -> void:
 	energy_changed.emit(current_energy, max_energy)
 	cooldown_changed.emit("E", 0.0, e_cooldown)
 	cooldown_changed.emit("R", 0.0, r_cooldown)
+
+func apply_member_kit(kit: Dictionary, energy: float, e_remaining: float, r_remaining: float) -> void:
+	e_skill_name = kit["e_name"]
+	r_skill_name = kit["r_name"]
+	skill_tint = kit["tint"]
+	e_damage = _base_e_damage * float(kit["damage_scale"])
+	r_damage_per_tick = _base_r_damage * float(kit["damage_scale"])
+	current_energy = clampf(energy, 0.0, max_energy)
+	e_cooldown_timer = e_remaining
+	r_cooldown_timer = r_remaining
+	energy_changed.emit(current_energy, max_energy)
+	cooldown_changed.emit("E", e_cooldown_timer, e_cooldown)
+	cooldown_changed.emit("R", r_cooldown_timer, r_cooldown)
+	kit_changed.emit(e_skill_name, r_skill_name, e_damage)
 
 func _process(delta: float) -> void:
 	var e_prev := e_cooldown_timer
@@ -96,7 +121,7 @@ func _unhandled_input(event: InputEvent) -> void:
 # Thi triển kỹ năng E - Phong Nhận
 func try_cast_e() -> bool:
 	if e_cooldown_timer > 0.0:
-		skill_feedback.emit("Phong Nhận đang hồi chiêu (%.1fs)!" % e_cooldown_timer)
+		skill_feedback.emit("%s đang hồi chiêu (%.1fs)!" % [e_skill_name, e_cooldown_timer])
 		return false
 
 	var spawn_pos: Vector2 = player_body.global_position if player_body else Vector2.ZERO
@@ -112,6 +137,7 @@ func try_cast_e() -> bool:
 	blade.speed = e_speed
 	blade.max_range = e_range
 	blade.damage = e_damage
+	blade.tint = skill_tint
 	blade.hit_enemy.connect(_on_e_hit_enemy)
 
 	# Thêm vào Scene Tree trước khi setup vị trí
@@ -136,7 +162,7 @@ func _on_e_hit_enemy(enemy: Node2D, dmg: float) -> void:
 # Thi triển kỹ năng R - Bão Phong
 func try_cast_r() -> bool:
 	if r_cooldown_timer > 0.0:
-		skill_feedback.emit("Bão Phong đang hồi chiêu (%.1fs)!" % r_cooldown_timer)
+		skill_feedback.emit("%s đang hồi chiêu (%.1fs)!" % [r_skill_name, r_cooldown_timer])
 		return false
 
 	if current_energy < r_energy_cost:
@@ -161,6 +187,7 @@ func try_cast_r() -> bool:
 	cyclone.damage_radius = r_damage_radius
 	cyclone.damage_per_tick = r_damage_per_tick
 	cyclone.total_ticks = r_ticks
+	cyclone.tint = skill_tint
 
 	cyclone.tick_hit.connect(_on_r_tick_hit)
 

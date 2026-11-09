@@ -4,7 +4,7 @@
 
 - Game 2D top-down viết bằng GDScript; `project.godot` khai báo Godot 4.7 và viewport 640×360, phóng integer scale.
 - Scene khởi chạy là `main.tscn`; Player dùng `player.tscn`, enemy slime dùng `slime.tscn`.
-- Các Autoload trong `project.godot`: `EventBus`, `WorldState`, `QuestManager`, `SaveManager`, `InventoryManager`, `NotificationManager`, `CraftingManager`, `BaseManager`, `WorldClock`, `WalletManager`, `GachaManager`.
+- Các Autoload trong `project.godot`: `EventBus`, `WorldState`, `QuestManager`, `SaveManager`, `InventoryManager`, `NotificationManager`, `CraftingManager`, `BaseManager`, `WorldClock`, `WalletManager`, `GachaManager`, `PartyManager`.
 - Luồng chính: Player nhận input và combat; các Autoload giữ trạng thái và dịch vụ dùng chung; UI hiển thị inventory, quest, crafting, debug, pause và storage; `SaveManager` phối hợp lưu/khôi phục trạng thái.
 
 ## Tiến độ tính năng
@@ -17,6 +17,7 @@
 | Bước 21.1 + 21.2 — Autonomous NPC AI và Pathfinding | Đã triển khai bản V1 trong `scripts/npc_manager.gd` và `scripts/autonomous_test_npc.gd`; có NPC thử nghiệm, FSM, A* bị giới hạn trong căn cứ, debug F3 và save/load tùy chọn | `tests/test_step21_1_2.gd` chạy headless 2026-11-09: 29/29 PASS. Chưa kiểm thử gameplay thủ công |
 | Bước 21.3 — Resource Respawn | Đã triển khai: `WorldClock` (thời gian chỉ trôi khi đang chơi, lưu trong save), ResourceNode hồi sinh (gỗ 60s, đá 90s, thảo dược 45s), mốc hồi lưu trong WorldState, 6 điểm tài nguyên trong Hope Valley BasePlot, không cho xây đè điểm tài nguyên kể cả đã cạn | `tests/test_step21_3.gd` chạy headless 2026-11-09: 28/28 PASS, gồm F9 liên tiếp, save cũ và NPC khai thác lại sau hồi sinh. Chưa kiểm thử gameplay thủ công |
 | Tuần 6 — Gacha | Đã triển khai: ví vàng/Tinh Vẫn (`scripts/wallet_manager.gd`), gacha chỉ nhân vật 5★ 2%, bảo hiểm 40, 10 Tinh Vẫn/lượt, Tinh Hồn riêng từng nhân vật và tăng bậc (`scripts/gacha_manager.gd`), UI phím H (`scripts/gacha_ui.gd`), thưởng Tinh Vẫn theo giai đoạn và khi xong quest, nút F3 +100. Kết quả định sẵn theo seed trong save nên F5/F9 không đổi được. 5 nhân vật là dữ liệu tạm; nhân vật chưa làm việc hay ra sân | `tests/test_week6_gacha.gd` chạy headless 2026-11-09: 44/44 PASS, gồm bảo hiểm trên 3000 lượt, túi đầy, F9, save cũ, UI. Đã chụp màn hình kiểm tra bố cục; chưa thử tay |
+| Tuần 7 — Tổ đội | Đã triển khai: `scripts/party_manager.gd` (đội 3 người gồm nhân vật chính, một thân Player trên sân, máu/năng lượng/hồi chiêu riêng từng người, hồi đổi 1,5s, 6 phối hợp nguyên tố khi đổi trong 4s sau khi đánh, người gục tự đổi và hồi sau 30s với 30% máu), `scripts/party_ui.gd` (HUD góc trái dưới, bảng phím P), phím 1/2/3, bộ kỹ năng E/R đổi tên, màu, sát thương theo nguyên tố, nút F3 mở khóa 5 nhân vật. Nguyên tố, chỉ số, tên kỹ năng và phối hợp là dữ liệu tạm; nhân vật dùng sprite người chơi đổi màu | `tests/test_week7_party.gd` chạy headless 2026-11-09: 65/65 PASS, gồm save/load, file lỗi, save cũ, xuyên tường, cả đội gục. Toàn bộ test: 431/431 PASS. Đã chụp màn hình bảng tổ đội và HUD ở 640×360; chưa thử tay chiến đấu |
 | Bước 21.4 + 21.5 — NPC gathering và giao tài nguyên | Đã thêm FSM làm việc/giao hàng cho NPC thử nghiệm, túi hàng riêng có lưu save, đặt chỗ tài nguyên theo NPC ID, khai thác im lặng, tìm đường tới resource/storage và API nạp toàn bộ cargo nguyên tử. Chỉ có một NPC thử nghiệm được quản lý hiện tại | `tests/test_step21_4_5.gd` chạy headless 2026-11-09: 9/9 PASS sau khi sửa tầm tương tác (NPC bị hủy việc do lệch tâm ô lưới) và điểm đứng quanh footprint kho. Vẫn chỉ có một NPC; tiêu chí nhiều NPC chưa kiểm được. Chưa kiểm thử gameplay thủ công |
 
 ## Hệ thống và đường dẫn chính
@@ -39,7 +40,7 @@
 - WASD: di chuyển.
 - Chuột phải: sprint; chuột trái: tấn công.
 - Space: né; E/R: kỹ năng.
-- F: tương tác; B: inventory; J: quest journal; G: build mode; H: gacha.
+- F: tương tác; B: inventory; J: quest journal; G: build mode; H: gacha; P: tổ đội; 1/2/3: đổi người.
 - F3: debug; F5: quick save; F9: quick load; Esc: pause/đóng giao diện.
 
 ## Lỗi và điểm cần xác minh
@@ -51,12 +52,12 @@
 
 ## Nhiệm vụ tiếp theo
 
-Đồ án tốt nghiệp 10 tuần, đề tài nhấn mạnh gacha, khám phá thế giới, căn cứ sinh tồn; 2026-11-09 là tuần 5. Lịch đã duyệt (dự kiến, chưa triển khai từ tuần 7):
-- Tuần 7: đổi nhân vật tổ đội 3 người. Tuần 8: dựng khu rừng, mỏ đá, mỏ sắt, mỏ vàng; nhiều nhân vật làm việc theo nghề; quái tấn công căn cứ. Tuần 9: khám phá, nhiệm vụ Hệ thống, mở đầu xuyên không; dừng tính năng. Tuần 10: sửa lỗi, export, tập demo. Báo cáo viết song song.
+Đồ án tốt nghiệp 10 tuần, đề tài nhấn mạnh gacha, khám phá thế giới, căn cứ sinh tồn; 2026-11-09 là tuần 5. Lịch đã duyệt (dự kiến, chưa triển khai từ tuần 8):
+- Tuần 8: dựng khu rừng, mỏ đá, mỏ sắt, mỏ vàng; nhiều nhân vật làm việc theo nghề; quái tấn công căn cứ. Tuần 9: khám phá, nhiệm vụ Hệ thống, mở đầu xuyên không; dừng tính năng. Tuần 10: sửa lỗi, export, tập demo. Báo cáo viết song song.
 
-Việc còn lại của tuần 5–6:
+Việc còn lại của tuần 5–7:
 
-1. Kiểm thử thủ công trong Godot: gacha (H, F3 +100 Tinh Vẫn), NPC khai thác/giao hàng, respawn, F5/F9; NPC đi ngang có thể tạm chặn ô đặt công trình.
+1. Kiểm thử thủ công trong Godot: tổ đội (F3 mở khóa, P, 1/2/3, phối hợp khi đánh slime), gacha (H, F3 +100 Tinh Vẫn), NPC khai thác/giao hàng, respawn, F5/F9; NPC đi ngang có thể tạm chặn ô đặt công trình.
 2. Viết lại `tests/test_step16.gd` nếu cần cho báo cáo.
 3. Kiểm thử thủ công FSM, đặt chỗ tài nguyên, đầy kho, nhiều kho, vật cản động và F5/F9 khi NPC đang mang hàng.
 4. Xác minh lỗi parse BaseManager người dùng từng báo trong đúng editor; source có một khai báo `_get_storage_transfer_failure_message()`.
@@ -71,3 +72,5 @@ Việc còn lại của tuần 5–6:
 
 
 - Kiểm tra tiếp ổ C (2026-11-09): thư mục tạm Windows, tải cập nhật Windows, cache Godot/NVIDIA/DirectX và Thùng rác lần lượt không có lượng đáng kể (dưới 0.01 GB ở mỗi vị trí được đo). Thư mục có dung lượng lớn đã thấy: Riot Games ~47.72 GB, Program Files ~22.99 GB, Program Files (x86) ~8.23 GB, ProgramData ~7.17 GB; trong profile có .gemini ~10.51 GB, .vscode ~3.72 GB, .gradle ~1.60 GB, .cache ~1.58 GB. Chưa phân loại nội dung cụ thể của các thư mục ứng dụng; không xóa gì.
+
+- Kiểm tra mở rộng ổ C (2026-11-09): dung lượng theo hệ thống hiện khoảng 220.3 GB đã dùng, 11.4 GB còn trống. Quét đệ quy toàn bộ thư mục không hoàn tất trong phiên kiểm tra, nên chưa có bảng phân bổ đầy đủ; các số đo thư mục trước đó chỉ là một phần, không cộng được thành tổng ổ (có thể gồm quyền truy cập bị giới hạn và thư mục hệ thống). Không có thay đổi hoặc xóa dữ liệu.

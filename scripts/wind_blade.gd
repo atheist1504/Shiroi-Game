@@ -8,6 +8,7 @@ signal hit_enemy(enemy: Node2D, damage: float)
 @export var max_range: float = 240.0
 @export var damage: float = 30.0
 
+var tint: Color = Color(0.25, 0.95, 0.82)
 var direction: Vector2 = Vector2.RIGHT
 var distance_traveled: float = 0.0
 var damaged_targets: Array[Node2D] = []
@@ -93,9 +94,9 @@ func _dissipate() -> void:
 func _draw() -> void:
 	# Vẽ lưỡi kiếm gió hình bán nguyệt sắc nét phong cách Pixel Art
 	# Màu chủ đạo: Xanh ngọc (Turquoise) và Lõi trắng (White Core)
-	var color_outer := Color(0.25, 0.95, 0.82, 0.9)
-	var color_inner := Color(0.9, 1.0, 0.98, 1.0)
-	var color_wind := Color(0.5, 0.95, 0.88, 0.45)
+	var color_outer := Color(tint.r, tint.g, tint.b, 0.9)
+	var color_inner := tint.lerp(Color.WHITE, 0.85)
+	var color_wind := tint.lerp(Color.WHITE, 0.33)
 
 	# Vẽ vệt đuôi gió phía sau
 	for i in range(trail_positions.size()):

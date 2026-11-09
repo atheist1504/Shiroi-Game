@@ -17,6 +17,10 @@ extends CanvasLayer
 @onready var slot_r_cost: Label = $SkillContainer/SlotR/VBox/CostLabel
 @onready var slot_r_panel: PanelContainer = $SkillContainer/SlotR
 
+@onready var slot_e_key: Label = $SkillContainer/SlotE/VBox/KeyLabel
+@onready var slot_e_desc: Label = $SkillContainer/SlotE/VBox/DescLabel
+@onready var slot_r_key: Label = $SkillContainer/SlotR/VBox/KeyLabel
+
 @onready var feedback_label: Label = $SkillFeedbackLabel
 
 @onready var game_over_panel: PanelContainer = $GameOverPanel
@@ -59,6 +63,9 @@ func _ready() -> void:
 				skill_comp.cooldown_changed.connect(_on_cooldown_changed)
 			if skill_comp.has_signal("skill_feedback"):
 				skill_comp.skill_feedback.connect(_show_skill_feedback)
+			if skill_comp.has_signal("kit_changed"):
+				skill_comp.kit_changed.connect(_on_kit_changed)
+				_on_kit_changed(skill_comp.e_skill_name, skill_comp.r_skill_name, skill_comp.e_damage)
 
 func _process(_delta: float) -> void:
 	# Cập nhật hiển thị đếm ngược thời gian hồi chiêu
@@ -153,6 +160,11 @@ func _on_cooldown_changed(skill_name: String, remaining: float, _total: float) -
 				slot_r_cd.text = "%.1fs" % remaining
 		if slot_r_overlay:
 			slot_r_overlay.visible = (remaining > 0.0 or current_energy_cache < 100.0)
+
+func _on_kit_changed(e_name: String, r_name: String, e_damage_value: float) -> void:
+	slot_e_key.text = "[ E ] %s" % e_name
+	slot_e_desc.text = "%d ST (5s)" % roundi(e_damage_value)
+	slot_r_key.text = "[ R ] %s" % r_name
 
 # Hiển thị thông báo phản hồi khi kỹ năng chưa sẵn sàng hoặc thiếu năng lượng
 func _show_skill_feedback(msg: String) -> void:

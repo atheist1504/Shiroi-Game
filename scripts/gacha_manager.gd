@@ -12,16 +12,17 @@ const RATE_FIVE_STAR: float = 0.02
 const PITY_PULLS: int = 40
 const MAX_RANK: int = 5
 const RANK_SPEED_BONUS: float = 0.1
+const RANK_COMBAT_BONUS: float = 0.1
 const GOLD_PER_OVERFLOW_ITEM: int = 5
 const LEGACY_SAVE_SEED: String = "shiroi_legacy_save"
 
 # Dữ liệu tạm: tên, nghề và màu sẽ được thay khi có thiết kế chính thức.
 const CHARACTERS: Array = [
-	{"id": &"gacha_char_01", "name": "Nhân vật 01", "job": &"blacksmith", "job_name": "Thợ rèn", "work_speed": 2.0, "color": Color(0.85, 0.42, 0.25)},
-	{"id": &"gacha_char_02", "name": "Nhân vật 02", "job": &"alchemist", "job_name": "Dược sư", "work_speed": 2.0, "color": Color(0.35, 0.78, 0.5)},
-	{"id": &"gacha_char_03", "name": "Nhân vật 03", "job": &"lumberjack", "job_name": "Tiều phu", "work_speed": 2.0, "color": Color(0.62, 0.48, 0.3)},
-	{"id": &"gacha_char_04", "name": "Nhân vật 04", "job": &"miner", "job_name": "Thợ mỏ", "work_speed": 2.0, "color": Color(0.55, 0.62, 0.75)},
-	{"id": &"gacha_char_05", "name": "Nhân vật 05", "job": &"guard", "job_name": "Lính canh", "work_speed": 2.0, "color": Color(0.8, 0.3, 0.45)}
+	{"id": &"gacha_char_01", "name": "Nhân vật 01", "job": &"blacksmith", "job_name": "Thợ rèn", "work_speed": 2.0, "color": Color(0.85, 0.42, 0.25), "element": &"fire", "max_health": 110.0, "attack_damage": 26.0},
+	{"id": &"gacha_char_02", "name": "Nhân vật 02", "job": &"alchemist", "job_name": "Dược sư", "work_speed": 2.0, "color": Color(0.35, 0.78, 0.5), "element": &"water", "max_health": 90.0, "attack_damage": 16.0},
+	{"id": &"gacha_char_03", "name": "Nhân vật 03", "job": &"lumberjack", "job_name": "Tiều phu", "work_speed": 2.0, "color": Color(0.62, 0.48, 0.3), "element": &"wind", "max_health": 105.0, "attack_damage": 22.0},
+	{"id": &"gacha_char_04", "name": "Nhân vật 04", "job": &"miner", "job_name": "Thợ mỏ", "work_speed": 2.0, "color": Color(0.55, 0.62, 0.75), "element": &"earth", "max_health": 130.0, "attack_damage": 18.0},
+	{"id": &"gacha_char_05", "name": "Nhân vật 05", "job": &"guard", "job_name": "Lính canh", "work_speed": 2.0, "color": Color(0.8, 0.3, 0.45), "element": &"earth", "max_health": 150.0, "attack_damage": 15.0}
 ]
 
 # Trọng số tương đối giữa các phần thưởng của lượt không ra nhân vật.
@@ -68,6 +69,16 @@ func get_work_speed(character_id: StringName) -> float:
 	if character.is_empty() or not is_owned(character_id):
 		return 1.0
 	return float(character["work_speed"]) * (1.0 + RANK_SPEED_BONUS * get_rank(character_id))
+
+func get_combat_multiplier(character_id: StringName) -> float:
+	return 1.0 + RANK_COMBAT_BONUS * get_rank(character_id)
+
+# Chỉ dùng cho nút debug F3 khi kiểm thử và demo tổ đội.
+func debug_unlock_all() -> void:
+	for character in CHARACTERS:
+		if not is_owned(character["id"]):
+			_roster[character["id"]] = {"rank": 0, "souls": 0}
+	roster_changed.emit()
 
 # Trả về {"ok": bool, "reason": String, "results": Array}.
 func pull(count: int) -> Dictionary:

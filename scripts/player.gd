@@ -67,6 +67,39 @@ func _ready() -> void:
 	health_changed.emit(current_health, max_health)
 	stamina_changed.emit(stamina, max_stamina)
 
+	var party := get_node_or_null("/root/PartyManager")
+	if party:
+		if skill_comp:
+			skill_comp.skill_used.connect(Callable(party, "notify_combat_action").unbind(1))
+			skill_comp.skill_hit.connect(Callable(party, "notify_combat_action").unbind(3))
+		party.call("bind_player", self)
+
+func _unhandled_input(event: InputEvent) -> void:
+	for slot in 3:
+		if event.is_action_pressed("party_slot_%d" % (slot + 1)):
+			get_viewport().set_input_as_handled()
+			_request_party_switch(slot)
+			return
+
+func _request_party_switch(slot: int) -> void:
+	var party := get_node_or_null("/root/PartyManager")
+	if not party or is_dead or _is_ui_modal_open():
+		return
+	var result: Dictionary = party.call("try_switch", slot)
+	if not str(result["reason"]).is_empty() and skill_comp:
+		skill_comp.skill_feedback.emit(result["reason"])
+
+# Nạp chỉ số của thành viên tổ đội vừa ra sân vào thân nhân vật duy nhất.
+func apply_party_member(profile: Dictionary, health: float) -> void:
+	max_health = float(profile["max_health"])
+	attack_damage = float(profile["attack_damage"])
+	current_health = clampf(health, 0.0, max_health)
+	if sprite_2d:
+		# self_modulate không đụng modulate mà animation và hiệu ứng trúng đòn đang dùng.
+		var character_color: Color = profile["color"]
+		sprite_2d.self_modulate = character_color.lerp(Color.WHITE, 0.35)
+	health_changed.emit(current_health, max_health)
+
 func _physics_process(delta: float) -> void:
 	if is_dead:
 		velocity = Vector2.ZERO
@@ -220,6 +253,9 @@ func take_damage(amount: float) -> void:
 	health_changed.emit(current_health, max_health)
 
 	if current_health <= 0.0:
+		var party := get_node_or_null("/root/PartyManager")
+		if party and bool(party.call("handle_active_fallen")):
+			return
 		_die()
 	else:
 		_play_damage_flash()
