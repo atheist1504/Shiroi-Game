@@ -69,6 +69,7 @@ func _finish_raid(now: float) -> void:
 		building.call("repair_full")
 	get_node("/root/WalletManager").add_tinh_van(WIN_REWARD_TINH_VAN)
 	_notifications().show_success("Đã đẩy lùi đợt %d! +%d Tinh Vẫn, công trình được sửa." % [get_wave(), WIN_REWARD_TINH_VAN])
+	get_node("/root/EventBus").raid_repelled.emit(get_wave())
 
 func _now() -> float:
 	return float(get_node("/root/WorldClock").get_time())

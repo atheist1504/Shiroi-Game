@@ -64,6 +64,9 @@ func get_souls(character_id: StringName) -> int:
 func get_pity() -> int:
 	return _pity
 
+func get_total_pulls() -> int:
+	return _total_pulls
+
 func get_work_speed(character_id: StringName) -> float:
 	var character := get_character(character_id)
 	if character.is_empty() or not is_owned(character_id):
@@ -95,6 +98,9 @@ func pull(count: int) -> Dictionary:
 	var results: Array = []
 	for _i in count:
 		results.append(_resolve_pull(wallet, inventory))
+	var event_bus := get_node_or_null("/root/EventBus")
+	if event_bus:
+		event_bus.gacha_pulled.emit(count)
 	return {"ok": true, "reason": "", "results": results}
 
 func rank_up(character_id: StringName) -> bool:

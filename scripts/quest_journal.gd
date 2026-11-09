@@ -127,7 +127,8 @@ func _refresh_quest_list() -> void:
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.add_theme_font_size_override("font_size", 9)
 
-		var type_prefix := "[Chính] " if def.get("quest_type") == "main" else "[Phụ] "
+		# Tên nhiệm vụ Hệ thống đã có sẵn nhãn [Hệ Thống].
+		var type_prefix := "" if def.get("quest_type") == "system" else ("[Chính] " if def.get("quest_type") == "main" else "[Phụ] ")
 		var status_badge := ""
 		match status:
 			0: # LOCKED
@@ -169,7 +170,8 @@ func _update_selected_details() -> void:
 	if detail_title:
 		detail_title.text = def.get("title", str(selected_quest_id))
 	if detail_type:
-		detail_type.text = "Loại: " + ("Nhiệm vụ chính" if def.get("quest_type") == "main" else "Nhiệm vụ phụ")
+		var type_names := {"main": "Nhiệm vụ chính", "system": "Nhiệm vụ Hệ thống"}
+		detail_type.text = "Loại: " + str(type_names.get(def.get("quest_type"), "Nhiệm vụ phụ"))
 	if detail_status:
 		detail_status.text = "Trạng thái: " + quest_mgr.get_status_name(status)
 		match status:

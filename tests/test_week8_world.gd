@@ -54,7 +54,7 @@ func _run() -> void:
 			counts[node.get("resource_id")] = int(counts.get(node.get("resource_id"), 0)) + 1
 	_check(counts.get(&"wood") == 6 and counts.get(&"herb") == 3 and counts.get(&"stone") == 6, "Khu rừng và mỏ đá đủ điểm tài nguyên")
 	_check(counts.get(&"iron_ore") == 6 and counts.get(&"gold_ore") == 5, "Mỏ sắt và mỏ vàng đủ điểm tài nguyên")
-	_check(scene.get_node("Environment/Zones").get_child_count() == 4, "Có đủ 4 khu trên bản đồ")
+	_check(scene.get_node("Environment/Zones").get_child_count() == 5, "Có đủ 4 khu khai thác và vùng căn cứ trên bản đồ")
 	_check(inventory.get_item_def(&"iron_ore") != null and inventory.get_item_def(&"gold_ore") != null, "Có vật phẩm quặng sắt và quặng vàng")
 	var far_path: PackedVector2Array = npc_manager.call("get_world_path", Vector2(704, 600), Vector2(2240, 500))
 	_check(not far_path.is_empty() and far_path[far_path.size() - 1].distance_to(Vector2(2240, 500)) < 24.0, "Có đường từ căn cứ tới mỏ vàng")

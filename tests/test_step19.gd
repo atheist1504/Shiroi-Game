@@ -84,7 +84,7 @@ func _run() -> void:
 	_check(bool(slime.get("is_dead")) and is_equal_approx(float(slime.get("current_health")), 0.0), "Enemy dead before save stays dead")
 	_check(_defeated_event_count == defeated_before_load, "Load does not emit enemy_defeated or increment quest kills")
 	_check(int(quest_manager.call("get_objective_progress", &"main_clear_slimes", &"defeat_3_slimes")) == quest_kills_before_load, "Load leaves saved quest kill count unchanged")
-	_check(get_nodes_in_group("enemies").size() == 8, "Repeated loads do not duplicate scene-authored enemies")
+	_check(get_nodes_in_group("enemies").size() == 13, "Repeated loads do not duplicate scene-authored enemies")
 
 	# Boss HP uses the same persistence path.
 	var boss := scene.get_node("TestBoss")

@@ -19,6 +19,7 @@
 [ext_resource type="Script" path="res://scripts/map_zone.gd" id="17_map_zone"]
 [ext_resource type="Script" path="res://scripts/worker_manager.gd" id="18_worker_manager"]
 [ext_resource type="Script" path="res://scripts/base_raid_manager.gd" id="19_base_raid"]
+[ext_resource type="Script" path="res://scripts/narrative_ui.gd" id="20_narrative_ui"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_wall"]
 size = Vector2(2560, 24)
@@ -207,10 +208,19 @@ color = Color(0.298039, 0.337255, 0.415686, 1)
 
 [node name="Zones" type="Node2D" parent="Environment"]
 
+[node name="HopeValleyArea" type="Node2D" parent="Environment/Zones"]
+position = Vector2(672, 520)
+script = ExtResource("17_map_zone")
+zone_title = "Thung Lũng Hy Vọng"
+zone_size = Vector2(544, 160)
+region_id = &"hope_valley_area"
+show_area = false
+
 [node name="ForestZone" type="Node2D" parent="Environment/Zones"]
 position = Vector2(1320, 60)
 script = ExtResource("17_map_zone")
 zone_title = "KHU RỪNG"
+region_id = &"zone_forest"
 zone_size = Vector2(580, 280)
 zone_color = Color(0.3, 0.72, 0.38, 1)
 
@@ -218,6 +228,7 @@ zone_color = Color(0.3, 0.72, 0.38, 1)
 position = Vector2(1960, 60)
 script = ExtResource("17_map_zone")
 zone_title = "MỎ ĐÁ"
+region_id = &"zone_stone_mine"
 zone_size = Vector2(560, 280)
 zone_color = Color(0.58, 0.64, 0.74, 1)
 
@@ -225,6 +236,7 @@ zone_color = Color(0.58, 0.64, 0.74, 1)
 position = Vector2(1320, 400)
 script = ExtResource("17_map_zone")
 zone_title = "MỎ SẮT"
+region_id = &"zone_iron_mine"
 zone_size = Vector2(580, 280)
 zone_color = Color(0.82, 0.48, 0.3, 1)
 
@@ -232,6 +244,7 @@ zone_color = Color(0.82, 0.48, 0.3, 1)
 position = Vector2(1960, 400)
 script = ExtResource("17_map_zone")
 zone_title = "MỎ VÀNG"
+region_id = &"zone_gold_mine"
 zone_size = Vector2(560, 280)
 zone_color = Color(1, 0.82, 0.25, 1)
 
@@ -316,6 +329,36 @@ persistent_id = &"forest_clearing_slime_06"
 [node name="Slime7" parent="." instance=ExtResource("3_slime")]
 position = Vector2(880, 500)
 persistent_id = &"forest_clearing_slime_07"
+
+[node name="MineSlime1" parent="." instance=ExtResource("3_slime")]
+position = Vector2(1600, 200)
+region_id = &"mine_fields"
+persistent_id = &"mine_fields_slime_01"
+
+[node name="MineSlime2" parent="." instance=ExtResource("3_slime")]
+position = Vector2(2260, 230)
+region_id = &"mine_fields"
+persistent_id = &"mine_fields_slime_02"
+
+[node name="MineSlime3" parent="." instance=ExtResource("3_slime")]
+position = Vector2(1620, 540)
+region_id = &"mine_fields"
+persistent_id = &"mine_fields_slime_03"
+
+[node name="MineSlime4" parent="." instance=ExtResource("3_slime")]
+position = Vector2(2230, 560)
+region_id = &"mine_fields"
+persistent_id = &"mine_fields_slime_04"
+
+[node name="MineSlime5" parent="." instance=ExtResource("3_slime")]
+position = Vector2(2440, 590)
+region_id = &"mine_fields"
+persistent_id = &"mine_fields_slime_05"
+
+[node name="AncientArchive" parent="." instance=ExtResource("6_discovery_pt")]
+position = Vector2(2490, 650)
+region_id = &"ancient_archive"
+prompt_text = "[F] Khám phá di tích"
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
 position = Vector2(640, 360)
@@ -622,6 +665,9 @@ node_id = &"zone_gold_05"
 node_type = "gold"
 resource_id = &"gold_ore"
 yield_amount = 2
+
+[node name="NarrativeUI" type="CanvasLayer" parent="."]
+script = ExtResource("20_narrative_ui")
 
 [node name="UI" type="CanvasLayer" parent="."]
 script = ExtResource("2_hud_script")
