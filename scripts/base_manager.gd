@@ -295,8 +295,9 @@ func _get_placement_block_reason(building_type_id: StringName, grid_pos: Vector2
 		return "Vị trí va chạm với '%s'." % collider_name
 
 	# ResourceNode dùng collision layer 0 nên được kiểm tra trực tiếp.
+	# Điểm đã cạn vẫn chặn vì sẽ hồi sinh lại đúng vị trí đó.
 	for node in get_tree().get_nodes_in_group("resource_nodes"):
-		if not is_instance_valid(node) or node.get("is_harvested") == true:
+		if not is_instance_valid(node):
 			continue
 		var resource_node := node as Node2D
 		if not resource_node:

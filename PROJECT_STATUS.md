@@ -4,7 +4,7 @@
 
 - Game 2D top-down viết bằng GDScript; `project.godot` khai báo Godot 4.7 và viewport 640×360, phóng integer scale.
 - Scene khởi chạy là `main.tscn`; Player dùng `player.tscn`, enemy slime dùng `slime.tscn`.
-- Các Autoload trong `project.godot`: `EventBus`, `WorldState`, `QuestManager`, `SaveManager`, `InventoryManager`, `NotificationManager`, `CraftingManager`, `BaseManager`.
+- Các Autoload trong `project.godot`: `EventBus`, `WorldState`, `QuestManager`, `SaveManager`, `InventoryManager`, `NotificationManager`, `CraftingManager`, `BaseManager`, `WorldClock`.
 - Luồng chính: Player nhận input và combat; các Autoload giữ trạng thái và dịch vụ dùng chung; UI hiển thị inventory, quest, crafting, debug, pause và storage; `SaveManager` phối hợp lưu/khôi phục trạng thái.
 
 ## Tiến độ tính năng
@@ -12,11 +12,11 @@
 | Phần | Trạng thái theo source | Trạng thái kiểm thử |
 |---|---|---|
 | Gameplay nền, combat, kỹ năng, quest, inventory, crafting, HUD | Đã triển khai; xem các file chính bên dưới | Có test scripts cho các bước 16–19; lần cập nhật tài liệu này không chạy lại gameplay |
-| Bước 19 — xây căn cứ và enemy persistence | Có mã Base Building, dữ liệu building và lưu trạng thái enemy trong source | Có `tests/test_step19.gd`; log hiện có không nhất quán: ghi 57/57 PASS nhưng cũng chứa lỗi lambda capture và các dòng FAIL. Cần chạy lại trước khi kết luận |
-| Bước 20.1–20.5 — storage | Có dữ liệu kho theo building ID, UI tương tác và API gửi/rút trong `BaseManager`; có test scripts 20.1, 20.2, 20.3, 20.4+5 | Các test scripts hiện diện; kết quả PASS chưa được xác minh lại trong lần cập nhật này |
-| Bước 21.1 + 21.2 — Autonomous NPC AI và Pathfinding | Đã triển khai bản V1 trong `scripts/npc_manager.gd` và `scripts/autonomous_test_npc.gd`; có NPC thử nghiệm, FSM, A* bị giới hạn trong căn cứ, debug F3 và save/load tùy chọn | Godot 4.7.2 `--check-only` cho script NPC, SaveManager và test không báo lỗi; khởi động scene headless không báo lỗi. Đã thêm `tests/test_step21_1_2.gd`; gọi test bằng `--script` chỉ ghi banner engine, không có PASS/FAIL, nên assertion runtime chưa xác nhận. Chưa kiểm thử gameplay thủ công |
-| Bước 21.3 — Resource Respawn | Chưa triển khai trong source. ResourceNode chỉ có trạng thái thu thập/đã cạn; SaveManager lưu và khôi phục cờ đã thu thập, không có timer hoặc API hồi sinh | Chưa có kiểm thử |
-| Bước 21.4 + 21.5 — NPC gathering và giao tài nguyên | Đã thêm FSM làm việc/giao hàng cho NPC thử nghiệm, túi hàng riêng có lưu save, đặt chỗ tài nguyên theo NPC ID, khai thác im lặng, tìm đường tới resource/storage và API nạp toàn bộ cargo nguyên tử. Chỉ có một NPC thử nghiệm được quản lý hiện tại | Godot `--check-only` trả mã 0 cho các script liên quan và test mới. Test `--script` không phát sinh PASS/FAIL; chưa xác nhận runtime/gameplay. Scene hiện tại không có ResourceNode nào nằm trong Hope Valley BasePlot, nên chu trình gathering thực tế chưa thể chạy ở bản đồ này |
+| Bước 19 — xây căn cứ và enemy persistence | Có mã Base Building, dữ liệu building và lưu trạng thái enemy trong source | `tests/test_step19.gd` chạy headless 2026-11-09: 58/58 PASS. Log `step19_*.log` cũ không dùng làm bằng chứng. Chưa kiểm thử thủ công |
+| Bước 20.1–20.5 — storage | Có dữ liệu kho theo building ID, UI tương tác và API gửi/rút trong `BaseManager`; có test scripts 20.1, 20.2, 20.3, 20.4+5 | Chạy headless 2026-11-09: 20.1 50/50, 20.2 34/34, 20.3 29/29, 20.4+5 63/63 PASS. Chưa kiểm thử thủ công |
+| Bước 21.1 + 21.2 — Autonomous NPC AI và Pathfinding | Đã triển khai bản V1 trong `scripts/npc_manager.gd` và `scripts/autonomous_test_npc.gd`; có NPC thử nghiệm, FSM, A* bị giới hạn trong căn cứ, debug F3 và save/load tùy chọn | `tests/test_step21_1_2.gd` chạy headless 2026-11-09: 29/29 PASS. Chưa kiểm thử gameplay thủ công |
+| Bước 21.3 — Resource Respawn | Đã triển khai: `WorldClock` (thời gian chỉ trôi khi đang chơi, lưu trong save), ResourceNode hồi sinh (gỗ 60s, đá 90s, thảo dược 45s), mốc hồi lưu trong WorldState, 6 điểm tài nguyên trong Hope Valley BasePlot, không cho xây đè điểm tài nguyên kể cả đã cạn | `tests/test_step21_3.gd` chạy headless 2026-11-09: 28/28 PASS, gồm F9 liên tiếp, save cũ và NPC khai thác lại sau hồi sinh. Chưa kiểm thử gameplay thủ công |
+| Bước 21.4 + 21.5 — NPC gathering và giao tài nguyên | Đã thêm FSM làm việc/giao hàng cho NPC thử nghiệm, túi hàng riêng có lưu save, đặt chỗ tài nguyên theo NPC ID, khai thác im lặng, tìm đường tới resource/storage và API nạp toàn bộ cargo nguyên tử. Chỉ có một NPC thử nghiệm được quản lý hiện tại | `tests/test_step21_4_5.gd` chạy headless 2026-11-09: 9/9 PASS sau khi sửa tầm tương tác (NPC bị hủy việc do lệch tâm ô lưới) và điểm đứng quanh footprint kho. Vẫn chỉ có một NPC; tiêu chí nhiều NPC chưa kiểm được. Chưa kiểm thử gameplay thủ công |
 
 ## Hệ thống và đường dẫn chính
 
@@ -31,7 +31,7 @@
 - Crafting: `scripts/crafting_manager.gd`, `scripts/crafting_ui.gd`, `scripts/crafting_station.gd`, `scripts/crafting_recipe.gd` (không thấy thư mục recipe resource trong source hiện tại)
 - Quest/world/events/notifications: `scripts/quest_manager.gd`, `scripts/world_state.gd`, `scripts/event_bus.gd`, `scripts/notification_manager.gd`, `scenes/quest_journal.tscn`
 - Kỹ năng và hiệu ứng: `scripts/skill_component.gd`, `scripts/wind_blade.gd`, `scripts/cyclone.gd`, `scripts/status_effect_component.gd`
-- Test scripts hiện có: `tests/test_step16.gd` đến `tests/test_step20_4_5.gd`, `tests/test_step21_1_2.gd`
+- Test scripts: `tests/test_step17.gd` đến `tests/test_step21_4_5.gd`. Chạy toàn bộ: `powershell -ExecutionPolicy Bypass -File tests\run_tests.ps1` (tự sao lưu và khôi phục save). Bản Godot Windows không in ra console nên phải chuyển hướng output. `tests/test_step16.gd` đã lỗi thời, bị bỏ qua (test 17, 18: 11/11 PASS)
 
 ## Điều khiển khai báo trong InputMap
 
@@ -49,8 +49,13 @@
 
 ## Nhiệm vụ tiếp theo
 
-1. Bổ sung ResourceNode wood/stone/herb trong vùng Hope Valley BasePlot và triển khai Bước 21.3 trước khi xác nhận chu trình tự thu thập liên tục.
-2. Chạy được `tests/test_step21_4_5.gd` trong Godot để xác nhận giao dịch/chu trình bằng assertions; hiện `--script` thoát mà không in PASS/FAIL.
+Đồ án tốt nghiệp 10 tuần, đề tài nhấn mạnh gacha, khám phá thế giới, căn cứ sinh tồn; 2026-11-09 là tuần 5. Lịch đã duyệt (dự kiến, chưa triển khai từ tuần 6):
+- Tuần 6: gacha (ví Tinh Vẫn/Tinh Hồn, banner, tỉ lệ, bảo hiểm, danh sách nhân vật, chặn F5/F9). Tuần 7: đổi nhân vật tổ đội 3 người. Tuần 8: nhiều nhân vật làm việc theo nghề, quái tấn công căn cứ. Tuần 9: khám phá, nhiệm vụ Hệ thống, mở đầu xuyên không; dừng tính năng. Tuần 10: sửa lỗi, export, tập demo. Báo cáo viết song song.
+
+Việc còn lại của tuần 5:
+
+1. Kiểm thử thủ công trong Godot: NPC khai thác/giao hàng, respawn, F5/F9; NPC đi ngang có thể tạm chặn ô đặt công trình.
+2. Viết lại `tests/test_step16.gd` nếu cần cho báo cáo.
 3. Kiểm thử thủ công FSM, đặt chỗ tài nguyên, đầy kho, nhiều kho, vật cản động và F5/F9 khi NPC đang mang hàng.
 4. Xác minh lỗi parse BaseManager người dùng từng báo trong đúng editor; source có một khai báo `_get_storage_transfer_failure_message()`.
 

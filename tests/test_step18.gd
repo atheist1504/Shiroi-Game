@@ -1,7 +1,15 @@
 extends SceneTree
 
 # Kịch bản kiểm thử toàn diện Bước 18: Crafting, Resource Processing, Consumables & Inventory Tests
-func _init() -> void:
+func _initialize() -> void:
+	call_deferred("_run")
+
+func _run() -> void:
+	# Test tự tạo các manager; bỏ autoload cùng tên để game và test dùng chung một bản.
+	for autoload_name in ["InventoryManager", "NotificationManager", "EventBus", "WorldState", "CraftingManager", "SaveManager"]:
+		var existing := root.get_node_or_null(autoload_name)
+		if existing:
+			existing.free()
 	print("==================================================")
 	print(" BẮT ĐẦU KIỂM THỬ BƯỚC 18: CRAFTING & CONSUMABLES")
 	print("==================================================")
@@ -209,6 +217,7 @@ func _init() -> void:
 	mock_player.current_health = 40.0
 	mock_player.max_health = 100.0
 	root.add_child(mock_player)
+	mock_player.current_health = 40.0 # player.gd đặt đầy máu trong _ready
 
 	inv_mgr.call("_init_empty_slots")
 	inv_mgr.call("add_item", &"small_health_potion", 2)

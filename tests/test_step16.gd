@@ -1,7 +1,10 @@
 extends SceneTree
 
 # Kịch bản kiểm thử toàn diện Bước 16: Input Control V2 + Persistent Save & Load System
-func _init() -> void:
+func _initialize() -> void:
+	call_deferred("_run")
+
+func _run() -> void:
 	print("==================================================")
 	print(" BẮT ĐẦU KIỂM THỬ BƯỚC 16: INPUT CONTROL V2 & SAVE/LOAD")
 	print("==================================================")

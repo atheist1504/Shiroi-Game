@@ -170,11 +170,13 @@ func save_game(slot_id: int = DEFAULT_SLOT) -> bool:
 	if npc_manager and npc_manager.has_method("to_dict"):
 		npc_state = npc_manager.call("to_dict")
 
+	var world_clock_node := get_node_or_null("/root/WorldClock")
 	var save_dict: Dictionary = {
 		"schema_version": SCHEMA_VERSION,
 		"game_version": GAME_VERSION,
 		"save_timestamp": Time.get_datetime_string_from_system(false, true),
 		"playtime_seconds": playtime_seconds,
+		"world_clock": world_clock_node.call("to_dict") if world_clock_node else {},
 		"scene": current_scene_path,
 		"player": player_data,
 		"world_state": world_state_dict,
@@ -305,6 +307,9 @@ func load_game(slot_id: int = DEFAULT_SLOT) -> bool:
 
 	# 1. Khôi phục thời gian chơi
 	playtime_seconds = float(data.get("playtime_seconds", 0.0))
+	var world_clock_node := get_node_or_null("/root/WorldClock")
+	if world_clock_node:
+		world_clock_node.call("load_from_dict", data.get("world_clock", {}))
 
 	# 2. Khôi phục WorldState (nạp im lặng)
 	var world_state_node = get_node_or_null("/root/WorldState")
@@ -524,6 +529,10 @@ func _validate_snapshot(data: Dictionary) -> Dictionary:
 		return {"valid": false, "error": "HP trong player snapshot không hợp lệ."}
 	if data.has("inventory") and not (data["inventory"] is Dictionary):
 		return {"valid": false, "error": "Dữ liệu inventory không hợp lệ."}
+	if data.has("world_clock"):
+		var snapshot_clock := get_node_or_null("/root/WorldClock")
+		if snapshot_clock and not snapshot_clock.call("is_valid_snapshot", data["world_clock"]):
+			return {"valid": false, "error": "Đồng hồ thế giới trong file lưu không hợp lệ."}
 	if data.has("harvested_resources") and not (data["harvested_resources"] is Array):
 		return {"valid": false, "error": "Danh sách tài nguyên đã thu thập không hợp lệ."}
 	if data.has("ground_pickups"):

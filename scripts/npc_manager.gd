@@ -25,7 +25,9 @@ var _task_building_id: StringName = &""
 var _work_remaining: float = 0.0
 var _idle_retry: float = 0.0
 const WORK_DURATION: float = 2.0
-const INTERACTION_RANGE: float = 20.0
+# 20px tới điểm tương tác + tối đa ~11px lệch do đường đi được làm tròn về tâm ô lưới.
+const INTERACTION_RANGE: float = 32.0
+const BUILDING_INTERACTION_GAP: float = 16.0
 const RETRY_DELAY: float = 2.0
 
 func _process(delta: float) -> void:
@@ -277,7 +279,7 @@ func _assign_delivery() -> bool:
 		if not building or StringName(str(building.get("building_type_id"))) != &"storage":
 			continue
 		var building_id := StringName(str(building.get("instance_id")))
-		var interaction_point := _nearest_interaction_point(building.global_position)
+		var interaction_point := _nearest_building_interaction_point(building)
 		if not is_finite(interaction_point.x):
 			continue
 		var path := _get_path_to(interaction_point)
@@ -325,7 +327,15 @@ func _cancel_task(reason: String) -> void:
 	_emit_status()
 
 func _nearest_interaction_point(center: Vector2) -> Vector2:
-	var candidates: Array[Vector2] = [center + Vector2(20, 0), center + Vector2(-20, 0), center + Vector2(0, 20), center + Vector2(0, -20)]
+	return _closest_reachable_point([center + Vector2(20, 0), center + Vector2(-20, 0), center + Vector2(0, 20), center + Vector2(0, -20)])
+
+# Công trình có va chạm theo footprint, nên điểm đứng phải nằm ngoài cả bốn cạnh.
+func _nearest_building_interaction_point(building: Node2D) -> Vector2:
+	var center := building.global_position
+	var offset: Vector2 = (building.call("get_footprint") as Vector2) * 0.5 + Vector2(BUILDING_INTERACTION_GAP, BUILDING_INTERACTION_GAP)
+	return _closest_reachable_point([center + Vector2(offset.x, 0), center - Vector2(offset.x, 0), center + Vector2(0, offset.y), center - Vector2(0, offset.y)])
+
+func _closest_reachable_point(candidates: Array[Vector2]) -> Vector2:
 	var best := Vector2.INF
 	var best_distance := INF
 	for candidate in candidates:
@@ -353,7 +363,9 @@ func _find_building(building_id: StringName) -> Node2D:
 	return null
 
 func _distance_to_building(position: Vector2, building: Node2D) -> float:
-	return position.distance_to(building.global_position)
+	var half: Vector2 = (building.call("get_footprint") as Vector2) * 0.5
+	var closest := position.clamp(building.global_position - half, building.global_position + half)
+	return position.distance_to(closest)
 
 func get_debug_status() -> String:
 	if not is_instance_valid(_npc):

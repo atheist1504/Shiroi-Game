@@ -17,6 +17,10 @@ func _run() -> void:
 	_prepare_test_slot()
 	var packed := load("res://main.tscn") as PackedScene
 	var scene := packed.instantiate()
+	# Test này chỉ kiểm tra FSM và tìm đường; bỏ tài nguyên căn cứ để NPC không tự đi làm.
+	for resource_node in scene.get_node("ResourceNodes").get_children():
+		if str(resource_node.get("node_id")).begins_with("hv_"):
+			resource_node.free()
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame
@@ -97,6 +101,8 @@ func _run() -> void:
 	(npc as Node2D).global_position = Vector2(720, 560)
 	npc.call("set_idle")
 	_check(bool(npc_manager.call("request_destination", first_destination)), "NPC is moving before save")
+	# Giữ NPC đứng yên trong lúc chờ lưu để vị trí trong file khớp vị trí so sánh.
+	npc.set_physics_process(false)
 	var saved_position: Vector2 = (npc as Node2D).global_position
 	var save_manager := root.get_node("SaveManager")
 	var event_bus := root.get_node("EventBus")

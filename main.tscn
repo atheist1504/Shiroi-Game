@@ -310,6 +310,48 @@ position = Vector2(560, 340)
 
 [node name="ResourceNodes" type="Node2D" parent="."]
 
+[node name="BaseTree01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(760, 548)
+node_id = &"hv_tree_01"
+node_type = "tree"
+resource_id = &"wood"
+yield_amount = 3
+
+[node name="BaseTree02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1120, 548)
+node_id = &"hv_tree_02"
+node_type = "tree"
+resource_id = &"wood"
+yield_amount = 3
+
+[node name="BaseRock01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(880, 652)
+node_id = &"hv_rock_01"
+node_type = "rock"
+resource_id = &"stone"
+yield_amount = 3
+
+[node name="BaseRock02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1040, 652)
+node_id = &"hv_rock_02"
+node_type = "rock"
+resource_id = &"stone"
+yield_amount = 3
+
+[node name="BaseHerb01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(720, 640)
+node_id = &"hv_herb_01"
+node_type = "herb"
+resource_id = &"herb"
+yield_amount = 3
+
+[node name="BaseHerb02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+position = Vector2(1160, 640)
+node_id = &"hv_herb_02"
+node_type = "herb"
+resource_id = &"herb"
+yield_amount = 3
+
 [node name="Tree01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
 position = Vector2(280, 160)
 node_id = &"tree_01"

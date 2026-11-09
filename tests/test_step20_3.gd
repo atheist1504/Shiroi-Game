@@ -9,6 +9,10 @@ func _initialize() -> void:
 func _run() -> void:
 	var packed := load("res://main.tscn") as PackedScene
 	var scene := packed.instantiate()
+	# Bỏ tài nguyên căn cứ để NPC đứng yên, không đi ngang ô đặt công trình của test.
+	for resource_node in scene.get_node("ResourceNodes").get_children():
+		if str(resource_node.get("node_id")).begins_with("hv_"):
+			resource_node.free()
 	root.add_child(scene)
 	current_scene = scene
 	await process_frame

@@ -5,6 +5,10 @@ extends Area2D
 @export var node_type: String = "tree" # "tree", "rock", "herb"
 @export var resource_id: StringName = &"wood"
 @export var yield_amount: int = 3
+@export var respawn_seconds: float = 0.0 # 0 = dùng mặc định theo loại tài nguyên
+
+const DEFAULT_RESPAWN_SECONDS: Dictionary = {&"wood": 60.0, &"stone": 90.0, &"herb": 45.0}
+const FALLBACK_RESPAWN_SECONDS: float = 60.0
 
 @onready var prompt_label: Label = $PromptLabel
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -12,8 +16,18 @@ extends Area2D
 var player_inside: bool = false
 var is_harvested: bool = false
 var _reserved_by_npc: StringName = &""
+var _fade_tween: Tween = null
+
+func _process(_delta: float) -> void:
+	var clock := get_node_or_null("/root/WorldClock")
+	if not clock:
+		return
+	var respawn_at := _get_respawn_at()
+	if respawn_at >= 0.0 and float(clock.call("get_time")) >= respawn_at:
+		set_harvested(false, false)
 
 func _ready() -> void:
+	set_process(false)
 	collision_layer = 0
 	collision_mask = 2 # Player layer
 	add_to_group("resource_nodes")
@@ -41,6 +55,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _try_gather() -> void:
+	if is_harvested:
+		return
 	var inv_mgr = get_node_or_null("/root/InventoryManager")
 	if not inv_mgr:
 		return
@@ -80,16 +96,64 @@ func set_harvested(harvested: bool, notify: bool = false) -> void:
 		if world_state and world_state.has_method("set_flag"):
 			world_state.set_flag(StringName("harvested_" + str(node_id)), true)
 
+		_schedule_respawn_if_needed()
+
 		# Hiệu ứng mờ dần khi biến mất
-		var tween := create_tween()
-		tween.tween_property(self, "modulate:a", 0.0, 0.25)
-		tween.tween_callback(func(): visible = false)
+		_kill_fade()
+		_fade_tween = create_tween()
+		_fade_tween.tween_property(self, "modulate:a", 0.0, 0.25)
+		_fade_tween.tween_callback(func(): visible = false)
 	else:
+		_kill_fade()
 		visible = true
 		modulate.a = 1.0
 		if collision_shape:
 			collision_shape.set_deferred("disabled", false)
+		_clear_harvest_flags()
+		set_process(false)
+		if player_inside and prompt_label:
+			prompt_label.text = _get_prompt_text()
+			prompt_label.visible = true
 	_reserved_by_npc = &""
+
+func get_respawn_duration() -> float:
+	if respawn_seconds > 0.0:
+		return respawn_seconds
+	return float(DEFAULT_RESPAWN_SECONDS.get(resource_id, FALLBACK_RESPAWN_SECONDS))
+
+# Mốc hồi sinh nằm trong WorldState nên được lưu cùng save; F9 không đặt lại giờ.
+func _get_respawn_at() -> float:
+	var world_state = get_node_or_null("/root/WorldState")
+	if not world_state:
+		return -1.0
+	return float(world_state.get_flag(_respawn_flag_id(), -1.0))
+
+func _schedule_respawn_if_needed() -> void:
+	var clock := get_node_or_null("/root/WorldClock")
+	var world_state = get_node_or_null("/root/WorldState")
+	if not clock or not world_state:
+		return
+	if _get_respawn_at() < 0.0:
+		world_state.set_flag(_respawn_flag_id(), float(clock.call("get_time")) + get_respawn_duration())
+	set_process(true)
+
+func _clear_harvest_flags() -> void:
+	var world_state = get_node_or_null("/root/WorldState")
+	if not world_state:
+		return
+	var harvested_flag := StringName("harvested_" + str(node_id))
+	if world_state.get_flag(harvested_flag) == true:
+		world_state.set_flag(harvested_flag, false)
+	if _get_respawn_at() >= 0.0:
+		world_state.set_flag(_respawn_flag_id(), -1.0)
+
+func _respawn_flag_id() -> StringName:
+	return StringName("respawn_at_" + str(node_id))
+
+func _kill_fade() -> void:
+	if _fade_tween and _fade_tween.is_valid():
+		_fade_tween.kill()
+	_fade_tween = null
 
 func is_available_for_npc(npc_id: StringName) -> bool:
 	return not is_harvested and (_reserved_by_npc == StringName() or _reserved_by_npc == npc_id)

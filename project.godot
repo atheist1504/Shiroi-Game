@@ -25,6 +25,7 @@ InventoryManager="*res://scripts/inventory_manager.gd"
 NotificationManager="*res://scripts/notification_manager.gd"
 CraftingManager="*res://scripts/crafting_manager.gd"
 BaseManager="*res://scripts/base_manager.gd"
+WorldClock="*res://scripts/world_clock.gd"
 
 [display]
 

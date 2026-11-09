@@ -35,6 +35,9 @@ func configure(definition: BuildingDefinition, p_instance_id: StringName, p_base
 		_configure_collision()
 		queue_redraw()
 
+func get_footprint() -> Vector2:
+	return _footprint
+
 func set_preview_valid(valid: bool) -> void:
 	if _placement_valid == valid:
 		return
