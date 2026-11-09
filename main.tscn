@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" uid="uid://b7v6c5d4e3f2g" path="res://scenes/crafting_ui.tscn" id="12_craft_ui"]
 [ext_resource type="Script" path="res://scripts/base_plot.gd" id="13_base_plot"]
 [ext_resource type="Script" path="res://scripts/npc_manager.gd" id="14_npc_manager"]
+[ext_resource type="Script" path="res://scripts/gacha_ui.gd" id="15_gacha_ui"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_wall"]
 size = Vector2(1280, 24)
@@ -307,6 +308,9 @@ position = Vector2(640, 110)
 position = Vector2(560, 340)
 
 [node name="CraftingUI" parent="." instance=ExtResource("12_craft_ui")]
+
+[node name="GachaUI" type="CanvasLayer" parent="."]
+script = ExtResource("15_gacha_ui")
 
 [node name="ResourceNodes" type="Node2D" parent="."]
 

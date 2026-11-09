@@ -60,6 +60,11 @@ func _ready() -> void:
 		btn_heal.pressed.connect(_on_btn_heal_pressed)
 	if btn_unlock_base:
 		btn_unlock_base.pressed.connect(_on_btn_unlock_base_pressed)
+		var grant_tinh_van := Button.new()
+		grant_tinh_van.name = "BtnGrantTinhVan"
+		grant_tinh_van.text = "+100 Tinh Vẫn (Gacha)"
+		grant_tinh_van.pressed.connect(func(): get_node("/root/WalletManager").add_tinh_van(100))
+		btn_unlock_base.add_sibling(grant_tinh_van)
 	if spawn_npc_button:
 		spawn_npc_button.pressed.connect(_on_spawn_npc_pressed)
 	if destination_west_button:

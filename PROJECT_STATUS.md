@@ -4,7 +4,7 @@
 
 - Game 2D top-down viết bằng GDScript; `project.godot` khai báo Godot 4.7 và viewport 640×360, phóng integer scale.
 - Scene khởi chạy là `main.tscn`; Player dùng `player.tscn`, enemy slime dùng `slime.tscn`.
-- Các Autoload trong `project.godot`: `EventBus`, `WorldState`, `QuestManager`, `SaveManager`, `InventoryManager`, `NotificationManager`, `CraftingManager`, `BaseManager`, `WorldClock`.
+- Các Autoload trong `project.godot`: `EventBus`, `WorldState`, `QuestManager`, `SaveManager`, `InventoryManager`, `NotificationManager`, `CraftingManager`, `BaseManager`, `WorldClock`, `WalletManager`, `GachaManager`.
 - Luồng chính: Player nhận input và combat; các Autoload giữ trạng thái và dịch vụ dùng chung; UI hiển thị inventory, quest, crafting, debug, pause và storage; `SaveManager` phối hợp lưu/khôi phục trạng thái.
 
 ## Tiến độ tính năng
@@ -16,6 +16,7 @@
 | Bước 20.1–20.5 — storage | Có dữ liệu kho theo building ID, UI tương tác và API gửi/rút trong `BaseManager`; có test scripts 20.1, 20.2, 20.3, 20.4+5 | Chạy headless 2026-11-09: 20.1 50/50, 20.2 34/34, 20.3 29/29, 20.4+5 63/63 PASS. Chưa kiểm thử thủ công |
 | Bước 21.1 + 21.2 — Autonomous NPC AI và Pathfinding | Đã triển khai bản V1 trong `scripts/npc_manager.gd` và `scripts/autonomous_test_npc.gd`; có NPC thử nghiệm, FSM, A* bị giới hạn trong căn cứ, debug F3 và save/load tùy chọn | `tests/test_step21_1_2.gd` chạy headless 2026-11-09: 29/29 PASS. Chưa kiểm thử gameplay thủ công |
 | Bước 21.3 — Resource Respawn | Đã triển khai: `WorldClock` (thời gian chỉ trôi khi đang chơi, lưu trong save), ResourceNode hồi sinh (gỗ 60s, đá 90s, thảo dược 45s), mốc hồi lưu trong WorldState, 6 điểm tài nguyên trong Hope Valley BasePlot, không cho xây đè điểm tài nguyên kể cả đã cạn | `tests/test_step21_3.gd` chạy headless 2026-11-09: 28/28 PASS, gồm F9 liên tiếp, save cũ và NPC khai thác lại sau hồi sinh. Chưa kiểm thử gameplay thủ công |
+| Tuần 6 — Gacha | Đã triển khai: ví vàng/Tinh Vẫn (`scripts/wallet_manager.gd`), gacha chỉ nhân vật 5★ 8%, bảo hiểm 30, 10 Tinh Vẫn/lượt, Tinh Hồn riêng từng nhân vật và tăng bậc (`scripts/gacha_manager.gd`), UI phím H (`scripts/gacha_ui.gd`), thưởng Tinh Vẫn theo giai đoạn và khi xong quest, nút F3 +100. Kết quả định sẵn theo seed trong save nên F5/F9 không đổi được. 5 nhân vật là dữ liệu tạm; nhân vật chưa làm việc hay ra sân | `tests/test_week6_gacha.gd` chạy headless 2026-11-09: 44/44 PASS, gồm bảo hiểm trên 3000 lượt, túi đầy, F9, save cũ, UI. Đã chụp màn hình kiểm tra bố cục; chưa thử tay |
 | Bước 21.4 + 21.5 — NPC gathering và giao tài nguyên | Đã thêm FSM làm việc/giao hàng cho NPC thử nghiệm, túi hàng riêng có lưu save, đặt chỗ tài nguyên theo NPC ID, khai thác im lặng, tìm đường tới resource/storage và API nạp toàn bộ cargo nguyên tử. Chỉ có một NPC thử nghiệm được quản lý hiện tại | `tests/test_step21_4_5.gd` chạy headless 2026-11-09: 9/9 PASS sau khi sửa tầm tương tác (NPC bị hủy việc do lệch tâm ô lưới) và điểm đứng quanh footprint kho. Vẫn chỉ có một NPC; tiêu chí nhiều NPC chưa kiểm được. Chưa kiểm thử gameplay thủ công |
 
 ## Hệ thống và đường dẫn chính
@@ -38,7 +39,7 @@
 - WASD: di chuyển.
 - Chuột phải: sprint; chuột trái: tấn công.
 - Space: né; E/R: kỹ năng.
-- F: tương tác; B: inventory; J: quest journal; G: build mode.
+- F: tương tác; B: inventory; J: quest journal; G: build mode; H: gacha.
 - F3: debug; F5: quick save; F9: quick load; Esc: pause/đóng giao diện.
 
 ## Lỗi và điểm cần xác minh
@@ -49,12 +50,12 @@
 
 ## Nhiệm vụ tiếp theo
 
-Đồ án tốt nghiệp 10 tuần, đề tài nhấn mạnh gacha, khám phá thế giới, căn cứ sinh tồn; 2026-11-09 là tuần 5. Lịch đã duyệt (dự kiến, chưa triển khai từ tuần 6):
-- Tuần 6: gacha (ví Tinh Vẫn/Tinh Hồn, banner, tỉ lệ, bảo hiểm, danh sách nhân vật, chặn F5/F9). Tuần 7: đổi nhân vật tổ đội 3 người. Tuần 8: nhiều nhân vật làm việc theo nghề, quái tấn công căn cứ. Tuần 9: khám phá, nhiệm vụ Hệ thống, mở đầu xuyên không; dừng tính năng. Tuần 10: sửa lỗi, export, tập demo. Báo cáo viết song song.
+Đồ án tốt nghiệp 10 tuần, đề tài nhấn mạnh gacha, khám phá thế giới, căn cứ sinh tồn; 2026-11-09 là tuần 5. Lịch đã duyệt (dự kiến, chưa triển khai từ tuần 7):
+- Tuần 7: đổi nhân vật tổ đội 3 người. Tuần 8: dựng khu rừng, mỏ đá, mỏ sắt, mỏ vàng; nhiều nhân vật làm việc theo nghề; quái tấn công căn cứ. Tuần 9: khám phá, nhiệm vụ Hệ thống, mở đầu xuyên không; dừng tính năng. Tuần 10: sửa lỗi, export, tập demo. Báo cáo viết song song.
 
-Việc còn lại của tuần 5:
+Việc còn lại của tuần 5–6:
 
-1. Kiểm thử thủ công trong Godot: NPC khai thác/giao hàng, respawn, F5/F9; NPC đi ngang có thể tạm chặn ô đặt công trình.
+1. Kiểm thử thủ công trong Godot: gacha (H, F3 +100 Tinh Vẫn), NPC khai thác/giao hàng, respawn, F5/F9; NPC đi ngang có thể tạm chặn ô đặt công trình.
 2. Viết lại `tests/test_step16.gd` nếu cần cho báo cáo.
 3. Kiểm thử thủ công FSM, đặt chỗ tài nguyên, đầy kho, nhiều kho, vật cản động và F5/F9 khi NPC đang mang hàng.
 4. Xác minh lỗi parse BaseManager người dùng từng báo trong đúng editor; source có một khai báo `_get_storage_transfer_failure_message()`.

@@ -10,6 +10,7 @@ const SAVE_DIR: String = "user://saves"
 const DEFAULT_SLOT: int = 1
 const SCHEMA_VERSION: int = 3
 const GAME_VERSION: String = "1.0.0"
+const OPTIONAL_AUTOLOAD_SECTIONS: Dictionary = {"world_clock": "WorldClock", "wallet": "WalletManager", "gacha": "GachaManager"}
 
 var playtime_seconds: float = 0.0
 var is_busy: bool = false
@@ -170,13 +171,14 @@ func save_game(slot_id: int = DEFAULT_SLOT) -> bool:
 	if npc_manager and npc_manager.has_method("to_dict"):
 		npc_state = npc_manager.call("to_dict")
 
-	var world_clock_node := get_node_or_null("/root/WorldClock")
 	var save_dict: Dictionary = {
 		"schema_version": SCHEMA_VERSION,
 		"game_version": GAME_VERSION,
 		"save_timestamp": Time.get_datetime_string_from_system(false, true),
 		"playtime_seconds": playtime_seconds,
-		"world_clock": world_clock_node.call("to_dict") if world_clock_node else {},
+		"world_clock": _autoload_snapshot("WorldClock"),
+		"wallet": _autoload_snapshot("WalletManager"),
+		"gacha": _autoload_snapshot("GachaManager"),
 		"scene": current_scene_path,
 		"player": player_data,
 		"world_state": world_state_dict,
@@ -307,9 +309,11 @@ func load_game(slot_id: int = DEFAULT_SLOT) -> bool:
 
 	# 1. Khôi phục thời gian chơi
 	playtime_seconds = float(data.get("playtime_seconds", 0.0))
-	var world_clock_node := get_node_or_null("/root/WorldClock")
-	if world_clock_node:
-		world_clock_node.call("load_from_dict", data.get("world_clock", {}))
+	# Save cũ thiếu các khóa này sẽ nhận trạng thái mặc định.
+	for section in OPTIONAL_AUTOLOAD_SECTIONS:
+		var section_node := get_node_or_null("/root/" + str(OPTIONAL_AUTOLOAD_SECTIONS[section]))
+		if section_node:
+			section_node.call("load_from_dict", data.get(section, {}))
 
 	# 2. Khôi phục WorldState (nạp im lặng)
 	var world_state_node = get_node_or_null("/root/WorldState")
@@ -509,6 +513,10 @@ func _collect_enemy_states() -> Dictionary:
 		grouped[region_id].append(row)
 	return {"ok": true, "states": grouped}
 
+func _autoload_snapshot(autoload_name: String) -> Dictionary:
+	var node := get_node_or_null("/root/" + autoload_name)
+	return node.call("to_dict") if node else {}
+
 func _validate_snapshot(data: Dictionary) -> Dictionary:
 	if not (data.get("player") is Dictionary and data.get("world_state") is Dictionary and data.get("quest_manager") is Dictionary):
 		return {"valid": false, "error": "File lưu thiếu player, world_state hoặc quest_manager."}
@@ -529,10 +537,11 @@ func _validate_snapshot(data: Dictionary) -> Dictionary:
 		return {"valid": false, "error": "HP trong player snapshot không hợp lệ."}
 	if data.has("inventory") and not (data["inventory"] is Dictionary):
 		return {"valid": false, "error": "Dữ liệu inventory không hợp lệ."}
-	if data.has("world_clock"):
-		var snapshot_clock := get_node_or_null("/root/WorldClock")
-		if snapshot_clock and not snapshot_clock.call("is_valid_snapshot", data["world_clock"]):
-			return {"valid": false, "error": "Đồng hồ thế giới trong file lưu không hợp lệ."}
+	for section in OPTIONAL_AUTOLOAD_SECTIONS:
+		if data.has(section):
+			var section_node := get_node_or_null("/root/" + str(OPTIONAL_AUTOLOAD_SECTIONS[section]))
+			if section_node and not section_node.call("is_valid_snapshot", data[section]):
+				return {"valid": false, "error": "Dữ liệu '%s' trong file lưu không hợp lệ." % section}
 	if data.has("harvested_resources") and not (data["harvested_resources"] is Array):
 		return {"valid": false, "error": "Danh sách tài nguyên đã thu thập không hợp lệ."}
 	if data.has("ground_pickups"):

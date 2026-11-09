@@ -35,13 +35,15 @@ var _quest_definitions: Dictionary = {
 				"type": "defeat_enemy",
 				"target_id": &"slime",
 				"region_id": &"forest_clearing",
-				"required_amount": 3
+				"required_amount": 3,
+				"stage_tinh_van": { 1: 10, 2: 10 }
 			}
 		],
 		"rewards": {
 			"unlock_regions": [&"deep_forest_plot"],
 			"flags": { &"forest_slimes_cleared": true },
-			"ledger": ["Mở khóa khu vực: deep_forest_plot", "Cờ: forest_slimes_cleared = true", "50 XP (ghi sổ chờ hệ thống cấp độ)"]
+			"tinh_van": 100,
+			"ledger": ["Mở khóa khu vực: deep_forest_plot", "Cờ: forest_slimes_cleared = true", "50 XP (ghi sổ chờ hệ thống cấp độ)", "100 Tinh Vẫn"]
 		}
 	},
 	&"side_forest_traces": {
@@ -63,7 +65,8 @@ var _quest_definitions: Dictionary = {
 		"rewards": {
 			"unlock_regions": [],
 			"flags": { &"forest_traces_found": true },
-			"ledger": ["Cờ: forest_traces_found = true", "30 XP (ghi sổ chờ hệ thống cấp độ)"]
+			"tinh_van": 50,
+			"ledger": ["Cờ: forest_traces_found = true", "30 XP (ghi sổ chờ hệ thống cấp độ)", "50 Tinh Vẫn"]
 		}
 	}
 }
@@ -153,6 +156,7 @@ func _advance_objective(quest_id: StringName, obj_id: StringName, amount: int, r
 	var def: Dictionary = _quest_definitions.get(quest_id, {})
 	var title: String = def.get("title", str(quest_id))
 	quest_notification.emit("Tiến độ [%s]: %d/%d (%s)" % [title, cur, required, desc])
+	_grant_stage_reward(def, obj_id, cur)
 
 	# Kiểm tra xem toàn bộ mục tiêu của nhiệm vụ đã đạt chưa
 	if _are_all_objectives_completed(quest_id):
@@ -160,6 +164,15 @@ func _advance_objective(quest_id: StringName, obj_id: StringName, amount: int, r
 		quest_status_changed.emit(quest_id, QuestStatus.READY_TO_COMPLETE)
 		quest_ready_to_complete.emit(quest_id)
 		quest_notification.emit("★ Nhiệm vụ sẵn sàng hoàn thành: %s! (Nhấn J để trả)" % title)
+
+# Thưởng theo giai đoạn: mỗi mốc tiến độ chỉ đạt một lần vì tiến độ chỉ tăng.
+func _grant_stage_reward(def: Dictionary, obj_id: StringName, progress: int) -> void:
+	var wallet = get_node_or_null("/root/WalletManager")
+	if not wallet:
+		return
+	for obj in def.get("objectives", []):
+		if obj["id"] == obj_id:
+			wallet.add_tinh_van(int(obj.get("stage_tinh_van", {}).get(progress, 0)))
 
 func _are_all_objectives_completed(quest_id: StringName) -> bool:
 	var def: Dictionary = _quest_definitions.get(quest_id, {})
@@ -215,6 +228,10 @@ func complete_quest(quest_id: StringName) -> bool:
 		var flags: Dictionary = rewards.get("flags", {})
 		for f_key in flags.keys():
 			world_state.set_flag(f_key, flags[f_key])
+
+	var wallet = get_node_or_null("/root/WalletManager")
+	if wallet:
+		wallet.add_tinh_van(int(rewards.get("tinh_van", 0)))
 
 	# Ghi nhận sổ cái phần thưởng (Reward Ledger)
 	var timestamp := Time.get_time_string_from_system()

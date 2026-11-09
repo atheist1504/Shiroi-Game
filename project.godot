@@ -26,6 +26,8 @@ NotificationManager="*res://scripts/notification_manager.gd"
 CraftingManager="*res://scripts/crafting_manager.gd"
 BaseManager="*res://scripts/base_manager.gd"
 WorldClock="*res://scripts/world_clock.gd"
+WalletManager="*res://scripts/wallet_manager.gd"
+GachaManager="*res://scripts/gacha_manager.gd"
 
 [display]
 
@@ -105,6 +107,11 @@ skill_e={
 skill_r={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":82,"key_label":0,"unicode":114,"location":0,"echo":false,"script":null)
+]
+}
+open_gacha={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":72,"key_label":0,"unicode":104,"location":0,"echo":false,"script":null)
 ]
 }
 toggle_debug={
