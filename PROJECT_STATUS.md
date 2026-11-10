@@ -23,7 +23,7 @@ Game 2D top-down, Godot 4.7.2 (`D:\Godot\Godot_v4.7.2-stable_win64.exe`), GDScri
 | Đêm đầu | Nhiệm vụ đầu "Sống sót đến sáng" (2026-11-10): đêm tối chỉ sáng quanh nhân vật; sói con một đòn chết để tập lướt/chạy, chém 1, E 2, R 3; rồi 3 sói và Sói Đầu Đàn, rớt răng nanh, hướng dẫn F; màn tối độc thoại, trời sáng, +10 Tinh Vẫn, mở "Người Đến Sau". Slime và Thủ Lĩnh Slime chỉ ra sau khi sáng. Sói không lưu: tải save giữa đêm thì làm lại đêm; save cũ coi như đã qua đêm. Sói là slime đổi màu. Tiếp theo: Người Đến Sau (nay mở khóa căn cứ, không cần F3) → Dựng nơi trú ngụ (9 gỗ, xây Nhà ở; Nhà ở nay chỉ tốn 6 ván gỗ) → Dựng Căn Cứ. Save cũ thiếu nhiệm vụ mới chèn giữa chuỗi thì coi như đã xong | `first_night.gd`, `slime.gd`, `quest_manager.gd`, `narrative_ui.gd` |
 | Sửa lỗi | Chơi lại hồi sinh tại chỗ, không mất căn cứ; F9 sau khi chết về bình thường | `player.gd`, `hud.gd` |
 
-Dữ liệu tạm: chỉ số, nguyên tố, tên kỹ năng, 5 nhân vật gacha (sprite đổi màu), tile bản đồ. Quặng sắt chưa có công thức dùng.
+Dữ liệu tạm: chỉ số, nguyên tố, tên kỹ năng, 5 nhân vật gacha (sprite đổi màu), tile bản đồ. Ngoại lệ (2026-11-10): nhân vật số 2 là **Tiểu Mộng**, Dược sư, dùng model cũ của nhân vật chính (`assets/characters/tieu_mong/`) khi ra sân; nhân vật chính dùng model mới. Game dùng `tieu_mong_walk_sheet_160x170.png`: bản thu nhỏ ×0,72 về khung 160×170, chân căn ở y≈163 như nhân vật chính (tạo bằng script Godot); `tieu_mong_walk_sheet.png` là ảnh gốc 180×256, giữ nguyên. Chưa xem cỡ trong game. Thợ ở căn cứ vẫn vẽ hình tạm. Quặng sắt chưa có công thức dùng.
 
 File script nằm trong `scripts/`.
 
@@ -35,6 +35,8 @@ WASD di chuyển; chuột trái chém; chuột phải chạy; Space né; E/R k�
 
 Chạy: `powershell -ExecutionPolicy Bypass -File tests\run_tests.ps1` (lọc bằng `-Filter`; tự sao lưu save). Bản Godot Windows không in ra console nên script chuyển hướng output.
 
+- 2026-11-10, sau khi chỉnh cỡ Tiểu Mộng: **622/622 PASS**.
+- 2026-11-10, sau khi gán Tiểu Mộng: 622/622 PASS (thêm 2 mục ở `test_week7_party.gd`; đã chạy `--import` để Godot nhập ảnh mới).
 - 2026-11-10, sau khi thêm nhiệm vụ nơi trú ngụ: chạy toàn bộ thì 16 file khác qua hết (579 mục), `test_first_night.gd` lỗi chờ khung hình trong bài thử; đã sửa bài thử và chạy riêng 3 lần đều 41/41. Tổng 620 mục. Lần trước: **611/611 PASS**, headless (`test_first_night.gd` 41 mục; đòn đánh gọi theo thứ tự trong game, không mô phỏng chuột/phím). `tests/test_step16.gd` lỗi thời nên bị bỏ qua. `test_week9_story.gd` bỏ qua đêm đầu bằng `skip_night()`. Chạy game có cửa sổ 300 khung hình: không lỗi.
 - Mô phỏng 75 giây tốc độ x6 với 5 thợ, 2 kho, 1 đợt quái: không lỗi.
 - **Chưa thử tay:** đêm đầu (độ khó bầy sói, độ rộng vùng sáng, chữ hướng dẫn), thợ và đợt quái, tổ đội, trọn chuỗi nhiệm vụ, bản đồ mới. Gacha đã được người dùng thử.

@@ -674,13 +674,27 @@ func _restore_enemy_states(snapshot: Dictionary) -> bool:
 		staged_spawns[id] = [new_enemy, parent]
 
 	# Xóa runtime-spawn enemies phát sinh sau thời điểm save; enemy scene-authored
-	# vẫn tồn tại và được khôi phục theo persistent_id.
+	# không nằm trong snapshot được trả về trạng thái mặc định (đầy máu).
 	for id in by_id.keys():
 		var enemy: Node = by_id[id]
 		if active_regions.has(str(enemy.get("region_id"))) and bool(enemy.get("is_runtime_spawn")) and not wanted.has(id):
 			enemy.get_parent().remove_child(enemy)
 			enemy.free()
 			by_id.erase(id)
+		elif not wanted.has(id):
+			# Khôi phục đầy máu và trạng thái ban đầu cho quái mặc định không có trong bản ghi
+			var max_hp = float(enemy.get("max_health")) if enemy.get("max_health") != null else 60.0
+			enemy.set("current_health", max_hp)
+			enemy.set("is_dead", false)
+			enemy.set("visible", true)
+			var h_bar = enemy.get_node_or_null("HealthBar")
+			if h_bar:
+				h_bar.max_value = max_hp
+				h_bar.value = max_hp
+				h_bar.visible = false
+			var col := enemy.get_node_or_null("CollisionShape2D") as CollisionShape2D
+			if col:
+				col.set_deferred("disabled", false)
 
 	for row in rows:
 		var id := str(row["persistent_id"])

@@ -5,6 +5,8 @@
 - Chỉ đọc source code liên quan trực tiếp đến nhiệm vụ.
 - Không quét lại toàn bộ repository nếu không cần thiết.
 - Không thay đổi hệ thống nằm ngoài phạm vi được yêu cầu.
+- Nói rõ giả định trước khi làm; yêu cầu có nhiều cách hiểu hoặc chưa chắc thì hỏi ngắn thay vì tự đoán.
+- Không thêm chức năng, tùy chọn hay lớp trừu tượng ngoài yêu cầu; chọn cách đơn giản nhất đủ giải quyết.
 - Giữ nguyên kiến trúc, điều khiển và dữ liệu save hiện có trừ khi nhiệm vụ yêu cầu thay đổi.
 - Sau mỗi nhiệm vụ, cập nhật ngắn gọn `PROJECT_STATUS.md`: việc đã làm, kiểm thử đã chạy và việc còn lại.
 - Phân biệt rõ tính năng đã triển khai, đã kiểm thử và mới dự kiến; không tuyên bố kiểm thử nếu chưa chạy.

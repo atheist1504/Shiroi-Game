@@ -53,6 +53,7 @@ var _damage_flash_tween: Tween = null
 @onready var skill_comp: Node = get_node_or_null("SkillComponent")
 
 var attack_anim_timer: float = 0.0
+var _default_sheet: Texture2D = null
 
 func _ready() -> void:
 	add_to_group("player")
@@ -95,9 +96,15 @@ func apply_party_member(profile: Dictionary, health: float) -> void:
 	attack_damage = float(profile["attack_damage"])
 	current_health = clampf(health, 0.0, max_health)
 	if sprite_2d:
+		if _default_sheet == null:
+			_default_sheet = sprite_2d.texture
+		# Nhân vật có hình riêng (cùng bố cục 4x4) thì dùng hình đó, không nhuộm màu.
+		var sheet_path := str(profile.get("sprite_sheet", ""))
+		var own_sheet: Texture2D = load(sheet_path) as Texture2D if not sheet_path.is_empty() else null
+		sprite_2d.texture = own_sheet if own_sheet else _default_sheet
 		# self_modulate không đụng modulate mà animation và hiệu ứng trúng đòn đang dùng.
 		var character_color: Color = profile["color"]
-		sprite_2d.self_modulate = character_color.lerp(Color.WHITE, 0.35)
+		sprite_2d.self_modulate = Color.WHITE if own_sheet else character_color.lerp(Color.WHITE, 0.35)
 	health_changed.emit(current_health, max_health)
 
 func _physics_process(delta: float) -> void:

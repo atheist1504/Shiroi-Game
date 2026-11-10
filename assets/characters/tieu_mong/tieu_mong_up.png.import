@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b45ny41fewnwq"
-path="res://.godot/imported/shiroi_down.png-e9d410d4a298122b78655fc665c29f63.ctex"
+uid="uid://unm3syt1qtrj"
+path="res://.godot/imported/tieu_mong_up.png-dc3c0437feb4ba938ebc7b2ae811b72c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/player/shiroi_down.png"
-dest_files=["res://.godot/imported/shiroi_down.png-e9d410d4a298122b78655fc665c29f63.ctex"]
+source_file="res://assets/characters/tieu_mong/tieu_mong_up.png"
+dest_files=["res://.godot/imported/tieu_mong_up.png-dc3c0437feb4ba938ebc7b2ae811b72c.ctex"]
 
 [params]
 
