@@ -78,6 +78,13 @@ func _init_catalog() -> void:
 		crystal_tex, ItemDefinition.Category.MATERIAL, 99
 	)
 
+	# Chưa có hình riêng: dùng tạm icon tinh thể đổi màu ngà.
+	_catalog[&"wolf_fang"] = ItemDefinition.new(
+		&"wolf_fang", "Răng nanh sói",
+		"Chiếc răng nhọn rơi ra từ bầy sói đêm.",
+		_tinted_icon(crystal_tex, Color(0.95, 0.9, 0.78)), ItemDefinition.Category.MATERIAL, 99
+	)
+
 	# 5 vật phẩm chế tạo và tiêu hao mới (Bước 18)
 	_catalog[&"wooden_plank"] = ItemDefinition.new(
 		&"wooden_plank", "Ván gỗ",

@@ -3,6 +3,8 @@ extends CanvasLayer
 # Màn chữ kể chuyện: mở đầu xuyên không và lời kết bản demo.
 # Lời thoại là bản nháp, chỉ dùng các ý cốt truyện đã chốt.
 
+signal sequence_finished(pages: Array[Dictionary])
+
 const FLAG_OPENING_SEEN: StringName = &"opening_seen"
 const SYSTEM_COLOR := Color(0.45, 0.95, 0.85)
 const STORY_COLOR := Color(0.92, 0.93, 0.97)
@@ -10,16 +12,18 @@ const STORY_COLOR := Color(0.92, 0.93, 0.97)
 const OPENING_PAGES: Array[Dictionary] = [
 	{"text": "Bạn chỉ là một người Việt Nam bình thường."},
 	{"text": "Rồi một sức mạnh không rõ từ đâu kéo bạn đi."},
-	{"text": "Khi mở mắt, bạn đang ở Shiroi Arika, một thế giới từng rất phồn vinh, có ma pháp, tu tiên và nhiều sức mạnh khác."},
-	{"text": "Một ngày nọ, cả nền văn minh ấy bị xóa sổ. Những người còn sống sót đang cố dựng căn cứ để chống lại quái vật bên ngoài."},
-	{"text": "[HỆ THỐNG]\nPhát hiện người đến sau.\nHệ thống này được để lại để người đến sau tìm ra sự thật.", "system": true},
-	{"text": "[HỆ THỐNG]\nLinh hồn và ký ức của người xưa vẫn được lưu giữ.\nDùng Tinh Vẫn để triệu hồi họ.", "system": true},
-	{"text": "[HỆ THỐNG]\nWASD: di chuyển   Chuột trái: chém   E/R: kỹ năng\nJ: nhiệm vụ   H: triệu hồi   P: tổ đội   G: xây dựng\nNhiệm vụ đầu tiên đã được giao.", "system": true}
+	{"text": "Khi mở mắt, trước mặt bạn là một vùng đất bạn chưa từng thấy."},
+	{"text": "[HỆ THỐNG]\nSống sót đến sáng.", "system": true}
+]
+
+# Màn đen sau khi hạ bầy sói đêm đầu.
+const FIRST_NIGHT_END_PAGES: Array[Dictionary] = [
+	{"text": "Cứ thế, đêm đầu tiên đã qua, và tôi vẫn còn sống."}
 ]
 
 const ENDING_PAGES: Array[Dictionary] = [
-	{"text": "[HỆ THỐNG]\nĐã khôi phục một phần bản ghi của di tích.\nNguyên nhân nền văn minh bị xóa sổ: chưa có dữ liệu.", "system": true},
-	{"text": "[HỆ THỐNG]\nNgười tạo ra Hệ thống đã biến mất cùng nền văn minh ấy.\nSự thật vẫn còn ở phía trước.", "system": true},
+	{"text": "[HỆ THỐNG]\nĐã khôi phục 1 mảnh bản ghi.", "system": true},
+	{"text": "[HỆ THỐNG]\nTên vùng đất: Shiroi Arika.\nDữ liệu còn lại: bị khóa.", "system": true},
 	{"text": "Hết bản demo. Cảm ơn bạn đã chơi.\nBạn vẫn có thể tiếp tục khám phá và phát triển căn cứ."}
 ]
 
@@ -74,8 +78,11 @@ func advance() -> void:
 		_show_page()
 
 func finish() -> void:
+	if not visible:
+		return
 	visible = false
 	get_tree().paused = _was_paused
+	sequence_finished.emit(_pages)
 
 func _show_page() -> void:
 	var page: Dictionary = _pages[_page_index]

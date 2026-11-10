@@ -32,6 +32,10 @@ enum State {
 @export_group("Chiến lợi phẩm (Loot)")
 @export var gel_drop_chance: float = 0.70
 @export var crystal_drop_chance: float = 0.10
+# Đồ rơi riêng của loài; đặt thì thay cho gel và tinh thể.
+@export var drop_item_id: StringName = &""
+@export var drop_item_chance: float = 0.0
+@export var drop_item_amount: int = 1
 @export var pickup_scene: PackedScene = preload("res://scenes/pickup_item.tscn")
 
 var current_health: float = 60.0
@@ -43,9 +47,10 @@ var knockback_velocity: Vector2 = Vector2.ZERO
 var attack_target_dir: Vector2 = Vector2.ZERO
 var is_dead: bool = false
 
-const COLOR_NORMAL := Color(0.25, 0.85, 0.35, 1.0)
+# Màu và cỡ thân có thể đổi để dùng lại cho loài khác (sói đêm đầu).
+var COLOR_NORMAL := Color(0.25, 0.85, 0.35, 1.0)
 const COLOR_WINDUP := Color(1.0, 0.5, 0.15, 1.0)
-const SCALE_NORMAL := Vector2(0.22, 0.18)
+var SCALE_NORMAL := Vector2(0.22, 0.18)
 
 @onready var sprite_2d: Sprite2D = $Sprite2D
 @onready var health_bar: ProgressBar = $HealthBar
@@ -70,6 +75,9 @@ func _ready() -> void:
 	if persistent_id == StringName():
 		persistent_id = StringName("%s:%s" % [str(region_id), str(get_path())])
 	current_health = max_health
+	if sprite_2d:
+		sprite_2d.modulate = COLOR_NORMAL
+		sprite_2d.scale = SCALE_NORMAL
 
 	if health_bar:
 		health_bar.max_value = max_health
@@ -228,7 +236,7 @@ func _start_windup(target_dir: Vector2) -> void:
 	if sprite_2d:
 		sprite_2d.modulate = COLOR_WINDUP
 		var tween := create_tween()
-		tween.tween_property(sprite_2d, "scale", Vector2(0.28, 0.11), windup_time)
+		tween.tween_property(sprite_2d, "scale", SCALE_NORMAL * Vector2(1.27, 0.61), windup_time)
 
 # Giai đoạn 2: Phóng tới chồm cắn (Lunge)
 func _execute_lunge() -> void:
@@ -241,7 +249,7 @@ func _execute_lunge() -> void:
 	# Kéo dãn cơ thể khi phóng
 	if sprite_2d:
 		var tween := create_tween()
-		tween.tween_property(sprite_2d, "scale", Vector2(0.18, 0.24), 0.08)
+		tween.tween_property(sprite_2d, "scale", SCALE_NORMAL * Vector2(0.82, 1.33), 0.08)
 
 	# Kiểm tra cự ly tại thời điểm cắn
 	if is_instance_valid(player_ref):
@@ -373,7 +381,7 @@ func _die() -> void:
 	if sprite_2d:
 		var tween := create_tween()
 		tween.set_parallel(true)
-		tween.tween_property(sprite_2d, "scale", Vector2(0.28, 0.02), 0.2)
+		tween.tween_property(sprite_2d, "scale", SCALE_NORMAL * Vector2(1.27, 0.11), 0.2)
 		tween.tween_property(sprite_2d, "modulate:a", 0.0, 0.22)
 		tween.finished.connect(_on_death_animation_finished)
 	else:
@@ -393,6 +401,15 @@ func _spawn_loot() -> void:
 	if not scene_root:
 		scene_root = get_parent()
 	if not scene_root:
+		return
+
+	if drop_item_id != StringName():
+		if randf() < drop_item_chance:
+			var drop: Node2D = pickup_scene.instantiate() as Node2D
+			drop.set("item_id", drop_item_id)
+			drop.set("amount", drop_item_amount)
+			drop.global_position = global_position + Vector2(randf_range(-8.0, 8.0), randf_range(-8.0, 8.0))
+			scene_root.call_deferred("add_child", drop)
 		return
 
 	# Tỷ lệ rơi Gel Slime (70%)

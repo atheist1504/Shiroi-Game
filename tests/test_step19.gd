@@ -135,7 +135,7 @@ func _run() -> void:
 	_check(int(base_manager.call("get_building_count")) == 1 and _placed_event_count == 1, "Successful placement emits one building_placed signal")
 	_check(not bool(base_manager.call("can_place_at", &"storage", storage_grid)), "Overlapping building placement is rejected")
 	_check(not bool(base_manager.call("can_place_at", &"storage", Vector2i(50, 38))), "Essential base walkway is kept clear")
-	_check(_has_costs(&"house", {"wooden_plank": 6, "processed_stone": 4}), "House definition has specified costs")
+	_check(_has_costs(&"house", {"wooden_plank": 6}), "House definition has specified costs (wood only, shelter quest)")
 	_check(_has_costs(&"watchtower", {"wooden_plank": 6, "processed_stone": 6, "basic_building_kit": 1}), "Watchtower definition has specified costs")
 	_check(_has_costs(&"fence", {"wooden_plank": 2}), "Fence definition has specified costs")
 	var right_click := InputEventMouseButton.new()

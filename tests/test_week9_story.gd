@@ -3,6 +3,7 @@ extends SceneTree
 # Tuần 9: màn mở đầu, chuỗi nhiệm vụ Hệ thống, khám phá vùng, save/load, lời kết demo.
 const TEST_SLOT := 93
 const CHAIN: Array[StringName] = [&"sys_01_arrival", &"sys_02_build", &"sys_03_summon", &"sys_04_survey", &"sys_05_defend", &"sys_06_archive"]
+const SHELTER := &"sys_01b_shelter"
 const LOCKED := 0
 const ACTIVE := 2
 const READY := 3
@@ -58,17 +59,36 @@ func _run() -> void:
 	_check(paused, "Đóng màn chữ không làm mất trạng thái tạm dừng của giao diện khác")
 	paused = false
 
-	# Chuỗi nhiệm vụ.
+	# Chuỗi nhiệm vụ: đêm đầu mở trước, bài này bỏ qua (test_first_night.gd thử riêng).
+	_check(_status(&"sys_00_first_night") == ACTIVE and _status(CHAIN[0]) == LOCKED, "Đêm đầu tự nhận, Người Đến Sau còn khóa")
+	scene.get_node("FirstNight").skip_night()
+	_check(_status(&"sys_00_first_night") == COMPLETED, "Bỏ qua đêm đầu thì trả nhiệm vụ")
 	_check(_status(CHAIN[0]) == ACTIVE and _status(CHAIN[1]) == LOCKED, "Nhiệm vụ Hệ thống đầu tự nhận, các nhiệm vụ sau còn khóa")
 	var tinh_van := int(wallet.get_tinh_van())
 	player.global_position = Vector2(900, 560)
 	await _wait_until(func() -> bool: return _status(CHAIN[0]) == READY, 30)
 	_check(_status(CHAIN[0]) == READY and _world.is_region_discovered(&"hope_valley_area"), "Đi vào căn cứ thì hoàn thành mục tiêu")
 	_check(_quests.complete_quest(CHAIN[0]) and int(wallet.get_tinh_van()) == tinh_van + 30, "Trả nhiệm vụ nhận 30 Tinh Vẫn")
-	_check(_status(CHAIN[1]) == ACTIVE and _status(CHAIN[2]) == LOCKED, "Hoàn thành thì mở đúng nhiệm vụ kế")
+	_check(_status(SHELTER) == ACTIVE and _status(CHAIN[1]) == LOCKED, "Hoàn thành thì mở đúng nhiệm vụ kế: Dựng nơi trú ngụ")
 	_check(not _quests.complete_quest(CHAIN[0]) and int(wallet.get_tinh_van()) == tinh_van + 30, "Không nhận thưởng hai lần")
+	_check(bool(base_manager.is_base_unlocked()), "Tới Thung Lũng thì mở căn cứ, không cần F3")
 
-	base_manager.unlock_base_for_debug()
+	# Dựng nơi trú ngụ: gỗ đang có được tính, nhặt thêm thì cộng theo số lượng.
+	_check(str(_quests.get_quest_definition(SHELTER)["description"]).contains("Cần: gỗ"), "Hệ thống chỉ báo: cần gỗ")
+	inventory.add_item(&"wood", 4)
+	event_bus.item_collected.emit(&"wood", 4)
+	_check(int(_quests.get_objective_progress(SHELTER, &"gather_wood")) == 4, "Nhặt 4 gỗ thì tiến độ 4/9")
+	inventory.add_item(&"wood", 10)
+	event_bus.item_collected.emit(&"wood", 10)
+	_check(int(_quests.get_objective_progress(SHELTER, &"gather_wood")) == 9 and _status(SHELTER) == ACTIVE, "Đủ gỗ, còn phải xây nhà")
+	inventory.add_item(&"wooden_plank", 6)
+	base_manager.set("is_build_mode", true)
+	_check(base_manager.place_building(&"house", Vector2i(59, 35)), "Xây Nhà ở chỉ bằng ván gỗ")
+	base_manager.set("is_build_mode", false)
+	_check(_status(SHELTER) == READY, "Xây nhà hoàn thành nhiệm vụ")
+	tinh_van = int(wallet.get_tinh_van())
+	_check(_quests.complete_quest(SHELTER) and int(wallet.get_tinh_van()) == tinh_van + 50 and _status(CHAIN[1]) == ACTIVE, "Trả nhiệm vụ nhận 50 Tinh Vẫn, mở Dựng Căn Cứ")
+
 	inventory.add_item(&"wooden_plank", 8)
 	inventory.add_item(&"processed_stone", 4)
 	base_manager.set("is_build_mode", true)
@@ -122,18 +142,23 @@ func _run() -> void:
 	_check(_status(CHAIN[5]) == READY, "Khám phá di tích hoàn thành mục tiêu")
 	tinh_van = int(wallet.get_tinh_van())
 	_check(_quests.complete_quest(CHAIN[5]) and int(wallet.get_tinh_van()) == tinh_van + 150 and _world.get_flag(&"demo_completed") == true, "Hoàn thành chuỗi thưởng 150 Tinh Vẫn và ghi cờ kết thúc")
-	_check(narrative.visible and paused and str(narrative.get("_text_label").text).contains("chưa có dữ liệu"), "Hiện lời kết và không tự đặt ra nguyên nhân thảm họa")
+	var ending_text := "\n".join(narrative.ENDING_PAGES.map(func(page: Dictionary) -> String: return page["text"]))
+	_check(narrative.visible and paused and str(narrative.get("_text_label").text).contains("mảnh bản ghi") and not ending_text.contains("xóa sổ") and not ending_text.contains("văn minh"), "Hiện lời kết và không tiết lộ thảm họa")
 	narrative.finish()
 	_check(not paused, "Đóng lời kết thì chơi tiếp được")
 
 	# Save cũ chưa có nhiệm vụ Hệ thống.
 	_check(await _save(save_manager), "Lưu sau khi xong chuỗi")
 	_check(_rewrite_slot(func(data: Dictionary) -> void:
-		for quest_id in CHAIN:
+		data["quest_manager"]["quest_status"].erase(str(SHELTER))
+		data["quest_manager"]["quest_progress"].erase(str(SHELTER))), "Giả lập save có trước nhiệm vụ nơi trú ngụ")
+	_check(await _load(save_manager) and _status(SHELTER) == COMPLETED and _status(CHAIN[5]) == COMPLETED, "Save đã qua đoạn đó coi như đã dựng nơi trú ngụ")
+	_check(_rewrite_slot(func(data: Dictionary) -> void:
+		for quest_id in [&"sys_00_first_night", SHELTER] + CHAIN:
 			data["quest_manager"]["quest_status"].erase(str(quest_id))
 			data["quest_manager"]["quest_progress"].erase(str(quest_id))), "Giả lập save cũ")
 	_check(await _load(save_manager), "Save cũ vẫn tải được")
-	_check(_status(CHAIN[0]) == ACTIVE and _status(CHAIN[5]) == LOCKED, "Save cũ bắt đầu chuỗi từ đầu")
+	_check(_status(&"sys_00_first_night") == ACTIVE and _status(CHAIN[0]) == LOCKED and _status(CHAIN[5]) == LOCKED, "Save cũ bắt đầu chuỗi từ đầu")
 
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(_slot_path()))
 	_finish()

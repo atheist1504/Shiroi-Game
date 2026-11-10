@@ -1,6 +1,7 @@
 # Hướng dẫn làm việc với dự án Shiroi
 
 - Đọc `PROJECT_STATUS.md` trước khi bắt đầu mỗi nhiệm vụ.
+- Mỗi phiên làm một trong 12 mảng ở `docs/KE_HOACH.md`; chỉ đọc tài liệu của mảng đó.
 - Chỉ đọc source code liên quan trực tiếp đến nhiệm vụ.
 - Không quét lại toàn bộ repository nếu không cần thiết.
 - Không thay đổi hệ thống nằm ngoài phạm vi được yêu cầu.

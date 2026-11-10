@@ -511,6 +511,9 @@ func _collect_enemy_states() -> Dictionary:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(enemy) or not enemy.has_method("get_persistence_data"):
 			continue
+		# Quái tạm (sói đêm đầu) do màn chơi tự tạo lại, không lưu.
+		if enemy.is_in_group("no_save"):
+			continue
 		var row: Dictionary = enemy.call("get_persistence_data", scene_root)
 		var persistent_id := str(row.get("persistent_id", ""))
 		if persistent_id.is_empty() or seen_ids.has(persistent_id):

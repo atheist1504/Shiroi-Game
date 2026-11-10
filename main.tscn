@@ -22,6 +22,7 @@
 [ext_resource type="Script" path="res://scripts/narrative_ui.gd" id="20_narrative_ui"]
 [ext_resource type="Script" path="res://scripts/world_terrain.gd" id="21_world_terrain"]
 [ext_resource type="Script" path="res://scripts/region_gate.gd" id="22_region_gate"]
+[ext_resource type="Script" path="res://scripts/first_night.gd" id="23_first_night"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_wall"]
 size = Vector2(2560, 24)
@@ -777,6 +778,9 @@ node_id = &"far_gold_02"
 node_type = "gold"
 resource_id = &"gold_ore"
 yield_amount = 2
+
+[node name="FirstNight" type="Node" parent="."]
+script = ExtResource("23_first_night")
 
 [node name="NarrativeUI" type="CanvasLayer" parent="."]
 script = ExtResource("20_narrative_ui")

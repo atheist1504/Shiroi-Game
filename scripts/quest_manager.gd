@@ -70,23 +70,43 @@ var _quest_definitions: Dictionary = {
 		}
 	},
 	# Chuỗi nhiệm vụ Hệ thống: tự nhận, mở lần lượt. Nội dung là bản nháp.
+	# Màn đêm đầu (first_night.gd) báo hoàn thành và tự trả nhiệm vụ này.
+	&"sys_00_first_night": {
+		"id": &"sys_00_first_night", "title": "[Hệ Thống] Sống Sót Đến Sáng",
+		"description": "Sống sót đến sáng.",
+		"quest_type": "system", "auto_available": true, "auto_activate": true,
+		"objectives": [{"id": &"survive", "description": "Sống sót đến sáng", "type": "first_night", "target_id": &"", "region_id": &"", "required_amount": 1}],
+		"rewards": {"tinh_van": 10, "ledger": ["10 Tinh Vẫn"]}
+	},
 	&"sys_01_arrival": {
 		"id": &"sys_01_arrival", "title": "[Hệ Thống] Người Đến Sau",
-		"description": "Tìm tới nơi những người sống sót đang dựng căn cứ: Thung Lũng Hy Vọng.",
-		"quest_type": "system", "auto_available": true, "auto_activate": true,
+		"description": "Tìm tới Thung Lũng Hy Vọng.",
+		"quest_type": "system", "requires": &"sys_00_first_night", "auto_activate": true,
 		"objectives": [{"id": &"reach_base", "description": "Tới Thung Lũng Hy Vọng", "type": "discover_region", "target_id": &"hope_valley_area", "region_id": &"", "required_amount": 1}],
-		"rewards": {"tinh_van": 30, "ledger": ["30 Tinh Vẫn"]}
+		# Mở khóa căn cứ: trước đây chỉ mở được bằng bảng gỡ lỗi F3.
+		"rewards": {"tinh_van": 30, "flags": {&"base_unlocked_hope_valley_base": true}, "ledger": ["30 Tinh Vẫn", "Mở căn cứ Thung Lũng Hy Vọng"]}
+	},
+	# Diễn biến đã chốt trong docs/NHIEM_VU.md: "Dựng nơi trú ngụ. Cần: gỗ."
+	&"sys_01b_shelter": {
+		"id": &"sys_01b_shelter", "title": "[Hệ Thống] Dựng Nơi Trú Ngụ",
+		"description": "Dựng nơi trú ngụ. Cần: gỗ.",
+		"quest_type": "system", "requires": &"sys_01_arrival", "auto_activate": true,
+		"objectives": [
+			{"id": &"gather_wood", "description": "Lấy gỗ từ cây (F)", "type": "collect_item", "target_id": &"wood", "region_id": &"", "required_amount": 9},
+			{"id": &"build_house", "description": "Xây Nhà ở trong căn cứ (G); ván gỗ xẻ ở bàn chế tạo", "type": "build_building", "target_id": &"house", "region_id": &"", "required_amount": 1}
+		],
+		"rewards": {"tinh_van": 50, "ledger": ["50 Tinh Vẫn"]}
 	},
 	&"sys_02_build": {
 		"id": &"sys_02_build", "title": "[Hệ Thống] Dựng Căn Cứ",
 		"description": "Xây một kho chứa để dự trữ tài nguyên. Nhấn G để xây.",
-		"quest_type": "system", "requires": &"sys_01_arrival", "auto_activate": true,
+		"quest_type": "system", "requires": &"sys_01b_shelter", "auto_activate": true,
 		"objectives": [{"id": &"build_storage", "description": "Xây kho chứa", "type": "build_building", "target_id": &"storage", "region_id": &"", "required_amount": 1}],
 		"rewards": {"tinh_van": 50, "ledger": ["50 Tinh Vẫn"]}
 	},
 	&"sys_03_summon": {
-		"id": &"sys_03_summon", "title": "[Hệ Thống] Triệu Hồi Ký Ức",
-		"description": "Dùng Tinh Vẫn để gọi linh hồn và ký ức của người xưa. Nhấn H để triệu hồi.",
+		"id": &"sys_03_summon", "title": "[Hệ Thống] Triệu Hồi",
+		"description": "Dùng Tinh Vẫn. Nhấn H để triệu hồi.",
 		"quest_type": "system", "requires": &"sys_02_build", "auto_activate": true,
 		"objectives": [{"id": &"first_pull", "description": "Triệu hồi một lần", "type": "gacha_pull", "target_id": &"", "region_id": &"", "required_amount": 1}],
 		"rewards": {"tinh_van": 50, "ledger": ["50 Tinh Vẫn"]}
@@ -112,7 +132,7 @@ var _quest_definitions: Dictionary = {
 	},
 	&"sys_06_archive": {
 		"id": &"sys_06_archive", "title": "[Hệ Thống] Bản Ghi Trong Tàn Tích",
-		"description": "Cổng Tàn Tích ở phía nam Mỏ Vàng đã mở. Hệ thống phát hiện một bản ghi cũ bên trong. Hãy tìm nó.",
+		"description": "Cổng Tàn Tích ở phía nam Mỏ Vàng đã mở. Phát hiện tín hiệu bên trong. Hãy tìm nó.",
 		"quest_type": "system", "requires": &"sys_05_defend", "auto_activate": true,
 		"objectives": [{"id": &"find_archive", "description": "Khám phá di tích", "type": "discover_region", "target_id": &"ancient_archive", "region_id": &"", "required_amount": 1}],
 		"rewards": {"tinh_van": 150, "flags": {&"demo_completed": true}, "ledger": ["150 Tinh Vẫn"]}
@@ -162,14 +182,20 @@ func _connect_event_bus() -> void:
 		event_bus.gacha_pulled.connect(func(_count: int): _advance_matching("gacha_pull", &""))
 	if event_bus.has_signal("raid_repelled"):
 		event_bus.raid_repelled.connect(func(_wave: int): _advance_matching("repel_raid", &""))
+	if event_bus.has_signal("item_collected"):
+		event_bus.item_collected.connect(func(item_id: StringName, amount: int): _advance_matching("collect_item", item_id, amount))
 
-func _advance_matching(objective_type: String, target_id: StringName) -> void:
+# Cho các màn chơi tự báo mục tiêu không đi qua EventBus (ví dụ đêm đầu).
+func report_objective(objective_type: String, target_id: StringName = &"") -> void:
+	_advance_matching(objective_type, target_id)
+
+func _advance_matching(objective_type: String, target_id: StringName, amount: int = 1) -> void:
 	for q_id in _quest_status.keys():
 		if _quest_status[q_id] != QuestStatus.ACTIVE:
 			continue
 		for obj in _quest_definitions.get(q_id, {}).get("objectives", []):
 			if obj.get("type") == objective_type and obj.get("target_id") == target_id:
-				_advance_objective(q_id, obj["id"], 1, obj["required_amount"], obj.get("description", ""))
+				_advance_objective(q_id, obj["id"], amount, obj["required_amount"], obj.get("description", ""))
 
 # Mở nhiệm vụ nối tiếp; việc người chơi đã làm trước đó vẫn được tính.
 func _unlock_followups(completed_id: StringName) -> void:
@@ -196,6 +222,12 @@ func _apply_existing_progress(quest_id: StringName) -> void:
 				for building in get_tree().get_nodes_in_group("placed_buildings"):
 					if StringName(str(building.get("building_type_id"))) == obj["target_id"]:
 						already_done = true
+			"collect_item":
+				# Đồ đang có trong túi được tính luôn.
+				var inventory = get_node_or_null("/root/InventoryManager")
+				var held: int = inventory.get_item_count(obj["target_id"]) if inventory else 0
+				if held > 0:
+					_advance_objective(quest_id, obj["id"], held, obj["required_amount"], obj.get("description", ""))
 		if already_done:
 			_advance_objective(quest_id, obj["id"], obj["required_amount"], obj["required_amount"], obj.get("description", ""))
 
@@ -429,6 +461,15 @@ func load_from_dict(data: Dictionary) -> bool:
 		var s_name := StringName(k)
 		if _quest_definitions.has(s_name):
 			_quest_status[s_name] = int(in_status[k])
+
+	# Nhiệm vụ mới chèn vào giữa chuỗi (đêm đầu, nơi trú ngụ): save cũ chưa có nó
+	# nhưng nhiệm vụ đứng sau nó đã mở thì coi như đã xong.
+	for q_id in _quest_definitions.keys():
+		if in_status.has(str(q_id)):
+			continue
+		for other_id in _quest_definitions.keys():
+			if _quest_definitions[other_id].get("requires", &"") == q_id and int(in_status.get(str(other_id), QuestStatus.LOCKED)) != QuestStatus.LOCKED:
+				_quest_status[q_id] = QuestStatus.COMPLETED
 
 	# Nạp progress
 	var in_prog: Dictionary = data["quest_progress"]
