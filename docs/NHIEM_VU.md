@@ -10,6 +10,8 @@ Mảng 1. Nội dung truyện xem `docs/COT_TRUYEN.md`. Những gì ở đây ch
 | Phụ | Chuyện riêng của từng vùng đất |
 | Vặt | Việc lặt vặt như chặt củi, giúp dân làng |
 
+Bảng nhiệm vụ (J) hiện ba ô theo đúng ba loại này (đã làm 2026-11-10). Trong code: `quest_type` "main"/"system" vào Chính tuyến, "side" vào Phụ, "chore" vào Vặt.
+
 ## Quy tắc
 
 - Nhiệm vụ mới phải thảo luận với chủ dự án trước khi thêm.

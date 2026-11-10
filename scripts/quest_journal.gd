@@ -1,7 +1,7 @@
 extends CanvasLayer
 
 @onready var panel: PanelContainer = $PanelContainer
-@onready var quest_list_vbox: VBoxContainer = $PanelContainer/Margin/VBox/Content/LeftCol/Scroll/QuestListVBox
+@onready var left_col: PanelContainer = $PanelContainer/Margin/VBox/Content/LeftCol
 @onready var close_btn: Button = $PanelContainer/Margin/VBox/Header/CloseBtn
 
 # Các thành phần chi tiết nhiệm vụ bên phải
@@ -21,11 +21,30 @@ extends CanvasLayer
 var selected_quest_id: StringName = &""
 var toast_tween: Tween = null
 
+# Ba ô danh sách theo loại đã chốt ở docs/NHIEM_VU.md.
+# Nhiệm vụ Hệ thống là mạch chính hiện nay nên nằm trong ô Chính.
+const CATEGORIES: Array[Dictionary] = [
+	{"id": &"main", "title": "CHÍNH TUYẾN", "color": Color(1.0, 0.85, 0.35)},
+	{"id": &"side", "title": "PHỤ", "color": Color(0.55, 0.85, 1.0)},
+	{"id": &"chore", "title": "VẶT", "color": Color(0.7, 0.9, 0.55)},
+]
+var _category_lists: Dictionary = {} # category id -> VBoxContainer
+
+static func get_category(quest_type: String) -> StringName:
+	match quest_type:
+		"main", "system":
+			return &"main"
+		"chore":
+			return &"chore"
+		_:
+			return &"side"
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	if toast_panel:
 		toast_panel.visible = false
+	_build_category_boxes()
 
 	if close_btn:
 		close_btn.pressed.connect(_on_close_btn_pressed)
@@ -106,12 +125,62 @@ func _check_resume_pause() -> void:
 			return
 	get_tree().paused = false
 
+# Thay cột danh sách cũ bằng ba ô xếp dọc, mỗi ô có tiêu đề và thanh cuộn riêng.
+func _build_category_boxes() -> void:
+	if not left_col:
+		return
+	for child in left_col.get_children():
+		left_col.remove_child(child)
+		child.queue_free()
+	left_col.custom_minimum_size.x = 180
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 4)
+	left_col.add_child(column)
+	for category in CATEGORIES:
+		var box := PanelContainer.new()
+		box.name = "Box_" + str(category["id"])
+		box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		# Ô Chính có nhiều nhiệm vụ nhất nên cao gấp đôi.
+		box.size_flags_stretch_ratio = 2.0 if category["id"] == &"main" else 1.0
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.07, 0.08, 0.11, 0.9)
+		style.border_color = (category["color"] as Color) * Color(1, 1, 1, 0.55)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(2)
+		style.set_content_margin_all(3)
+		box.add_theme_stylebox_override("panel", style)
+		column.add_child(box)
+		var inner := VBoxContainer.new()
+		inner.add_theme_constant_override("separation", 2)
+		box.add_child(inner)
+		var header := Label.new()
+		header.name = "Header"
+		header.text = category["title"]
+		header.add_theme_font_size_override("font_size", 8)
+		header.add_theme_color_override("font_color", category["color"])
+		inner.add_child(header)
+		var scroll := ScrollContainer.new()
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		inner.add_child(scroll)
+		var list := VBoxContainer.new()
+		list.name = "List"
+		list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		list.add_theme_constant_override("separation", 2)
+		scroll.add_child(list)
+		_category_lists[category["id"]] = list
+
+func get_category_list(category_id: StringName) -> VBoxContainer:
+	return _category_lists.get(category_id)
+
 func _refresh_quest_list() -> void:
-	if not quest_list_vbox:
+	if _category_lists.is_empty():
 		return
 
-	for child in quest_list_vbox.get_children():
-		child.queue_free()
+	for list in _category_lists.values():
+		for child in list.get_children():
+			list.remove_child(child)
+			child.queue_free()
 
 	var quest_mgr = get_node_or_null("/root/QuestManager")
 	if not quest_mgr:
@@ -123,12 +192,14 @@ func _refresh_quest_list() -> void:
 		var status: int = quest_mgr.get_quest_status(q_id)
 
 		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(0, 30)
+		btn.custom_minimum_size = Vector2(0, 18)
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		btn.add_theme_font_size_override("font_size", 9)
+		btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		btn.clip_text = true
+		btn.add_theme_font_size_override("font_size", 8)
 
-		# Tên nhiệm vụ Hệ thống đã có sẵn nhãn [Hệ Thống].
-		var type_prefix := "" if def.get("quest_type") == "system" else ("[Chính] " if def.get("quest_type") == "main" else "[Phụ] ")
+		# Loại đã thể hiện bằng ô chứa nên không cần tiền tố [Chính]/[Phụ].
+		var type_prefix := ""
 		var status_badge := ""
 		match status:
 			0: # LOCKED
@@ -148,8 +219,17 @@ func _refresh_quest_list() -> void:
 				btn.modulate = Color(0.7, 0.7, 0.75)
 
 		btn.text = type_prefix + def.get("title", str(q_id)) + status_badge
+		btn.tooltip_text = btn.text
 		btn.pressed.connect(func(): _select_quest(q_id))
-		quest_list_vbox.add_child(btn)
+		_category_lists[get_category(str(def.get("quest_type", "")))].add_child(btn)
+
+	for list in _category_lists.values():
+		if list.get_child_count() == 0:
+			var empty := Label.new()
+			empty.text = "Chưa có nhiệm vụ"
+			empty.add_theme_font_size_override("font_size", 8)
+			empty.modulate = Color(0.55, 0.58, 0.65)
+			list.add_child(empty)
 
 func _select_quest(quest_id: StringName) -> void:
 	selected_quest_id = quest_id
@@ -170,8 +250,9 @@ func _update_selected_details() -> void:
 	if detail_title:
 		detail_title.text = def.get("title", str(selected_quest_id))
 	if detail_type:
-		var type_names := {"main": "Nhiệm vụ chính", "system": "Nhiệm vụ Hệ thống"}
-		detail_type.text = "Loại: " + str(type_names.get(def.get("quest_type"), "Nhiệm vụ phụ"))
+		var type_names := {&"main": "Chính tuyến", &"side": "Phụ", &"chore": "Vặt"}
+		var quest_type := str(def.get("quest_type", ""))
+		detail_type.text = "Loại: " + str(type_names[get_category(quest_type)]) + (" (Hệ thống)" if quest_type == "system" else "")
 	if detail_status:
 		detail_status.text = "Trạng thái: " + quest_mgr.get_status_name(status)
 		match status:
