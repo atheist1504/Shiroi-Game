@@ -18,6 +18,10 @@ const COMBO_RADIUS: float = 96.0
 const REVIVE_SECONDS: float = 30.0
 const REVIVE_HEALTH_RATIO: float = 0.3
 
+# Tên người chơi đặt khi vào game mới, lưu trong cờ thế giới.
+const FLAG_PLAYER_NAME: StringName = &"player_name"
+const PLAYER_NAME_MAX_LENGTH: int = 16
+
 const PROTAGONIST_PROFILE: Dictionary = {
 	"id": PROTAGONIST_ID, "name": "Nhân vật chính", "job_name": "", "element": &"wind",
 	"max_health": 100.0, "attack_damage": 20.0, "color": Color(1.0, 1.0, 1.0)
@@ -86,7 +90,9 @@ func get_active_id() -> StringName:
 
 func get_profile(character_id: StringName) -> Dictionary:
 	if character_id == PROTAGONIST_ID:
-		return PROTAGONIST_PROFILE
+		var protagonist := PROTAGONIST_PROFILE.duplicate()
+		protagonist["name"] = get_player_name()
+		return protagonist
 	var character: Dictionary = _gacha().get_character(character_id)
 	if character.is_empty():
 		return {}
@@ -95,6 +101,25 @@ func get_profile(character_id: StringName) -> Dictionary:
 	profile["max_health"] = float(character["max_health"]) * multiplier
 	profile["attack_damage"] = float(character["attack_damage"]) * multiplier
 	return profile
+
+func get_player_name() -> String:
+	var player_name := str(_world_state().get_flag(FLAG_PLAYER_NAME, ""))
+	return player_name if not player_name.is_empty() else str(PROTAGONIST_PROFILE["name"])
+
+func has_player_name() -> bool:
+	return not str(_world_state().get_flag(FLAG_PLAYER_NAME, "")).is_empty()
+
+# Bỏ khoảng trắng thừa, cắt còn tối đa PLAYER_NAME_MAX_LENGTH ký tự; tên rỗng thì từ chối.
+func set_player_name(player_name: String) -> bool:
+	var clean := " ".join(player_name.strip_edges().split(" ", false)).left(PLAYER_NAME_MAX_LENGTH).strip_edges()
+	if clean.is_empty():
+		return false
+	_world_state().set_flag(FLAG_PLAYER_NAME, clean)
+	party_changed.emit()
+	return true
+
+func _world_state() -> Node:
+	return get_node("/root/WorldState")
 
 func is_fallen(character_id: StringName) -> bool:
 	return float(_get_state(character_id)["hp"]) <= 0.0

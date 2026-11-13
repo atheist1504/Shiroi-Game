@@ -1,15 +1,18 @@
 extends Node
 
 # Màn đêm đầu (nhiệm vụ "Sống sót đến sáng"), thiết kế ở docs/NHIEM_VU.md.
-# Sói con một đòn là chết để tập điều khiển: lướt và chạy, chém hạ 1, E hạ 2, R hạ 3.
-# Sau đó 3 sói và Sói Đầu Đàn kéo đến, rớt răng nanh, hướng dẫn F để nhặt.
-# Đêm tối chỉ thấy quanh mình; slime và Thủ Lĩnh Slime chỉ ra sau khi trời sáng.
-# Sói không được lưu: tải save giữa đêm thì đêm bắt đầu lại từ đầu.
+# Trước khi tối: trời chạng vạng, tập phím trên cọc gỗ (đi, chạy, lướt, chém,
+# E, R). Tập xong nhấn Enter khi sẵn sàng thì màn đêm buông, bầy sói 3 con và
+# Sói Đầu Đàn xuất hiện ngay trong vùng sáng quanh nhân vật, rớt răng nanh,
+# hướng dẫn F để nhặt. Slime và Thủ Lĩnh Slime chỉ ra sau khi trời sáng.
+# Sói và cọc không được lưu: tải save giữa chừng thì làm lại từ bước đang dở
+# (đang tập thì tập lại từ đầu, đã vào đêm thì quay về bước Sẵn sàng).
 
 signal stage_changed(stage: int)
 signal night_finished
 
-enum Stage { IDLE, MOVE, SWORD, SKILL_E, SKILL_R, PACK, LOOT, ENDING, DONE }
+enum Stage { IDLE, MOVE, SWORD, SKILL_E, SKILL_R, READY, PACK, LOOT, ENDING, DONE }
+enum SkyMode { DAY, DUSK, NIGHT }
 
 const QUEST_ID: StringName = &"sys_00_first_night"
 const QUEST_COMPLETED: int = 4
@@ -17,34 +20,37 @@ const WOLF_REGION: StringName = &"first_night"
 const DAY_ONLY_REGION: StringName = &"forest_clearing"
 const FANG_ID: StringName = &"wolf_fang"
 const ENEMY_SCENE: PackedScene = preload("res://slime.tscn")
+const DUMMY_SCRIPT: Script = preload("res://scripts/training_dummy.gd")
 const NIGHT_COLOR := Color(0.06, 0.07, 0.13)
-const LIGHT_RADIUS: float = 110.0
+const DUSK_COLOR := Color(0.85, 0.66, 0.6)
+const LIGHT_RADIUS: float = 150.0
 const SYSTEM_COLOR := Color(0.45, 0.95, 0.85)
 const MAP_MIN := Vector2(48, 48)
 const MAP_MAX := Vector2(2512, 1392)
-const RESPAWN_DELAY: float = 0.8
+const DUMMY_OFFSET := Vector2(60, 0)
+# Bầy sói đứng trong vùng sáng (LIGHT_RADIUS) để người chơi thấy ngay.
+const PACK_DISTANCE: float = 90.0
 const R_COOLDOWN_CAP: float = 3.0
 const LOOT_TIMEOUT: float = 20.0
 const REWARD_MESSAGE := "[HỆ THỐNG]\nHoàn thành nhiệm vụ. Nhận 10 Tinh Vẫn."
 
-# Chặng thử chiêu: cách hạ cần dùng và số sói con phải hạ.
-const KILL_GOALS: Dictionary = {
-	Stage.SWORD: ["Sword", 1],
-	Stage.SKILL_E: ["E", 2],
-	Stage.SKILL_R: ["R", 3],
+# Bước tập trên cọc: chiêu cần dùng và số lần trúng.
+const HIT_GOALS: Dictionary = {
+	Stage.SWORD: ["Sword", 3],
+	Stage.SKILL_E: ["E", 1],
+	Stage.SKILL_R: ["R", 1],
 }
 
 var stage: int = Stage.IDLE
-var _kills: int = 0
+var _hits: int = 0
 var _dodged: bool = false
 var _sprint_time: float = 0.0
 var _fang_collected: bool = false
 var _fang_hint_shown: bool = false
 var _loot_time: float = 0.0
 var _spawn_counter: int = 0
-var _pups: Array[Node2D] = []
+var _dummy: Node2D
 var _pack: Array[Node2D] = []
-var _kill_method: Dictionary = {} # instance_id -> "Sword"/"E"/"R"
 var _player: CharacterBody2D
 var _skill: Node
 var _narrative: Node
@@ -54,6 +60,7 @@ var _ui: CanvasLayer
 var _title_label: Label
 var _hint_label: Label
 var _message_timer: SceneTreeTimer
+var _wrong_method: String = ""
 
 func _ready() -> void:
 	_player = get_parent().get_node_or_null("Player") as CharacterBody2D
@@ -66,15 +73,17 @@ func _ready() -> void:
 	get_node("/root/EventBus").item_collected.connect(_on_item_collected)
 	get_node("/root/SaveManager").load_completed.connect(_on_load_completed)
 	_build_ui()
-	# Kiểm thử headless tự gọi start_if_needed() để các bài thử cũ không bị đêm che.
-	if DisplayServer.get_name() != "headless":
-		start_if_needed.call_deferred()
+	# Màn bắt đầu (title_menu.gd) gọi start_if_needed() khi người chơi chọn
+	# Chơi mới hoặc Tiếp tục; kiểm thử headless tự gọi.
 
 func is_night_done() -> bool:
 	return int(get_node("/root/QuestManager").get_quest_status(QUEST_ID)) == QUEST_COMPLETED
 
 func is_night_active() -> bool:
 	return stage != Stage.IDLE and stage != Stage.DONE
+
+func is_practicing() -> bool:
+	return stage >= Stage.MOVE and stage <= Stage.READY
 
 func start_if_needed() -> bool:
 	if is_night_done():
@@ -89,54 +98,66 @@ func skip_night() -> void:
 	_complete_quest()
 	_apply_day()
 
-func get_pups() -> Array[Node2D]:
-	return _alive(_pups)
+func get_dummy() -> Node2D:
+	return _dummy if is_instance_valid(_dummy) else null
 
 func get_pack() -> Array[Node2D]:
-	return _alive(_pack)
-
-func _alive(wolves: Array[Node2D]) -> Array[Node2D]:
 	var result: Array[Node2D] = []
-	for wolf in wolves:
+	for wolf in _pack:
 		if is_instance_valid(wolf) and not wolf.get("is_dead"):
 			result.append(wolf)
 	return result
 
-func get_kill_count() -> int:
-	return _kills
+func get_hit_count() -> int:
+	return _hits
 
-func _begin_night() -> void:
+func _begin_night(from_stage: int = Stage.MOVE) -> void:
 	_clear_wolves()
 	_set_day_enemies_visible(false)
-	_set_darkness(true)
 	_dodged = false
 	_sprint_time = 0.0
 	_fang_collected = false
 	_fang_hint_shown = false
 	_loot_time = 0.0
 	_ui.visible = true
-	_set_stage(Stage.MOVE)
+	_set_stage(from_stage)
 
 func _set_stage(new_stage: int) -> void:
 	stage = new_stage
-	_kills = 0
+	_hits = 0
+	_wrong_method = ""
+	if is_practicing():
+		_set_sky(SkyMode.DUSK)
+		if new_stage != Stage.MOVE:
+			_ensure_dummy()
 	match new_stage:
-		Stage.MOVE, Stage.SWORD:
-			_ensure_pups(1)
-		Stage.SKILL_E:
-			_ensure_pups(2)
 		Stage.SKILL_R:
-			_ensure_pups(3)
 			if _skill:
 				_skill.add_energy(float(_skill.get("max_energy")))
 				_cap_r_cooldown(0.0)
 		Stage.PACK:
 			_clear_wolves()
+			_set_sky(SkyMode.NIGHT)
 			_spawn_pack()
 		Stage.LOOT:
 			_loot_time = 0.0
 	_update_hint()
 	stage_changed.emit(new_stage)
+
+# Đã tập xong và sẵn sàng: màn đêm buông, bầy sói tới.
+func start_darkness() -> bool:
+	if stage != Stage.READY:
+		return false
+	_set_stage(Stage.PACK)
+	return true
+
+func _unhandled_input(event: InputEvent) -> void:
+	if stage != Stage.READY or get_tree().paused:
+		return
+	var key := event as InputEventKey
+	if key and key.pressed and not key.echo and key.physical_keycode in [KEY_ENTER, KEY_KP_ENTER] and not key.alt_pressed:
+		start_darkness()
+		get_viewport().set_input_as_handled()
 
 func _physics_process(delta: float) -> void:
 	if not _player:
@@ -150,7 +171,7 @@ func _physics_process(delta: float) -> void:
 			_update_hint()
 			if _dodged and _sprint_time >= 0.4:
 				_set_stage(Stage.SWORD)
-		Stage.SKILL_R:
+		Stage.SKILL_R, Stage.READY:
 			if _skill:
 				if float(_skill.get("current_energy")) < float(_skill.get("r_energy_cost")):
 					_skill.add_energy(float(_skill.get("r_energy_cost")))
@@ -169,29 +190,37 @@ func _cap_r_cooldown(cap: float) -> void:
 		_skill.set("r_cooldown_timer", cap)
 		_skill.cooldown_changed.emit("R", cap, float(_skill.get("r_cooldown")))
 
-# --- Sói ---
+# --- Cọc gỗ ---
 
-func _ensure_pups(count: int) -> void:
-	var alive := get_pups()
-	_pups = alive
-	var base_angle := randf() * TAU
-	for i in range(alive.size(), count):
-		# Xếp gần một hướng để E dễ xuyên qua, R dễ gom.
-		var angle := base_angle + (i - count * 0.5) * 0.35
-		var pup := _spawn_wolf(&"wolf_pup", _player.global_position + Vector2.from_angle(angle) * (110.0 + i * 18.0))
-		pup.set("max_health", 1.0)
-		pup.set("move_speed", 50.0)
-		pup.set("attack_damage", 3.0)
-		pup.set("aggro_range", 320.0)
-		pup.set("COLOR_NORMAL", Color(0.66, 0.6, 0.55))
-		pup.set("SCALE_NORMAL", Vector2(0.15, 0.12))
-		_add_wolf(pup)
-		_pups.append(pup)
-		pup.died.connect(_on_pup_died.bind(pup))
+func _ensure_dummy() -> void:
+	if is_instance_valid(_dummy):
+		return
+	_dummy = StaticBody2D.new()
+	_dummy.set_script(DUMMY_SCRIPT)
+	_dummy.name = "TrainingDummy"
+	_dummy.position = (_player.global_position + DUMMY_OFFSET).clamp(MAP_MIN, MAP_MAX)
+	get_parent().add_child(_dummy)
+
+func _on_skill_hit(skill_name: String, target: Node2D, _damage: float) -> void:
+	if not is_instance_valid(target) or target != _dummy or not HIT_GOALS.has(stage):
+		return
+	var goal: Array = HIT_GOALS[stage]
+	if skill_name != goal[0]:
+		_wrong_method = skill_name
+		_update_hint()
+		return
+	_wrong_method = ""
+	_hits += 1
+	if _hits >= int(goal[1]):
+		_set_stage(stage + 1)
+	else:
+		_update_hint()
+
+# --- Sói ---
 
 func _spawn_pack() -> void:
 	var side := Vector2.from_angle(randf() * TAU)
-	var center := _player.global_position + side * 170.0
+	var center := _player.global_position + side * PACK_DISTANCE
 	for i in 3:
 		var wolf := _spawn_wolf(&"wolf", center + side.orthogonal() * (i - 1) * 40.0)
 		wolf.set("max_health", 50.0)
@@ -204,7 +233,7 @@ func _spawn_pack() -> void:
 		wolf.set("SCALE_NORMAL", Vector2(0.24, 0.19))
 		_add_wolf(wolf)
 		_pack.append(wolf)
-	var alpha := _spawn_wolf(&"wolf_alpha", center + side * 40.0)
+	var alpha := _spawn_wolf(&"wolf_alpha", center + side * 30.0)
 	alpha.set("max_health", 220.0)
 	alpha.set("move_speed", 66.0)
 	alpha.set("attack_damage", 13.0)
@@ -241,51 +270,12 @@ func _spawn_wolf(enemy_id: StringName, at: Vector2) -> Node2D:
 func _add_wolf(wolf: Node2D) -> void:
 	get_parent().add_child(wolf)
 
+# Xóa sói và cọc gỗ (cọc cũng ở nhóm first_night_wolves).
 func _clear_wolves() -> void:
 	for wolf in get_tree().get_nodes_in_group("first_night_wolves"):
 		wolf.queue_free()
-	_pups.clear()
+	_dummy = null
 	_pack.clear()
-	_kill_method.clear()
-
-func _on_skill_hit(skill_name: String, target: Node2D, _damage: float) -> void:
-	if is_instance_valid(target) and target in _pups and target.get("is_dead") and not _kill_method.has(target.get_instance_id()):
-		_kill_method[target.get_instance_id()] = skill_name
-
-# Quái chết trước khi skill_hit phát, nên đợi hết khung hình mới biết bị hạ bằng gì.
-func _on_pup_died(pup: Node2D) -> void:
-	_resolve_pup_death.call_deferred(pup)
-
-func _resolve_pup_death(pup: Node2D) -> void:
-	if not is_instance_valid(pup) or not (pup in _pups):
-		return
-	var method: String = _kill_method.get(pup.get_instance_id(), "")
-	_pups.erase(pup)
-	_free_later(pup)
-	var goal: Array = KILL_GOALS.get(stage, [])
-	if not goal.is_empty() and method == goal[0]:
-		_kills += 1
-		if _kills >= int(goal[1]):
-			_set_stage(stage + 1)
-			return
-		_update_hint()
-		return
-	# Hạ sai cách (hoặc lúc đang tập di chuyển): thả sói con khác ra.
-	var waiting_stage := stage
-	get_tree().create_timer(RESPAWN_DELAY, false).timeout.connect(func() -> void:
-		if stage == waiting_stage:
-			var needed := 1 if goal.is_empty() else int(goal[1]) - _kills
-			_ensure_pups(needed)
-	)
-
-func _free_later(node: Node) -> void:
-	# Giữ id thay vì tham chiếu: tải save có thể đã xóa node trước khi hẹn giờ chạy.
-	var node_id := node.get_instance_id()
-	get_tree().create_timer(1.0, false).timeout.connect(func() -> void:
-		var target := instance_from_id(node_id) as Node
-		if target:
-			target.queue_free()
-	)
 
 func _on_pack_wolf_died() -> void:
 	_check_fang_hint.call_deferred()
@@ -336,7 +326,7 @@ func _complete_quest() -> void:
 
 func _apply_day() -> void:
 	_clear_wolves()
-	_set_darkness(false)
+	_set_sky(SkyMode.DAY)
 	_set_day_enemies_visible(true)
 	stage = Stage.DONE
 	_ui.visible = false
@@ -361,13 +351,19 @@ func _set_day_enemies_visible(show: bool) -> void:
 		if shape:
 			shape.set_deferred("disabled", not show or dead)
 
-func _set_darkness(on: bool) -> void:
-	if on:
-		if not is_instance_valid(_canvas_modulate):
-			_canvas_modulate = CanvasModulate.new()
-			_canvas_modulate.name = "NightModulate"
-			get_parent().add_child.call_deferred(_canvas_modulate)
-		_canvas_modulate.color = NIGHT_COLOR
+# Chạng vạng: phủ màu cam nhạt, chưa cần đèn. Đêm: tối hẳn, chỉ sáng quanh nhân vật.
+func _set_sky(sky: int) -> void:
+	if sky == SkyMode.DAY:
+		if is_instance_valid(_canvas_modulate):
+			_canvas_modulate.queue_free()
+		_canvas_modulate = null
+	elif not is_instance_valid(_canvas_modulate):
+		_canvas_modulate = CanvasModulate.new()
+		_canvas_modulate.name = "NightModulate"
+		get_parent().add_child.call_deferred(_canvas_modulate)
+	if is_instance_valid(_canvas_modulate):
+		_canvas_modulate.color = NIGHT_COLOR if sky == SkyMode.NIGHT else DUSK_COLOR
+	if sky == SkyMode.NIGHT:
 		if not is_instance_valid(_light) and _player:
 			_light = PointLight2D.new()
 			_light.name = "NightLight"
@@ -377,15 +373,15 @@ func _set_darkness(on: bool) -> void:
 			_light.color = Color(1.0, 0.95, 0.85)
 			_player.add_child(_light)
 	else:
-		if is_instance_valid(_canvas_modulate):
-			_canvas_modulate.queue_free()
 		if is_instance_valid(_light):
 			_light.queue_free()
-		_canvas_modulate = null
 		_light = null
 
 func is_dark() -> bool:
-	return is_instance_valid(_canvas_modulate)
+	return is_instance_valid(_canvas_modulate) and _canvas_modulate.color == NIGHT_COLOR
+
+func is_dusk() -> bool:
+	return is_instance_valid(_canvas_modulate) and _canvas_modulate.color == DUSK_COLOR
 
 func _make_light_texture() -> Texture2D:
 	var gradient := Gradient.new()
@@ -408,30 +404,55 @@ func _on_load_completed(_slot_id: int, success: bool, _message: String) -> void:
 	if is_night_done():
 		_apply_day()
 	elif stage != Stage.IDLE:
-		_begin_night()
+		_begin_night(Stage.READY if stage >= Stage.READY else Stage.MOVE)
 
 # --- Dòng hướng dẫn ---
+
+const METHOD_NAMES: Dictionary = {"Sword": "đòn chém (chuột trái)", "E": "kỹ năng E", "R": "kỹ năng R"}
+const STEP_COUNT: int = 7
 
 func _update_hint() -> void:
 	if not is_instance_valid(_hint_label):
 		return
+	var step := 0
+	var heading := ""
 	var text := ""
 	match stage:
 		Stage.MOVE:
-			text = "Một con sói con đang tới.\nSpace: lướt né [%s]    Giữ chuột phải khi đi: chạy [%s]" % ["x" if _dodged else " ", "x" if _sprint_time >= 0.4 else " "]
+			step = 1
+			heading = "Di chuyển"
+			text = "WASD: đi lại.\n[%s] Giữ chuột phải trong lúc đi: chạy nhanh.\n[%s] Nhấn Space: lướt nhanh một đoạn để né đòn." % ["x" if _sprint_time >= 0.4 else " ", "x" if _dodged else " "]
 		Stage.SWORD:
-			text = "Chuột trái: chém.\nHạ 1 sói con bằng đòn chém."
+			step = 2
+			heading = "Đánh thường"
+			text = "Cọc gỗ để tập đã dựng trước mặt. Đòn chém đánh về phía con trỏ chuột.\nNhấn chuột trái chém trúng cọc 3 lần (%d/3)." % _hits
 		Stage.SKILL_E:
-			text = "E: phóng chiêu xuyên theo đường thẳng.\nHạ 2 sói con bằng E (%d/2)." % _kills
+			step = 3
+			heading = "Kỹ năng E"
+			text = "E bắn lưỡi gió bay thẳng về phía con trỏ, xuyên qua mọi con trên đường; hồi chiêu 5 giây.\nNhắm con trỏ vào cọc rồi nhấn E (%d/1)." % _hits
 		Stage.SKILL_R:
-			text = "R: tạo lốc gom quái lại.\nHạ 3 sói con bằng R (%d/3)." % _kills
+			step = 4
+			heading = "Kỹ năng R"
+			text = "R tạo lốc xoáy tại con trỏ, hút quái xung quanh vào giữa. R tốn đầy thanh năng lượng (lần này được nạp sẵn).\nĐặt con trỏ lên cọc rồi nhấn R (%d/1)." % _hits
+		Stage.READY:
+			step = 5
+			heading = "Sẵn sàng"
+			text = "Đã tập xong. Trời sắp tối hẳn, bầy sói sẽ kéo đến.\nMuốn tập thêm thì cứ đánh cọc. Sẵn sàng thì nhấn Enter."
 		Stage.PACK:
-			text = "Bầy sói kéo đến. Hạ 3 sói và Sói Đầu Đàn (%d/4)." % (_pack.size() - get_pack().size())
+			step = 6
+			heading = "Bầy sói"
+			text = "Bầy sói kéo đến. Sói Đầu Đàn to và đánh đau hơn: giữ khoảng cách, lướt né khi nó áp sát.\nHạ 3 sói và Sói Đầu Đàn (%d/4)." % (_pack.size() - get_pack().size())
 			if _fang_hint_shown:
 				text += "\nCó đồ rơi: đứng gần và nhấn F để nhặt."
 		Stage.LOOT:
-			text = "Nhấn F để nhặt răng nanh."
-	_title_label.text = "[HỆ THỐNG] Sống sót đến sáng."
+			step = 7
+			heading = "Nhặt đồ"
+			text = "Sói rơi răng nanh. Đứng gần món đồ và nhấn F để nhặt vào túi (B để xem túi)."
+	if not _wrong_method.is_empty() and HIT_GOALS.has(stage):
+		text += "\nLần vừa rồi là %s, bước này cần %s." % [METHOD_NAMES.get(_wrong_method, _wrong_method), METHOD_NAMES[HIT_GOALS[stage][0]]]
+	_title_label.text = "[HỆ THỐNG] Chuẩn bị trước màn đêm." if is_practicing() else "[HỆ THỐNG] Sống sót đến sáng."
+	if step > 0:
+		_title_label.text += "   Bước %d/%d: %s" % [step, STEP_COUNT, heading]
 	_hint_label.text = text
 
 func _show_message(text: String, seconds: float) -> void:
@@ -451,14 +472,27 @@ func _build_ui() -> void:
 	_ui.layer = 20
 	_ui.visible = false
 	add_child(_ui)
+	# Khung nền tối để chữ không lẫn vào bản đồ.
+	var panel := PanelContainer.new()
+	# Góc trên bên phải, dưới bản đồ nhỏ, tránh thanh máu và năng lượng bên trái.
+	panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	panel.position = Vector2(-446, 88)
+	panel.custom_minimum_size = Vector2(440, 0)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.03, 0.04, 0.08, 0.82)
+	style.border_color = Color(SYSTEM_COLOR, 0.6)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(6)
+	panel.add_theme_stylebox_override("panel", style)
+	_ui.add_child(panel)
 	var box := VBoxContainer.new()
-	box.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	box.position = Vector2(-200, 40)
-	box.size = Vector2(400, 40)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui.add_child(box)
-	_title_label = _make_label(SYSTEM_COLOR, 9)
-	_hint_label = _make_label(Color(0.92, 0.93, 0.97), 8)
+	box.add_theme_constant_override("separation", 3)
+	panel.add_child(box)
+	_title_label = _make_label(SYSTEM_COLOR, 11)
+	_hint_label = _make_label(Color(0.95, 0.96, 1.0), 10)
 	box.add_child(_title_label)
 	box.add_child(_hint_label)
 
@@ -466,10 +500,10 @@ func _make_label(color: Color, font_size: int) -> Label:
 	var label := Label.new()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.custom_minimum_size = Vector2(400, 0)
+	label.custom_minimum_size = Vector2(428, 0)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
-	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	label.add_theme_constant_override("outline_size", 3)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1.0))
+	label.add_theme_constant_override("outline_size", 4)
 	return label

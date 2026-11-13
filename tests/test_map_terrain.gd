@@ -36,11 +36,13 @@ func _run() -> void:
 	_check(terrain.get_ground_at(Vector2(1200, 900)) == terrain.Ground.SAND, "Đồi Cát nền cát")
 	_check(terrain.get_ground_at(Vector2(2100, 900)) == terrain.Ground.RUIN, "Tàn Tích nền đá cổ")
 	_check(terrain.get_ground_at(Vector2(-5, 10)) == -1, "Ngoài bản đồ không có nền")
-	var first_variant := layer.get_cell_atlas_coords(Vector2i(10, 10))
-	var other_terrain: Node = load("res://scripts/world_terrain.gd").new()
-	root.add_child(other_terrain)
-	_check(other_terrain.get_node("Ground").get_cell_atlas_coords(Vector2i(10, 10)) == first_variant, "Dựng lại ra đúng bản đồ cũ")
-	other_terrain.free()
+	# Bản đồ vẽ tay: nằm trong scene riêng, tileset lưu thành file để sửa trong editor.
+	_check(terrain.scene_file_path == "res://scenes/world_map.tscn", "Bản đồ nạp từ scene vẽ tay world_map.tscn")
+	_check(layer.tile_set.resource_path == "res://assets/tiles/terrain_tileset.tres", "Tileset là file riêng, sửa được trong editor")
+	var obstacles: TileMapLayer = terrain.get_node("Obstacles")
+	_check(terrain.has_node("Decoration") and obstacles.get_used_cells().size() > 0, "Có lớp Vật cản và lớp Trang trí")
+	_check(terrain.get_ground_at(Vector2(260, 1040)) == terrain.Ground.WATER, "Nước nằm ở lớp Vật cản, đè lên nền")
+	_check(layer.get_cell_tile_data(Vector2i(10, 10)).get_custom_data("ground") == terrain.Ground.GRASS, "Tile mang loại nền trong custom data")
 
 	# Tài nguyên không nằm trên ô chặn.
 	var blocked_nodes := 0

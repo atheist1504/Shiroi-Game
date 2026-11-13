@@ -1,6 +1,6 @@
 extends SceneTree
 
-# Màn đêm đầu: tập di chuyển, chém/E/R hạ sói con, bầy sói, nhặt răng nanh, trời sáng.
+# Màn đêm đầu: tập phím trên cọc gỗ lúc chạng vạng, Enter vào đêm, bầy sói, nhặt răng nanh, trời sáng.
 # Đòn đánh được gọi theo đúng thứ tự như trong game (take_damage rồi skill_hit),
 # không mô phỏng chuột và phím thật.
 const TEST_SLOT := 92
@@ -41,12 +41,13 @@ func _run() -> void:
 	_check(_status(QUEST) == ACTIVE and _status(&"sys_01_arrival") == LOCKED, "Nhiệm vụ đầu là Sống sót đến sáng")
 	_check(night.stage == night.Stage.IDLE, "Headless không tự bắt đầu đêm")
 
-	# Bắt đầu đêm.
-	_check(bool(night.start_if_needed()) and night.is_dark(), "Bắt đầu đêm thì tối, chỉ có vùng sáng quanh người chơi")
+	# Bắt đầu: trời chạng vạng, tập phím trước khi tối.
+	_check(bool(night.start_if_needed()) and not night.is_dark(), "Bắt đầu thì chưa tối, vào chặng tập trước")
 	await physics_frame
-	_check(scene.get_node_or_null("NightModulate") != null and player.get_node_or_null("NightLight") != null, "Có lớp tối và đèn quanh nhân vật")
-	_check(not slime.is_in_group("enemies") and not slime.visible and not boss.visible, "Slime và Thủ Lĩnh Slime chưa xuất hiện ban đêm")
-	_check(night.stage == night.Stage.MOVE and night.get_pups().size() == 1, "Một sói con xuất hiện để tập di chuyển")
+	_check(night.is_dusk() and scene.get_node_or_null("NightModulate") != null and player.get_node_or_null("NightLight") == null, "Lúc tập trời chạng vạng, chưa cần đèn")
+	_check(not slime.is_in_group("enemies") and not slime.visible and not boss.visible, "Slime và Thủ Lĩnh Slime chưa xuất hiện")
+	_check(night.stage == night.Stage.MOVE and get_nodes_in_group("first_night_wolves").is_empty(), "Tập di chuyển chưa có sói hay cọc")
+	_check(str(night.get("_title_label").text).contains("Bước 1/7") and str(night.get("_title_label").text).contains("Chuẩn bị"), "Hướng dẫn ghi số bước, đang chuẩn bị")
 	var hint: Label = night.get("_hint_label")
 	_check(hint.text.contains("Space") and hint.text.contains("chuột phải"), "Hướng dẫn lướt và chạy")
 
@@ -60,50 +61,67 @@ func _run() -> void:
 		if night.stage != night.Stage.MOVE:
 			break
 	_check(night.stage == night.Stage.SWORD, "Lướt và chạy xong thì sang tập chém")
-
-	# Hạ sai cách thì thả sói khác.
-	var pup: Node2D = night.get_pups()[0]
-	pup.call("take_damage", 1.0, Vector2.ZERO)
+	_check(scene.position == Vector2.ZERO, "Scene chính nằm ở gốc tọa độ (không bị kéo lệch trong editor)")
 	await process_frame
-	_check(night.get_kill_count() == 0, "Hạ bằng cách khác không tính")
-	await create_timer(1.0).timeout
-	_check(night.get_pups().size() == 1 and night.stage == night.Stage.SWORD, "Sói con mới xuất hiện")
+	var dummy: Node2D = night.get_dummy()
+	_check(dummy != null and dummy.is_inside_tree() and dummy.global_position.distance_to(player.global_position) < 100.0, "Cọc gỗ dựng ngay trước mặt")
+	_check(dummy != null and dummy.is_in_group("enemies") and dummy.is_in_group("no_save"), "Chiêu nhận cọc làm mục tiêu, cọc không vào save")
 
-	# Chém: 1 con.
-	await _kill_pups(night, skill, "Sword", 1)
-	_check(night.stage == night.Stage.SKILL_E and night.get_pups().size() == 2, "Chém hạ 1 con thì sang E với 2 sói con")
-	_check(hint.text.contains("E"), "Hướng dẫn kỹ năng E")
-	await _kill_pups(night, skill, "E", 1)
-	_check(night.stage == night.Stage.SKILL_E and night.get_kill_count() == 1 and hint.text.contains("1/2"), "E đếm từng con")
-	await _kill_pups(night, skill, "E", 1)
-	_check(night.stage == night.Stage.SKILL_R and night.get_pups().size() == 3, "E hạ 2 con thì sang R với 3 sói con")
-	_check(float(skill.get("current_energy")) >= float(skill.get("r_energy_cost")), "Vào chặng R được nạp đủ năng lượng")
+	# Đánh sai chiêu thì báo, không tính.
+	await _hit_dummy(night, skill, "E", 1)
+	_check(night.get_hit_count() == 0 and hint.text.contains("bước này cần đòn chém"), "Đánh cọc sai chiêu thì báo chiêu đúng")
+	await _hit_dummy(night, skill, "Sword", 2)
+	_check(night.stage == night.Stage.SWORD and hint.text.contains("2/3"), "Chém đếm từng lần trúng")
+	await _hit_dummy(night, skill, "Sword", 1)
+	_check(night.stage == night.Stage.SKILL_E and night.get_dummy() == dummy, "Chém trúng 3 lần thì sang E, vẫn cọc cũ")
+	_check(not bool(dummy.get("is_dead")), "Cọc không gãy")
+	await _hit_dummy(night, skill, "E", 1)
+	_check(night.stage == night.Stage.SKILL_R and float(skill.get("current_energy")) >= float(skill.get("r_energy_cost")), "E trúng thì sang R, được nạp năng lượng")
 
-	# Lưu giữa đêm: sói không vào save, tải lại thì đêm làm lại từ đầu.
-	_check(await _save(save_manager), "Lưu giữa đêm")
+	# Lưu giữa lúc tập: cọc không vào save, tải lại thì tập lại từ đầu.
+	_check(await _save(save_manager), "Lưu giữa lúc tập")
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(_slot_path()))
-	_check(not data.get("enemy_states", {}).has("first_night"), "Sói đêm đầu không được lưu")
-	_check(await _load(save_manager), "Tải lại giữa đêm")
+	_check(not data.get("enemy_states", {}).has("first_night"), "Cọc và sói đêm đầu không được lưu")
+	_check(await _load(save_manager), "Tải lại giữa lúc tập")
 	await process_frame
-	_check(night.stage == night.Stage.MOVE and night.get_pups().size() == 1 and night.is_dark(), "Tải lại thì đêm bắt đầu lại")
-	_check(get_nodes_in_group("first_night_wolves").size() == 1, "Không còn sói thừa sau khi tải")
-	_check(not slime.is_in_group("enemies"), "Slime vẫn ẩn sau khi tải giữa đêm")
+	_check(night.stage == night.Stage.MOVE and night.is_dusk(), "Tải lại thì tập lại từ đầu")
+	_check(get_nodes_in_group("first_night_wolves").is_empty(), "Không còn cọc thừa sau khi tải")
+	_check(not slime.is_in_group("enemies"), "Slime vẫn ẩn sau khi tải giữa lúc tập")
 	night.set("_dodged", true)
 	night.set("_sprint_time", 1.0)
 	night.call("_physics_process", 0.0)
-	await _kill_pups(night, skill, "Sword", 1)
-	await _kill_pups(night, skill, "E", 2)
-	_check(night.stage == night.Stage.SKILL_R, "Làm lại tới chặng R")
+	await process_frame
+	await _hit_dummy(night, skill, "Sword", 3)
+	await _hit_dummy(night, skill, "E", 1)
+	await _hit_dummy(night, skill, "R", 1)
+	_check(night.stage == night.Stage.READY and not night.is_dark() and night.get_dummy() != null, "Tập xong thì chờ sẵn sàng, chưa tối, cọc còn để tập thêm")
+	_check(hint.text.contains("Enter"), "Hướng dẫn nhấn Enter khi sẵn sàng")
+	await _hit_dummy(night, skill, "Sword", 1)
+	_check(night.stage == night.Stage.READY, "Đánh cọc thêm không làm tối trời")
 
-	# R: 3 con.
-	await _kill_pups(night, skill, "R", 3)
-	_check(night.stage == night.Stage.PACK and night.get_pack().size() == 4, "R hạ 3 con thì bầy 3 sói và Sói Đầu Đàn kéo đến")
+	# Enter: màn đêm buông, bầy sói tới trong vùng sáng.
+	var enter := InputEventKey.new()
+	enter.physical_keycode = KEY_ENTER
+	enter.pressed = true
+	night._unhandled_input(enter)
+	await physics_frame
+	_check(night.stage == night.Stage.PACK and night.get_pack().size() == 4, "Nhấn Enter thì bầy 3 sói và Sói Đầu Đàn kéo đến")
+	_check(night.is_dark() and player.get_node_or_null("NightLight") != null, "Trời tối hẳn, chỉ sáng quanh nhân vật")
+	_check(str(night.get("_title_label").text).contains("Sống sót đến sáng") and str(night.get("_title_label").text).contains("Bước 6/7"), "Hướng dẫn chuyển sang sống sót")
+	await process_frame
+	_check(night.get_dummy() == null and get_nodes_in_group("first_night_wolves").size() == 4, "Cọc gỗ được dọn khi vào đêm")
+	var all_in_light := true
+	for wolf in night.get_pack():
+		if wolf.global_position.distance_to(player.global_position) >= night.LIGHT_RADIUS:
+			all_in_light = false
+	_check(all_in_light, "Cả bầy sói xuất hiện trong vùng sáng, thấy được ngay")
 	var alpha: Node2D = null
 	for wolf in night.get_pack():
 		if wolf.get("enemy_id") == &"wolf_alpha":
 			alpha = wolf
 	_check(alpha != null and float(alpha.get("max_health")) > 100.0, "Sói Đầu Đàn máu dày như boss")
 	_check(float(night.get_pack()[0].get("max_health")) > 1.0, "Bầy sói máu bình thường, không chết một đòn")
+	var alpha_position := alpha.global_position
 	for wolf in night.get_pack():
 		wolf.call("take_damage", 99999.0, Vector2.ZERO)
 	await process_frame
@@ -116,6 +134,7 @@ func _run() -> void:
 		if pickup.get("item_id") == &"wolf_fang":
 			fang = pickup
 	_check(fang != null, "Sói rớt răng nanh")
+	_check(fang != null and (fang as Node2D).global_position.distance_to(alpha_position) < 200.0, "Răng nanh rơi ngay cạnh bầy sói, không văng ra xa")
 	_check(night.stage == night.Stage.LOOT and hint.text.contains("F"), "Lần đầu có đồ rơi thì hướng dẫn nhấn F")
 
 	# Nhặt răng nanh thì trời sáng.
@@ -147,16 +166,15 @@ func _run() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(_slot_path()))
 	_finish()
 
-# Hạ sói con theo đúng thứ tự trong game: take_damage trước, skill_hit sau.
-func _kill_pups(night: Node, skill: Node, method: String, count: int) -> void:
+
+# Đánh cọc theo đúng thứ tự trong game: take_damage trước, skill_hit sau.
+func _hit_dummy(night: Node, skill: Node, method: String, count: int) -> void:
 	for i in count:
-		var pups: Array = night.get_pups()
-		if pups.is_empty():
+		var dummy: Node2D = night.get_dummy()
+		if not dummy:
 			return
-		var pup: Node2D = pups[0]
-		pup.call("take_damage", 30.0, Vector2.ZERO)
-		skill.skill_hit.emit(method, pup, 30.0)
-		await process_frame
+		dummy.call("take_damage", 30.0, Vector2.ZERO)
+		skill.skill_hit.emit(method, dummy, 30.0)
 		await process_frame
 
 func _status(quest_id: StringName) -> int:

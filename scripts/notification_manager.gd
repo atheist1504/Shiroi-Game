@@ -43,9 +43,10 @@ func _create_ui() -> void:
 	_vbox.anchor_top = 0.0
 	_vbox.anchor_bottom = 0.0
 	_vbox.offset_left = -230.0
-	_vbox.offset_top = 10.0
+	# Dưới bản đồ nhỏ ở góc trên phải.
+	_vbox.offset_top = 88.0
 	_vbox.offset_right = -10.0
-	_vbox.offset_bottom = 160.0
+	_vbox.offset_bottom = 238.0
 	_vbox.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_vbox.add_theme_constant_override("separation", 5)

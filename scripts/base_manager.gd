@@ -83,7 +83,14 @@ func _process(_delta: float) -> void:
 		var validity_text := "Vị trí hợp lệ — Chuột trái để đặt." if placement_reason.is_empty() else placement_reason
 		_status_label.text = "%s\nChuột trái: Đặt • Chuột phải: Hủy\nG/Esc: Thoát\nVị trí: %d, %d" % [validity_text, grid_pos.x, grid_pos.y]
 
+func _is_typing() -> bool:
+	var focus := get_viewport().gui_get_focus_owner()
+	return focus is LineEdit or focus is TextEdit
+
 func _input(event: InputEvent) -> void:
+	# Đang gõ chữ (ví dụ ô đặt tên) thì phím G là chữ, không phải phím xây dựng.
+	if event is InputEventKey and _is_typing():
+		return
 	if is_storage_interaction_open:
 		if event is InputEventKey:
 			var storage_key := event as InputEventKey

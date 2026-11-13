@@ -42,10 +42,12 @@ func _run() -> void:
 	# Màn mở đầu.
 	_check(not narrative.visible and not paused, "Chạy headless không tự chiếu mở đầu")
 	_check(bool(narrative.play_opening_if_needed()) and narrative.visible and paused, "Mở đầu hiện và tạm dừng game")
+	_check(narrative.is_naming() and bool(narrative.confirm_player_name("Thử")), "Game mới hỏi tên trước mở đầu")
 	_check(str(narrative.get("_text_label").text).contains("người Việt Nam"), "Trang đầu nói về người Việt Nam")
 	for _i in narrative.OPENING_PAGES.size() - 1:
 		narrative.advance()
 	_check(str(narrative.get("_text_label").text).contains("[HỆ THỐNG]") and narrative.visible, "Trang cuối là lời Hệ thống")
+	_check(str(narrative.get("_text_label").text).contains("Xác nhận: Thử."), "Hệ thống gọi đúng tên đã đặt")
 	narrative.advance()
 	_check(not narrative.visible and not paused, "Hết trang thì vào game")
 	_check(not bool(narrative.play_opening_if_needed()), "Mở đầu chỉ chiếu một lần")

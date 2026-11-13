@@ -1,28 +1,30 @@
 [gd_scene format=3 uid="uid://b68inqnb0w3oi"]
 
 [ext_resource type="PackedScene" uid="uid://cl6vpr2fntgou" path="res://player.tscn" id="1_player"]
-[ext_resource type="Script" path="res://scripts/hud.gd" id="2_hud_script"]
+[ext_resource type="Script" uid="uid://qqbrhtejk5cw" path="res://scripts/hud.gd" id="2_hud_script"]
 [ext_resource type="PackedScene" uid="uid://bv830knl4d01p" path="res://slime.tscn" id="3_slime"]
 [ext_resource type="PackedScene" uid="uid://dtestboss001" path="res://scenes/test_boss.tscn" id="4_test_boss"]
-[ext_resource type="PackedScene" uid="uid://ddebugpanel001" path="res://scenes/debug_panel.tscn" id="5_debug_panel"]
+[ext_resource type="PackedScene" uid="uid://1bdi6gt45eke" path="res://scenes/debug_panel.tscn" id="5_debug_panel"]
 [ext_resource type="PackedScene" uid="uid://ddiscovery001" path="res://scenes/discovery_point.tscn" id="6_discovery_pt"]
-[ext_resource type="PackedScene" uid="uid://dquestjournal001" path="res://scenes/quest_journal.tscn" id="7_quest_journal"]
-[ext_resource type="PackedScene" uid="uid://d1g8x7k2b8y9a" path="res://scenes/pause_menu.tscn" id="8_pause_menu"]
+[ext_resource type="PackedScene" uid="uid://deub3pokt4ndw" path="res://scenes/quest_journal.tscn" id="7_quest_journal"]
+[ext_resource type="PackedScene" uid="uid://d1g8x7k2b80aa" path="res://scenes/pause_menu.tscn" id="8_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://c8j2k3l4m5n6p" path="res://scenes/inventory_ui.tscn" id="9_inv_ui"]
 [ext_resource type="PackedScene" uid="uid://b8k3m4n5p6q7r" path="res://scenes/resource_node.tscn" id="10_res_node"]
-[ext_resource type="PackedScene" uid="uid://c8s7t9a1b2c3d" path="res://scenes/crafting_station.tscn" id="11_craft_station"]
+[ext_resource type="PackedScene" uid="uid://c8s7uaa1b2c3d" path="res://scenes/crafting_station.tscn" id="11_craft_station"]
 [ext_resource type="PackedScene" uid="uid://b7v6c5d4e3f2g" path="res://scenes/crafting_ui.tscn" id="12_craft_ui"]
-[ext_resource type="Script" path="res://scripts/base_plot.gd" id="13_base_plot"]
-[ext_resource type="Script" path="res://scripts/npc_manager.gd" id="14_npc_manager"]
-[ext_resource type="Script" path="res://scripts/gacha_ui.gd" id="15_gacha_ui"]
-[ext_resource type="Script" path="res://scripts/party_ui.gd" id="16_party_ui"]
-[ext_resource type="Script" path="res://scripts/map_zone.gd" id="17_map_zone"]
-[ext_resource type="Script" path="res://scripts/worker_manager.gd" id="18_worker_manager"]
-[ext_resource type="Script" path="res://scripts/base_raid_manager.gd" id="19_base_raid"]
-[ext_resource type="Script" path="res://scripts/narrative_ui.gd" id="20_narrative_ui"]
-[ext_resource type="Script" path="res://scripts/world_terrain.gd" id="21_world_terrain"]
-[ext_resource type="Script" path="res://scripts/region_gate.gd" id="22_region_gate"]
-[ext_resource type="Script" path="res://scripts/first_night.gd" id="23_first_night"]
+[ext_resource type="Script" uid="uid://bk253kvaaay1j" path="res://scripts/base_plot.gd" id="13_base_plot"]
+[ext_resource type="Script" uid="uid://bnf1st8syydh3" path="res://scripts/npc_manager.gd" id="14_npc_manager"]
+[ext_resource type="Script" uid="uid://2cg6lgr8sch5" path="res://scripts/gacha_ui.gd" id="15_gacha_ui"]
+[ext_resource type="Script" uid="uid://bpoxsscqh7pjx" path="res://scripts/party_ui.gd" id="16_party_ui"]
+[ext_resource type="Script" uid="uid://ddlrt0wy3eiag" path="res://scripts/map_zone.gd" id="17_map_zone"]
+[ext_resource type="Script" uid="uid://bnamq1hm8di5g" path="res://scripts/worker_manager.gd" id="18_worker_manager"]
+[ext_resource type="Script" uid="uid://c06urtxpoyud7" path="res://scripts/base_raid_manager.gd" id="19_base_raid"]
+[ext_resource type="Script" uid="uid://d7y2cjcsttx2" path="res://scripts/narrative_ui.gd" id="20_narrative_ui"]
+[ext_resource type="PackedScene" path="res://scenes/world_map.tscn" id="21_world_map"]
+[ext_resource type="Script" uid="uid://ddt2tkrlb6ryo" path="res://scripts/region_gate.gd" id="22_region_gate"]
+[ext_resource type="Script" uid="uid://srovr6objhsr" path="res://scripts/first_night.gd" id="23_first_night"]
+[ext_resource type="Script" path="res://scripts/minimap.gd" id="24_minimap"]
+[ext_resource type="Script" path="res://scripts/title_menu.gd" id="25_title_menu"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_wall"]
 size = Vector2(2560, 24)
@@ -114,79 +116,79 @@ corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=440881503]
+metadata/_edit_lock_ = true
 
-[node name="Environment" type="Node2D" parent="."]
+[node name="Environment" type="Node2D" parent="." unique_id=1233032358]
 
-[node name="FloorBackground" type="ColorRect" parent="Environment"]
+[node name="FloorBackground" type="ColorRect" parent="Environment" unique_id=543262168]
 offset_right = 2560.0
 offset_bottom = 1440.0
 color = Color(0.137255, 0.152941, 0.180392, 1)
 
-[node name="Terrain" type="Node2D" parent="Environment"]
-script = ExtResource("21_world_terrain")
+[node name="Terrain" parent="Environment" unique_id=387080525 instance=ExtResource("21_world_map")]
 
-[node name="HopeValleyBasePlot" type="Node2D" parent="Environment"]
+[node name="HopeValleyBasePlot" type="Node2D" parent="Environment" unique_id=397723153]
 position = Vector2(672, 520)
 script = ExtResource("13_base_plot")
 
-[node name="Walls" type="Node2D" parent="Environment"]
+[node name="Walls" type="Node2D" parent="Environment" unique_id=1523367575]
 
-[node name="WallTop" type="StaticBody2D" parent="Environment/Walls"]
+[node name="WallTop" type="StaticBody2D" parent="Environment/Walls" unique_id=1292386125]
 position = Vector2(1280, 12)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTop"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTop" unique_id=2101645401]
 shape = SubResource("RectangleShape2D_horiz_wall")
 
-[node name="Visual" type="ColorRect" parent="Environment/Walls/WallTop"]
-offset_left = -1280.0
-offset_top = -12.0
-offset_right = 1280.0
-offset_bottom = 12.0
+[node name="Visual" type="ColorRect" parent="Environment/Walls/WallTop" unique_id=917732859]
+offset_left = -1279.0
+offset_top = -15.0
+offset_right = 1281.0
+offset_bottom = 9.0
 color = Color(0.298039, 0.337255, 0.415686, 1)
 
-[node name="WallBottom" type="StaticBody2D" parent="Environment/Walls"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Walls" unique_id=484352440]
 position = Vector2(1280, 1428)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallBottom"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallBottom" unique_id=2069791562]
 shape = SubResource("RectangleShape2D_horiz_wall")
 
-[node name="Visual" type="ColorRect" parent="Environment/Walls/WallBottom"]
+[node name="Visual" type="ColorRect" parent="Environment/Walls/WallBottom" unique_id=1676327332]
 offset_left = -1280.0
 offset_top = -12.0
 offset_right = 1280.0
 offset_bottom = 12.0
 color = Color(0.298039, 0.337255, 0.415686, 1)
 
-[node name="WallLeft" type="StaticBody2D" parent="Environment/Walls"]
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Walls" unique_id=263223448]
 position = Vector2(12, 720)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLeft"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLeft" unique_id=1570230848]
 shape = SubResource("RectangleShape2D_vert_wall")
 
-[node name="Visual" type="ColorRect" parent="Environment/Walls/WallLeft"]
+[node name="Visual" type="ColorRect" parent="Environment/Walls/WallLeft" unique_id=1525937400]
 offset_left = -12.0
 offset_top = -720.0
 offset_right = 12.0
 offset_bottom = 720.0
 color = Color(0.298039, 0.337255, 0.415686, 1)
 
-[node name="WallRight" type="StaticBody2D" parent="Environment/Walls"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Walls" unique_id=433850060]
 position = Vector2(2548, 720)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRight"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRight" unique_id=1044446872]
 shape = SubResource("RectangleShape2D_vert_wall")
 
-[node name="Visual" type="ColorRect" parent="Environment/Walls/WallRight"]
+[node name="Visual" type="ColorRect" parent="Environment/Walls/WallRight" unique_id=658133760]
 offset_left = -12.0
 offset_top = -720.0
 offset_right = 12.0
 offset_bottom = 720.0
 color = Color(0.298039, 0.337255, 0.415686, 1)
 
-[node name="Zones" type="Node2D" parent="Environment"]
+[node name="Zones" type="Node2D" parent="Environment" unique_id=680113804]
 
-[node name="HopeValleyArea" type="Node2D" parent="Environment/Zones"]
+[node name="HopeValleyArea" type="Node2D" parent="Environment/Zones" unique_id=102267097]
 position = Vector2(672, 520)
 script = ExtResource("17_map_zone")
 zone_title = "Thung Lũng Hy Vọng"
@@ -194,39 +196,37 @@ zone_size = Vector2(544, 160)
 region_id = &"hope_valley_area"
 show_area = false
 
-[node name="ForestZone" type="Node2D" parent="Environment/Zones"]
+[node name="ForestZone" type="Node2D" parent="Environment/Zones" unique_id=1972513025]
 position = Vector2(1320, 60)
 script = ExtResource("17_map_zone")
 zone_title = "KHU RỪNG"
-region_id = &"zone_forest"
 zone_size = Vector2(580, 280)
 zone_color = Color(0.3, 0.72, 0.38, 1)
+region_id = &"zone_forest"
 
-[node name="StoneMineZone" type="Node2D" parent="Environment/Zones"]
+[node name="StoneMineZone" type="Node2D" parent="Environment/Zones" unique_id=1607767117]
 position = Vector2(1960, 60)
 script = ExtResource("17_map_zone")
 zone_title = "MỎ ĐÁ"
-region_id = &"zone_stone_mine"
-zone_size = Vector2(560, 280)
 zone_color = Color(0.58, 0.64, 0.74, 1)
+region_id = &"zone_stone_mine"
 
-[node name="IronMineZone" type="Node2D" parent="Environment/Zones"]
+[node name="IronMineZone" type="Node2D" parent="Environment/Zones" unique_id=483297064]
 position = Vector2(1320, 400)
 script = ExtResource("17_map_zone")
 zone_title = "MỎ SẮT"
-region_id = &"zone_iron_mine"
 zone_size = Vector2(580, 280)
 zone_color = Color(0.82, 0.48, 0.3, 1)
+region_id = &"zone_iron_mine"
 
-[node name="GoldMineZone" type="Node2D" parent="Environment/Zones"]
+[node name="GoldMineZone" type="Node2D" parent="Environment/Zones" unique_id=942813359]
 position = Vector2(1960, 400)
 script = ExtResource("17_map_zone")
 zone_title = "MỎ VÀNG"
-region_id = &"zone_gold_mine"
-zone_size = Vector2(560, 280)
 zone_color = Color(1, 0.82, 0.25, 1)
+region_id = &"zone_gold_mine"
 
-[node name="SwampZone" type="Node2D" parent="Environment/Zones"]
+[node name="SwampZone" type="Node2D" parent="Environment/Zones" unique_id=2138927593]
 position = Vector2(60, 780)
 script = ExtResource("17_map_zone")
 zone_title = "ĐẦM LẦY"
@@ -234,7 +234,7 @@ zone_size = Vector2(760, 620)
 zone_color = Color(0.5, 0.72, 0.42, 1)
 region_id = &"zone_swamp"
 
-[node name="DunesZone" type="Node2D" parent="Environment/Zones"]
+[node name="DunesZone" type="Node2D" parent="Environment/Zones" unique_id=988421863]
 position = Vector2(880, 780)
 script = ExtResource("17_map_zone")
 zone_title = "ĐỒI CÁT"
@@ -242,7 +242,7 @@ zone_size = Vector2(760, 620)
 zone_color = Color(0.95, 0.78, 0.45, 1)
 region_id = &"zone_dunes"
 
-[node name="RuinsZone" type="Node2D" parent="Environment/Zones"]
+[node name="RuinsZone" type="Node2D" parent="Environment/Zones" unique_id=217608544]
 position = Vector2(1700, 780)
 script = ExtResource("17_map_zone")
 zone_title = "TÀN TÍCH"
@@ -250,561 +250,499 @@ zone_size = Vector2(800, 620)
 zone_color = Color(0.72, 0.6, 0.95, 1)
 region_id = &"zone_ruins"
 
-[node name="RuinsGate" type="StaticBody2D" parent="Environment"]
+[node name="RuinsGate" type="StaticBody2D" parent="Environment" unique_id=117885518]
 position = Vector2(2128, 736)
 script = ExtResource("22_region_gate")
 
-[node name="Obstacles" type="Node2D" parent="Environment"]
+[node name="Obstacles" type="Node2D" parent="Environment" unique_id=2032122463]
 
-[node name="Box1" type="StaticBody2D" parent="Environment/Obstacles"]
+[node name="Box1" type="StaticBody2D" parent="Environment/Obstacles" unique_id=442140346]
 position = Vector2(400, 250)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box1"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box1" unique_id=217920206]
 shape = SubResource("RectangleShape2D_box")
 
-[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box1"]
+[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box1" unique_id=1920867708]
 offset_left = -32.0
 offset_top = -32.0
 offset_right = 32.0
 offset_bottom = 32.0
 color = Color(0.423529, 0.470588, 0.54902, 1)
 
-[node name="Box2" type="StaticBody2D" parent="Environment/Obstacles"]
+[node name="Box2" type="StaticBody2D" parent="Environment/Obstacles" unique_id=1026584389]
 position = Vector2(880, 250)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box2"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box2" unique_id=1642482342]
 shape = SubResource("RectangleShape2D_box")
 
-[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box2"]
+[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box2" unique_id=648236294]
 offset_left = -32.0
 offset_top = -32.0
 offset_right = 32.0
 offset_bottom = 32.0
 color = Color(0.423529, 0.470588, 0.54902, 1)
 
-[node name="Box3" type="StaticBody2D" parent="Environment/Obstacles"]
+[node name="Box3" type="StaticBody2D" parent="Environment/Obstacles" unique_id=2001214933]
 position = Vector2(400, 470)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box3"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box3" unique_id=1691501322]
 shape = SubResource("RectangleShape2D_box")
 
-[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box3"]
+[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box3" unique_id=1169703474]
 offset_left = -32.0
 offset_top = -32.0
 offset_right = 32.0
 offset_bottom = 32.0
 color = Color(0.423529, 0.470588, 0.54902, 1)
 
-[node name="Box4" type="StaticBody2D" parent="Environment/Obstacles"]
+[node name="Box4" type="StaticBody2D" parent="Environment/Obstacles" unique_id=1330168042]
 position = Vector2(880, 470)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box4"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box4" unique_id=1548974094]
 shape = SubResource("RectangleShape2D_box")
 
-[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box4"]
+[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box4" unique_id=640304582]
 offset_left = -32.0
 offset_top = -32.0
 offset_right = 32.0
 offset_bottom = 32.0
 color = Color(0.423529, 0.470588, 0.54902, 1)
 
-[node name="Slime1" parent="." instance=ExtResource("3_slime")]
+[node name="Slime1" parent="." unique_id=1495991237 instance=ExtResource("3_slime")]
 position = Vector2(460, 360)
 persistent_id = &"forest_clearing_slime_01"
 
-[node name="Slime2" parent="." instance=ExtResource("3_slime")]
+[node name="Slime2" parent="." unique_id=1444434223 instance=ExtResource("3_slime")]
 position = Vector2(820, 360)
 persistent_id = &"forest_clearing_slime_02"
 
-[node name="Slime3" parent="." instance=ExtResource("3_slime")]
+[node name="Slime3" parent="." unique_id=167770340 instance=ExtResource("3_slime")]
 position = Vector2(240, 240)
 persistent_id = &"forest_clearing_slime_03"
 
-[node name="Slime4" parent="." instance=ExtResource("3_slime")]
+[node name="Slime4" parent="." unique_id=367678360 instance=ExtResource("3_slime")]
 position = Vector2(240, 480)
 persistent_id = &"forest_clearing_slime_04"
 
-[node name="Slime5" parent="." instance=ExtResource("3_slime")]
+[node name="Slime5" parent="." unique_id=67308441 instance=ExtResource("3_slime")]
 position = Vector2(740, 220)
 persistent_id = &"forest_clearing_slime_05"
 
-[node name="Slime6" parent="." instance=ExtResource("3_slime")]
+[node name="Slime6" parent="." unique_id=1262038546 instance=ExtResource("3_slime")]
 position = Vector2(540, 490)
 persistent_id = &"forest_clearing_slime_06"
 
-[node name="Slime7" parent="." instance=ExtResource("3_slime")]
+[node name="Slime7" parent="." unique_id=185803379 instance=ExtResource("3_slime")]
 position = Vector2(880, 500)
 persistent_id = &"forest_clearing_slime_07"
 
-[node name="MineSlime1" parent="." instance=ExtResource("3_slime")]
+[node name="MineSlime1" parent="." unique_id=142428964 instance=ExtResource("3_slime")]
 position = Vector2(1600, 200)
 region_id = &"mine_fields"
 persistent_id = &"mine_fields_slime_01"
 
-[node name="MineSlime2" parent="." instance=ExtResource("3_slime")]
+[node name="MineSlime2" parent="." unique_id=1634658817 instance=ExtResource("3_slime")]
 position = Vector2(2260, 230)
 region_id = &"mine_fields"
 persistent_id = &"mine_fields_slime_02"
 
-[node name="MineSlime3" parent="." instance=ExtResource("3_slime")]
+[node name="MineSlime3" parent="." unique_id=2126389582 instance=ExtResource("3_slime")]
 position = Vector2(1620, 540)
 region_id = &"mine_fields"
 persistent_id = &"mine_fields_slime_03"
 
-[node name="MineSlime4" parent="." instance=ExtResource("3_slime")]
+[node name="MineSlime4" parent="." unique_id=1564797881 instance=ExtResource("3_slime")]
 position = Vector2(2230, 560)
 region_id = &"mine_fields"
 persistent_id = &"mine_fields_slime_04"
 
-[node name="MineSlime5" parent="." instance=ExtResource("3_slime")]
+[node name="MineSlime5" parent="." unique_id=272611616 instance=ExtResource("3_slime")]
 position = Vector2(2440, 590)
 region_id = &"mine_fields"
 persistent_id = &"mine_fields_slime_05"
 
-[node name="AncientArchive" parent="." instance=ExtResource("6_discovery_pt")]
+[node name="AncientArchive" parent="." unique_id=706040027 instance=ExtResource("6_discovery_pt")]
 position = Vector2(2300, 1250)
 region_id = &"ancient_archive"
 prompt_text = "[F] Khám phá di tích"
 
-[node name="FarSlime1" parent="." instance=ExtResource("3_slime")]
+[node name="FarSlime1" parent="." unique_id=2093754626 instance=ExtResource("3_slime")]
 position = Vector2(300, 1200)
 region_id = &"south_lands"
 persistent_id = &"south_lands_slime_01"
 
-[node name="FarSlime2" parent="." instance=ExtResource("3_slime")]
+[node name="FarSlime2" parent="." unique_id=225123894 instance=ExtResource("3_slime")]
 position = Vector2(700, 1050)
 region_id = &"south_lands"
 persistent_id = &"south_lands_slime_02"
 
-[node name="FarSlime3" parent="." instance=ExtResource("3_slime")]
+[node name="FarSlime3" parent="." unique_id=651877145 instance=ExtResource("3_slime")]
 position = Vector2(1100, 1000)
 region_id = &"south_lands"
 persistent_id = &"south_lands_slime_03"
 
-[node name="FarSlime4" parent="." instance=ExtResource("3_slime")]
+[node name="FarSlime4" parent="." unique_id=1550089032 instance=ExtResource("3_slime")]
 position = Vector2(1450, 1250)
 region_id = &"south_lands"
 persistent_id = &"south_lands_slime_04"
 
-[node name="FarSlime5" parent="." instance=ExtResource("3_slime")]
+[node name="FarSlime5" parent="." unique_id=870315391 instance=ExtResource("3_slime")]
 position = Vector2(2000, 1000)
 region_id = &"ruins"
 persistent_id = &"ruins_slime_05"
 
-[node name="FarSlime6" parent="." instance=ExtResource("3_slime")]
+[node name="FarSlime6" parent="." unique_id=1409707450 instance=ExtResource("3_slime")]
 position = Vector2(2300, 1050)
 region_id = &"ruins"
 persistent_id = &"ruins_slime_06"
 
-[node name="Player" parent="." instance=ExtResource("1_player")]
+[node name="Player" parent="." unique_id=823446148 instance=ExtResource("1_player")]
 position = Vector2(640, 360)
 
-[node name="TestBoss" parent="." instance=ExtResource("4_test_boss")]
+[node name="TestBoss" parent="." unique_id=901913416 instance=ExtResource("4_test_boss")]
 position = Vector2(960, 420)
 persistent_id = &"forest_clearing_boss_01"
 
-[node name="DebugPanel" parent="." instance=ExtResource("5_debug_panel")]
+[node name="DebugPanel" parent="." unique_id=1889085205 instance=ExtResource("5_debug_panel")]
 
-[node name="NPCManager" type="Node2D" parent="."]
+[node name="NPCManager" type="Node2D" parent="." unique_id=927396472]
 script = ExtResource("14_npc_manager")
 
-[node name="WorkerManager" type="Node" parent="."]
+[node name="WorkerManager" type="Node" parent="." unique_id=989117661]
 script = ExtResource("18_worker_manager")
 
-[node name="BaseRaid" type="Node" parent="."]
+[node name="BaseRaid" type="Node" parent="." unique_id=117385518]
 script = ExtResource("19_base_raid")
 
-[node name="DiscoveryPoint" parent="." instance=ExtResource("6_discovery_pt")]
+[node name="DiscoveryPoint" parent="." unique_id=1533715145 instance=ExtResource("6_discovery_pt")]
 position = Vector2(640, 110)
 
-[node name="QuestJournal" parent="." instance=ExtResource("7_quest_journal")]
+[node name="QuestJournal" parent="." unique_id=911888288 instance=ExtResource("7_quest_journal")]
 
-[node name="PauseMenu" parent="." instance=ExtResource("8_pause_menu")]
+[node name="PauseMenu" parent="." unique_id=832475513 instance=ExtResource("8_pause_menu")]
 
-[node name="InventoryUI" parent="." instance=ExtResource("9_inv_ui")]
+[node name="InventoryUI" parent="." unique_id=1204722365 instance=ExtResource("9_inv_ui")]
 
-[node name="CraftingStation" parent="." instance=ExtResource("11_craft_station")]
+[node name="CraftingStation" parent="." unique_id=1182789460 instance=ExtResource("11_craft_station")]
 position = Vector2(560, 340)
 
-[node name="CraftingUI" parent="." instance=ExtResource("12_craft_ui")]
+[node name="CraftingUI" parent="." unique_id=25628921 instance=ExtResource("12_craft_ui")]
 
-[node name="GachaUI" type="CanvasLayer" parent="."]
+[node name="GachaUI" type="CanvasLayer" parent="." unique_id=1628661453]
 script = ExtResource("15_gacha_ui")
 
-[node name="PartyUI" type="Node" parent="."]
+[node name="PartyUI" type="Node" parent="." unique_id=104281554]
 script = ExtResource("16_party_ui")
 
-[node name="ResourceNodes" type="Node2D" parent="."]
+[node name="ResourceNodes" type="Node2D" parent="." unique_id=88645186]
 
-[node name="BaseTree01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="BaseTree01" parent="ResourceNodes" unique_id=1744751001 instance=ExtResource("10_res_node")]
 position = Vector2(760, 548)
 node_id = &"hv_tree_01"
-node_type = "tree"
-resource_id = &"wood"
-yield_amount = 3
 
-[node name="BaseTree02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="BaseTree02" parent="ResourceNodes" unique_id=1020137847 instance=ExtResource("10_res_node")]
 position = Vector2(1120, 548)
 node_id = &"hv_tree_02"
-node_type = "tree"
-resource_id = &"wood"
-yield_amount = 3
 
-[node name="BaseRock01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="BaseRock01" parent="ResourceNodes" unique_id=2102207855 instance=ExtResource("10_res_node")]
 position = Vector2(880, 652)
 node_id = &"hv_rock_01"
 node_type = "rock"
 resource_id = &"stone"
-yield_amount = 3
 
-[node name="BaseRock02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="BaseRock02" parent="ResourceNodes" unique_id=797817867 instance=ExtResource("10_res_node")]
 position = Vector2(1040, 652)
 node_id = &"hv_rock_02"
 node_type = "rock"
 resource_id = &"stone"
-yield_amount = 3
 
-[node name="BaseHerb01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="BaseHerb01" parent="ResourceNodes" unique_id=1562931415 instance=ExtResource("10_res_node")]
 position = Vector2(720, 640)
 node_id = &"hv_herb_01"
 node_type = "herb"
 resource_id = &"herb"
-yield_amount = 3
 
-[node name="BaseHerb02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="BaseHerb02" parent="ResourceNodes" unique_id=2007824447 instance=ExtResource("10_res_node")]
 position = Vector2(1160, 640)
 node_id = &"hv_herb_02"
 node_type = "herb"
 resource_id = &"herb"
-yield_amount = 3
 
-[node name="Tree01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="Tree01" parent="ResourceNodes" unique_id=1659798561 instance=ExtResource("10_res_node")]
 position = Vector2(280, 160)
-node_id = &"tree_01"
-node_type = "tree"
-resource_id = &"wood"
-yield_amount = 3
 
-[node name="Tree02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="Tree02" parent="ResourceNodes" unique_id=1766305809 instance=ExtResource("10_res_node")]
 position = Vector2(480, 220)
 node_id = &"tree_02"
-node_type = "tree"
-resource_id = &"wood"
-yield_amount = 3
 
-[node name="Rock01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="Rock01" parent="ResourceNodes" unique_id=1165413512 instance=ExtResource("10_res_node")]
 position = Vector2(200, 320)
 node_id = &"rock_01"
 node_type = "rock"
 resource_id = &"stone"
-yield_amount = 3
 
-[node name="Rock02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="Rock02" parent="ResourceNodes" unique_id=2052499897 instance=ExtResource("10_res_node")]
 position = Vector2(520, 440)
 node_id = &"rock_02"
 node_type = "rock"
 resource_id = &"stone"
-yield_amount = 3
 
-[node name="Herb01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="Herb01" parent="ResourceNodes" unique_id=816072869 instance=ExtResource("10_res_node")]
 position = Vector2(380, 290)
 node_id = &"herb_01"
 node_type = "herb"
 resource_id = &"herb"
 yield_amount = 2
 
-[node name="Herb02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="Herb02" parent="ResourceNodes" unique_id=437319269 instance=ExtResource("10_res_node")]
 position = Vector2(740, 180)
 node_id = &"herb_02"
 node_type = "herb"
 resource_id = &"herb"
 yield_amount = 2
 
-[node name="ZoneTree01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneTree01" parent="ResourceNodes" unique_id=807474567 instance=ExtResource("10_res_node")]
 position = Vector2(1380, 130)
 node_id = &"zone_tree_01"
-node_type = "tree"
-resource_id = &"wood"
-yield_amount = 3
 
-[node name="ZoneTree02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneTree02" parent="ResourceNodes" unique_id=1463616132 instance=ExtResource("10_res_node")]
 position = Vector2(1520, 110)
 node_id = &"zone_tree_02"
-node_type = "tree"
-resource_id = &"wood"
-yield_amount = 3
 
-[node name="ZoneTree03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneTree03" parent="ResourceNodes" unique_id=1474432215 instance=ExtResource("10_res_node")]
 position = Vector2(1680, 140)
 node_id = &"zone_tree_03"
-node_type = "tree"
-resource_id = &"wood"
-yield_amount = 3
 
-[node name="ZoneTree04" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneTree04" parent="ResourceNodes" unique_id=679155869 instance=ExtResource("10_res_node")]
 position = Vector2(1820, 120)
 node_id = &"zone_tree_04"
-node_type = "tree"
-resource_id = &"wood"
-yield_amount = 3
 
-[node name="ZoneTree05" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneTree05" parent="ResourceNodes" unique_id=1584833922 instance=ExtResource("10_res_node")]
 position = Vector2(1430, 270)
 node_id = &"zone_tree_05"
-node_type = "tree"
-resource_id = &"wood"
-yield_amount = 3
 
-[node name="ZoneTree06" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneTree06" parent="ResourceNodes" unique_id=550967465 instance=ExtResource("10_res_node")]
 position = Vector2(1760, 280)
 node_id = &"zone_tree_06"
-node_type = "tree"
-resource_id = &"wood"
-yield_amount = 3
 
-[node name="ZoneHerb01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneHerb01" parent="ResourceNodes" unique_id=2015758684 instance=ExtResource("10_res_node")]
 position = Vector2(1560, 220)
 node_id = &"zone_herb_01"
 node_type = "herb"
 resource_id = &"herb"
-yield_amount = 3
 
-[node name="ZoneHerb02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneHerb02" parent="ResourceNodes" unique_id=1439475845 instance=ExtResource("10_res_node")]
 position = Vector2(1650, 290)
 node_id = &"zone_herb_02"
 node_type = "herb"
 resource_id = &"herb"
-yield_amount = 3
 
-[node name="ZoneHerb03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneHerb03" parent="ResourceNodes" unique_id=444679645 instance=ExtResource("10_res_node")]
 position = Vector2(1840, 220)
 node_id = &"zone_herb_03"
 node_type = "herb"
 resource_id = &"herb"
-yield_amount = 3
 
-[node name="ZoneRock01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneRock01" parent="ResourceNodes" unique_id=2121658824 instance=ExtResource("10_res_node")]
 position = Vector2(2040, 140)
 node_id = &"zone_rock_01"
 node_type = "rock"
 resource_id = &"stone"
-yield_amount = 3
 
-[node name="ZoneRock02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneRock02" parent="ResourceNodes" unique_id=2010384525 instance=ExtResource("10_res_node")]
 position = Vector2(2180, 110)
 node_id = &"zone_rock_02"
 node_type = "rock"
 resource_id = &"stone"
-yield_amount = 3
 
-[node name="ZoneRock03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneRock03" parent="ResourceNodes" unique_id=1028901571 instance=ExtResource("10_res_node")]
 position = Vector2(2330, 150)
 node_id = &"zone_rock_03"
 node_type = "rock"
 resource_id = &"stone"
-yield_amount = 3
 
-[node name="ZoneRock04" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneRock04" parent="ResourceNodes" unique_id=398795488 instance=ExtResource("10_res_node")]
 position = Vector2(2450, 120)
 node_id = &"zone_rock_04"
 node_type = "rock"
 resource_id = &"stone"
-yield_amount = 3
 
-[node name="ZoneRock05" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneRock05" parent="ResourceNodes" unique_id=1400458835 instance=ExtResource("10_res_node")]
 position = Vector2(2120, 270)
 node_id = &"zone_rock_05"
 node_type = "rock"
 resource_id = &"stone"
-yield_amount = 3
 
-[node name="ZoneRock06" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneRock06" parent="ResourceNodes" unique_id=864937607 instance=ExtResource("10_res_node")]
 position = Vector2(2380, 280)
 node_id = &"zone_rock_06"
 node_type = "rock"
 resource_id = &"stone"
-yield_amount = 3
 
-[node name="ZoneIron01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneIron01" parent="ResourceNodes" unique_id=1371461411 instance=ExtResource("10_res_node")]
 position = Vector2(1400, 480)
 node_id = &"zone_iron_01"
 node_type = "iron"
 resource_id = &"iron_ore"
-yield_amount = 3
 
-[node name="ZoneIron02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneIron02" parent="ResourceNodes" unique_id=1853907445 instance=ExtResource("10_res_node")]
 position = Vector2(1560, 460)
 node_id = &"zone_iron_02"
 node_type = "iron"
 resource_id = &"iron_ore"
-yield_amount = 3
 
-[node name="ZoneIron03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneIron03" parent="ResourceNodes" unique_id=85967068 instance=ExtResource("10_res_node")]
 position = Vector2(1740, 490)
 node_id = &"zone_iron_03"
 node_type = "iron"
 resource_id = &"iron_ore"
-yield_amount = 3
 
-[node name="ZoneIron04" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneIron04" parent="ResourceNodes" unique_id=1212560495 instance=ExtResource("10_res_node")]
 position = Vector2(1470, 610)
 node_id = &"zone_iron_04"
 node_type = "iron"
 resource_id = &"iron_ore"
-yield_amount = 3
 
-[node name="ZoneIron05" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneIron05" parent="ResourceNodes" unique_id=2090480429 instance=ExtResource("10_res_node")]
 position = Vector2(1680, 620)
 node_id = &"zone_iron_05"
 node_type = "iron"
 resource_id = &"iron_ore"
-yield_amount = 3
 
-[node name="ZoneIron06" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneIron06" parent="ResourceNodes" unique_id=970389160 instance=ExtResource("10_res_node")]
 position = Vector2(1840, 590)
 node_id = &"zone_iron_06"
 node_type = "iron"
 resource_id = &"iron_ore"
-yield_amount = 3
 
-[node name="ZoneGold01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneGold01" parent="ResourceNodes" unique_id=1972377545 instance=ExtResource("10_res_node")]
 position = Vector2(2060, 500)
 node_id = &"zone_gold_01"
 node_type = "gold"
 resource_id = &"gold_ore"
 yield_amount = 2
 
-[node name="ZoneGold02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneGold02" parent="ResourceNodes" unique_id=1505468059 instance=ExtResource("10_res_node")]
 position = Vector2(2240, 470)
 node_id = &"zone_gold_02"
 node_type = "gold"
 resource_id = &"gold_ore"
 yield_amount = 2
 
-[node name="ZoneGold03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneGold03" parent="ResourceNodes" unique_id=2007103869 instance=ExtResource("10_res_node")]
 position = Vector2(2420, 520)
 node_id = &"zone_gold_03"
 node_type = "gold"
 resource_id = &"gold_ore"
 yield_amount = 2
 
-[node name="ZoneGold04" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneGold04" parent="ResourceNodes" unique_id=723849406 instance=ExtResource("10_res_node")]
 position = Vector2(2160, 620)
 node_id = &"zone_gold_04"
 node_type = "gold"
 resource_id = &"gold_ore"
 yield_amount = 2
 
-[node name="ZoneGold05" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="ZoneGold05" parent="ResourceNodes" unique_id=599822504 instance=ExtResource("10_res_node")]
 position = Vector2(2360, 630)
 node_id = &"zone_gold_05"
 node_type = "gold"
 resource_id = &"gold_ore"
 yield_amount = 2
 
-[node name="FarHerb01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="FarHerb01" parent="ResourceNodes" unique_id=1168768967 instance=ExtResource("10_res_node")]
 position = Vector2(240, 880)
 node_id = &"far_herb_01"
 node_type = "herb"
 resource_id = &"herb"
-yield_amount = 3
 
-[node name="FarHerb02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="FarHerb02" parent="ResourceNodes" unique_id=179096721 instance=ExtResource("10_res_node")]
 position = Vector2(420, 940)
 node_id = &"far_herb_02"
 node_type = "herb"
 resource_id = &"herb"
-yield_amount = 3
 
-[node name="FarHerb03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="FarHerb03" parent="ResourceNodes" unique_id=498301512 instance=ExtResource("10_res_node")]
 position = Vector2(620, 900)
 node_id = &"far_herb_03"
 node_type = "herb"
 resource_id = &"herb"
-yield_amount = 3
 
-[node name="FarHerb04" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="FarHerb04" parent="ResourceNodes" unique_id=27081096 instance=ExtResource("10_res_node")]
 position = Vector2(760, 1340)
 node_id = &"far_herb_04"
 node_type = "herb"
 resource_id = &"herb"
-yield_amount = 3
 
-[node name="FarTree01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="FarTree01" parent="ResourceNodes" unique_id=1332685852 instance=ExtResource("10_res_node")]
 position = Vector2(140, 1300)
 node_id = &"far_tree_01"
-node_type = "tree"
-resource_id = &"wood"
-yield_amount = 3
 
-[node name="FarTree02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="FarTree02" parent="ResourceNodes" unique_id=365353460 instance=ExtResource("10_res_node")]
 position = Vector2(460, 1340)
 node_id = &"far_tree_02"
-node_type = "tree"
-resource_id = &"wood"
-yield_amount = 3
 
-[node name="FarRock01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="FarRock01" parent="ResourceNodes" unique_id=1594493875 instance=ExtResource("10_res_node")]
 position = Vector2(980, 900)
 node_id = &"far_rock_01"
 node_type = "rock"
 resource_id = &"stone"
-yield_amount = 3
 
-[node name="FarRock02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="FarRock02" parent="ResourceNodes" unique_id=88735352 instance=ExtResource("10_res_node")]
 position = Vector2(1300, 860)
 node_id = &"far_rock_02"
 node_type = "rock"
 resource_id = &"stone"
-yield_amount = 3
 
-[node name="FarRock03" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="FarRock03" parent="ResourceNodes" unique_id=1797777219 instance=ExtResource("10_res_node")]
 position = Vector2(1500, 1100)
 node_id = &"far_rock_03"
 node_type = "rock"
 resource_id = &"stone"
-yield_amount = 3
 
-[node name="FarGold01" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="FarGold01" parent="ResourceNodes" unique_id=691701723 instance=ExtResource("10_res_node")]
 position = Vector2(1120, 1240)
 node_id = &"far_gold_01"
 node_type = "gold"
 resource_id = &"gold_ore"
 yield_amount = 2
 
-[node name="FarGold02" parent="ResourceNodes" instance=ExtResource("10_res_node")]
+[node name="FarGold02" parent="ResourceNodes" unique_id=631333522 instance=ExtResource("10_res_node")]
 position = Vector2(1520, 1320)
 node_id = &"far_gold_02"
 node_type = "gold"
 resource_id = &"gold_ore"
 yield_amount = 2
 
-[node name="FirstNight" type="Node" parent="."]
+[node name="FirstNight" type="Node" parent="." unique_id=491754996]
 script = ExtResource("23_first_night")
 
-[node name="NarrativeUI" type="CanvasLayer" parent="."]
+[node name="Minimap" type="CanvasLayer" parent="."]
+script = ExtResource("24_minimap")
+
+[node name="NarrativeUI" type="CanvasLayer" parent="." unique_id=798396798]
 script = ExtResource("20_narrative_ui")
 
-[node name="UI" type="CanvasLayer" parent="."]
+[node name="UI" type="CanvasLayer" parent="." unique_id=668259793]
 script = ExtResource("2_hud_script")
 
-[node name="StatusContainer" type="VBoxContainer" parent="UI"]
+[node name="StatusContainer" type="VBoxContainer" parent="UI" unique_id=1371413560]
 offset_left = 14.0
 offset_top = 10.0
 offset_right = 180.0
 offset_bottom = 110.0
 theme_override_constants/separation = 5
 
-[node name="HealthContainer" type="VBoxContainer" parent="UI/StatusContainer"]
+[node name="HealthContainer" type="VBoxContainer" parent="UI/StatusContainer" unique_id=792613496]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="HealthLabel" type="Label" parent="UI/StatusContainer/HealthContainer"]
+[node name="HealthLabel" type="Label" parent="UI/StatusContainer/HealthContainer" unique_id=1717387466]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Máu: 100 / 100"
 
-[node name="HealthBar" type="ProgressBar" parent="UI/StatusContainer/HealthContainer"]
+[node name="HealthBar" type="ProgressBar" parent="UI/StatusContainer/HealthContainer" unique_id=463883009]
 custom_minimum_size = Vector2(160, 9)
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_hp_bg")
@@ -813,16 +751,16 @@ step = 0.5
 value = 100.0
 show_percentage = false
 
-[node name="StaminaContainer" type="VBoxContainer" parent="UI/StatusContainer"]
+[node name="StaminaContainer" type="VBoxContainer" parent="UI/StatusContainer" unique_id=990602583]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="StaminaLabel" type="Label" parent="UI/StatusContainer/StaminaContainer"]
+[node name="StaminaLabel" type="Label" parent="UI/StatusContainer/StaminaContainer" unique_id=2009564062]
 layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Thể lực: 100 / 100"
 
-[node name="StaminaBar" type="ProgressBar" parent="UI/StatusContainer/StaminaContainer"]
+[node name="StaminaBar" type="ProgressBar" parent="UI/StatusContainer/StaminaContainer" unique_id=782956147]
 custom_minimum_size = Vector2(160, 9)
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_stamina_bg")
@@ -831,26 +769,25 @@ step = 0.1
 value = 100.0
 show_percentage = false
 
-[node name="EnergyContainer" type="VBoxContainer" parent="UI/StatusContainer"]
+[node name="EnergyContainer" type="VBoxContainer" parent="UI/StatusContainer" unique_id=1475114509]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="EnergyLabel" type="Label" parent="UI/StatusContainer/EnergyContainer"]
+[node name="EnergyLabel" type="Label" parent="UI/StatusContainer/EnergyContainer" unique_id=734686279]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.35, 0.95, 0.85, 1)
 theme_override_font_sizes/font_size = 11
 text = "Năng lượng: 0 / 100"
 
-[node name="EnergyBar" type="ProgressBar" parent="UI/StatusContainer/EnergyContainer"]
+[node name="EnergyBar" type="ProgressBar" parent="UI/StatusContainer/EnergyContainer" unique_id=1359919285]
 custom_minimum_size = Vector2(160, 9)
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_energy_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_energy_fill")
 step = 1.0
-value = 0.0
 show_percentage = false
 
-[node name="Instructions" type="Label" parent="UI"]
+[node name="Instructions" type="Label" parent="UI" unique_id=852065682]
 visible = false
 offset_left = 14.0
 offset_top = 120.0
@@ -859,7 +796,7 @@ offset_bottom = 140.0
 theme_override_font_sizes/font_size = 8
 text = "WASD: Di chuyển | Chuột phải: Tăng tốc | Space: Né | Chuột trái: Chém | E/R: Kỹ năng | F: Tương tác | B: Balo/Túi đồ | J: Nhiệm vụ | Esc: Tạm dừng | F5/F9: Lưu/Tải"
 
-[node name="SkillFeedbackLabel" type="Label" parent="UI"]
+[node name="SkillFeedbackLabel" type="Label" parent="UI" unique_id=1289509794]
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
@@ -872,43 +809,43 @@ theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
 theme_override_font_sizes/font_size = 11
 horizontal_alignment = 1
 
-[node name="SkillContainer" type="HBoxContainer" parent="UI"]
+[node name="SkillContainer" type="HBoxContainer" parent="UI" unique_id=1509658832]
 offset_left = 494.0
 offset_top = 308.0
 offset_right = 626.0
 offset_bottom = 348.0
 theme_override_constants/separation = 6
 
-[node name="SlotE" type="PanelContainer" parent="UI/SkillContainer"]
+[node name="SlotE" type="PanelContainer" parent="UI/SkillContainer" unique_id=792790471]
 custom_minimum_size = Vector2(62, 40)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_skill_slot")
 
-[node name="VBox" type="VBoxContainer" parent="UI/SkillContainer/SlotE"]
+[node name="VBox" type="VBoxContainer" parent="UI/SkillContainer/SlotE" unique_id=1472389135]
 layout_mode = 2
 theme_override_constants/separation = 1
 alignment = 1
 
-[node name="KeyLabel" type="Label" parent="UI/SkillContainer/SlotE/VBox"]
+[node name="KeyLabel" type="Label" parent="UI/SkillContainer/SlotE/VBox" unique_id=1723041368]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.95, 0.95, 1)
 theme_override_font_sizes/font_size = 9
 text = "[ E ] Phong Nhận"
 horizontal_alignment = 1
 
-[node name="DescLabel" type="Label" parent="UI/SkillContainer/SlotE/VBox"]
+[node name="DescLabel" type="Label" parent="UI/SkillContainer/SlotE/VBox" unique_id=1819490972]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.35, 0.9, 0.82, 1)
 theme_override_font_sizes/font_size = 8
 text = "30 ST (5s)"
 horizontal_alignment = 1
 
-[node name="CooldownOverlay" type="ColorRect" parent="UI/SkillContainer/SlotE"]
+[node name="CooldownOverlay" type="ColorRect" parent="UI/SkillContainer/SlotE" unique_id=1990424708]
 visible = false
 layout_mode = 2
 color = Color(0.06, 0.08, 0.1, 0.8)
 
-[node name="CooldownLabel" type="Label" parent="UI/SkillContainer/SlotE"]
+[node name="CooldownLabel" type="Label" parent="UI/SkillContainer/SlotE" unique_id=654345771]
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
@@ -916,36 +853,36 @@ theme_override_font_sizes/font_size = 11
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SlotR" type="PanelContainer" parent="UI/SkillContainer"]
+[node name="SlotR" type="PanelContainer" parent="UI/SkillContainer" unique_id=1564176540]
 custom_minimum_size = Vector2(62, 40)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_skill_slot")
 
-[node name="VBox" type="VBoxContainer" parent="UI/SkillContainer/SlotR"]
+[node name="VBox" type="VBoxContainer" parent="UI/SkillContainer/SlotR" unique_id=974723093]
 layout_mode = 2
 theme_override_constants/separation = 1
 alignment = 1
 
-[node name="KeyLabel" type="Label" parent="UI/SkillContainer/SlotR/VBox"]
+[node name="KeyLabel" type="Label" parent="UI/SkillContainer/SlotR/VBox" unique_id=2059782415]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.95, 0.95, 1)
 theme_override_font_sizes/font_size = 9
 text = "[ R ] Bão Phong"
 horizontal_alignment = 1
 
-[node name="CostLabel" type="Label" parent="UI/SkillContainer/SlotR/VBox"]
+[node name="CostLabel" type="Label" parent="UI/SkillContainer/SlotR/VBox" unique_id=1754265870]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 0.7)
 theme_override_font_sizes/font_size = 8
 text = "100 NL"
 horizontal_alignment = 1
 
-[node name="CooldownOverlay" type="ColorRect" parent="UI/SkillContainer/SlotR"]
+[node name="CooldownOverlay" type="ColorRect" parent="UI/SkillContainer/SlotR" unique_id=1900239880]
 visible = false
 layout_mode = 2
 color = Color(0.06, 0.08, 0.1, 0.8)
 
-[node name="CooldownLabel" type="Label" parent="UI/SkillContainer/SlotR"]
+[node name="CooldownLabel" type="Label" parent="UI/SkillContainer/SlotR" unique_id=1791126776]
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
@@ -953,7 +890,7 @@ theme_override_font_sizes/font_size = 11
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="GameOverPanel" type="PanelContainer" parent="UI"]
+[node name="GameOverPanel" type="PanelContainer" parent="UI" unique_id=1613666599]
 visible = false
 anchors_preset = 8
 anchor_left = 0.5
@@ -968,28 +905,31 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_game_over")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/GameOverPanel"]
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/GameOverPanel" unique_id=725303779]
 layout_mode = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Title" type="Label" parent="UI/GameOverPanel/VBoxContainer"]
+[node name="Title" type="Label" parent="UI/GameOverPanel/VBoxContainer" unique_id=999118045]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.45, 0.45, 1)
 theme_override_font_sizes/font_size = 15
 text = "BẠN ĐÃ BỊ HẠ GỤC!"
 horizontal_alignment = 1
 
-[node name="Subtitle" type="Label" parent="UI/GameOverPanel/VBoxContainer"]
+[node name="Subtitle" type="Label" parent="UI/GameOverPanel/VBoxContainer" unique_id=1547097377]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.75, 0.8, 1)
 theme_override_font_sizes/font_size = 10
 text = "Hãy thử lại để tiếp tục thử nghiệm."
 horizontal_alignment = 1
 
-[node name="RetryButton" type="Button" parent="UI/GameOverPanel/VBoxContainer"]
+[node name="RetryButton" type="Button" parent="UI/GameOverPanel/VBoxContainer" unique_id=402776845]
 custom_minimum_size = Vector2(90, 26)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 12
 text = "Thử lại"
+
+[node name="TitleMenu" type="CanvasLayer" parent="."]
+script = ExtResource("25_title_menu")

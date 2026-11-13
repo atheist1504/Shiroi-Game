@@ -7,6 +7,7 @@ extends CanvasLayer
 @onready var save_btn: Button = $PanelContainer/Margin/VBox/SaveBtn
 @onready var load_btn: Button = $PanelContainer/Margin/VBox/LoadBtn
 @onready var restart_btn: Button = $PanelContainer/Margin/VBox/RestartBtn
+@onready var fullscreen_btn: Button = $PanelContainer/Margin/VBox/FullscreenBtn
 @onready var status_label: Label = $PanelContainer/Margin/VBox/StatusLabel
 
 func _ready() -> void:
@@ -22,6 +23,16 @@ func _ready() -> void:
 		load_btn.pressed.connect(_on_load_pressed)
 	if restart_btn:
 		restart_btn.pressed.connect(_on_restart_pressed)
+	if fullscreen_btn:
+		fullscreen_btn.pressed.connect(toggle_fullscreen)
+	_update_fullscreen_text()
+
+# F11 hoặc Alt+Enter bật/tắt toàn màn hình ở mọi lúc (cả khi đang đặt tên hay xem màn chữ).
+# Alt+Enter cho laptop có F11 là phím đa phương tiện (phải giữ Fn).
+func _input(event: InputEvent) -> void:
+	if is_fullscreen_key(event):
+		toggle_fullscreen()
+		get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause_game") or (event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE):
@@ -43,6 +54,24 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			pause_game()
 		get_viewport().set_input_as_handled()
+
+static func is_fullscreen_key(event: InputEvent) -> bool:
+	var key := event as InputEventKey
+	if not key or not key.pressed or key.echo:
+		return false
+	return key.physical_keycode == KEY_F11 or (key.alt_pressed and key.physical_keycode in [KEY_ENTER, KEY_KP_ENTER])
+
+func is_fullscreen() -> bool:
+	return DisplayServer.window_get_mode() in [DisplayServer.WINDOW_MODE_FULLSCREEN, DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]
+
+func toggle_fullscreen() -> void:
+	var mode := DisplayServer.WINDOW_MODE_WINDOWED if is_fullscreen() else DisplayServer.WINDOW_MODE_FULLSCREEN
+	DisplayServer.window_set_mode(mode)
+	_update_fullscreen_text()
+
+func _update_fullscreen_text() -> void:
+	if fullscreen_btn:
+		fullscreen_btn.text = "Thoát toàn màn hình (F11 / Alt+Enter)" if is_fullscreen() else "Toàn màn hình (F11 / Alt+Enter)"
 
 func pause_game() -> void:
 	visible = true
