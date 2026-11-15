@@ -25,7 +25,6 @@
 [ext_resource type="Script" uid="uid://srovr6objhsr" path="res://scripts/first_night.gd" id="23_first_night"]
 [ext_resource type="Script" path="res://scripts/minimap.gd" id="24_minimap"]
 [ext_resource type="Script" path="res://scripts/title_menu.gd" id="25_title_menu"]
-[ext_resource type="PackedScene" path="res://scenes/beacon.tscn" id="26_beacon"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_wall"]
 size = Vector2(2560, 24)
@@ -120,8 +119,10 @@ metadata/_edit_lock_ = true
 [node name="Environment" type="Node2D" parent="." unique_id=1233032358]
 
 [node name="FloorBackground" type="ColorRect" parent="Environment" unique_id=543262168]
-offset_right = 2560.0
-offset_bottom = 1440.0
+offset_left = -1280.0
+offset_top = -384.0
+offset_right = 3840.0
+offset_bottom = 1760.0
 color = Color(0.137255, 0.152941, 0.180392, 1)
 
 [node name="Terrain" parent="Environment" unique_id=387080525 instance=ExtResource("21_world_map")]
@@ -129,64 +130,6 @@ color = Color(0.137255, 0.152941, 0.180392, 1)
 [node name="HopeValleyBasePlot" type="Node2D" parent="Environment" unique_id=397723153]
 position = Vector2(624, 280)
 script = ExtResource("13_base_plot")
-
-[node name="Walls" type="Node2D" parent="Environment" unique_id=1523367575]
-
-[node name="WallTop" type="StaticBody2D" parent="Environment/Walls" unique_id=1292386125]
-position = Vector2(1280, 12)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTop" unique_id=2101645401]
-shape = SubResource("RectangleShape2D_horiz_wall")
-
-[node name="Visual" type="ColorRect" parent="Environment/Walls/WallTop" unique_id=917732859]
-visible = false
-offset_left = -1279.0
-offset_top = -15.0
-offset_right = 1281.0
-offset_bottom = 9.0
-color = Color(0.298039, 0.337255, 0.415686, 1)
-
-[node name="WallBottom" type="StaticBody2D" parent="Environment/Walls" unique_id=484352440]
-position = Vector2(1280, 1428)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallBottom" unique_id=2069791562]
-shape = SubResource("RectangleShape2D_horiz_wall")
-
-[node name="Visual" type="ColorRect" parent="Environment/Walls/WallBottom" unique_id=1676327332]
-visible = false
-offset_left = -1280.0
-offset_top = -12.0
-offset_right = 1280.0
-offset_bottom = 12.0
-color = Color(0.298039, 0.337255, 0.415686, 1)
-
-[node name="WallLeft" type="StaticBody2D" parent="Environment/Walls" unique_id=263223448]
-position = Vector2(12, 720)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLeft" unique_id=1570230848]
-shape = SubResource("RectangleShape2D_vert_wall")
-
-[node name="Visual" type="ColorRect" parent="Environment/Walls/WallLeft" unique_id=1525937400]
-visible = false
-offset_left = -12.0
-offset_top = -720.0
-offset_right = 12.0
-offset_bottom = 720.0
-color = Color(0.298039, 0.337255, 0.415686, 1)
-
-[node name="WallRight" type="StaticBody2D" parent="Environment/Walls" unique_id=433850060]
-position = Vector2(2548, 720)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRight" unique_id=1044446872]
-shape = SubResource("RectangleShape2D_vert_wall")
-
-[node name="Visual" type="ColorRect" parent="Environment/Walls/WallRight" unique_id=658133760]
-visible = false
-offset_left = -12.0
-offset_top = -720.0
-offset_right = 12.0
-offset_bottom = 720.0
-color = Color(0.298039, 0.337255, 0.415686, 1)
 
 [node name="Zones" type="Node2D" parent="Environment" unique_id=680113804]
 
@@ -355,36 +298,6 @@ script = ExtResource("19_base_raid")
 
 [node name="DiscoveryPoint" parent="." unique_id=1533715145 instance=ExtResource("6_discovery_pt")]
 position = Vector2(640, 110)
-
-[node name="Beacons" type="Node2D" parent="."]
-
-[node name="BeaconForest" parent="Beacons" instance=ExtResource("26_beacon")]
-position = Vector2(1632, 208)
-beacon_id = &"forest"
-
-[node name="BeaconStoneMine" parent="Beacons" instance=ExtResource("26_beacon")]
-position = Vector2(2224, 192)
-beacon_id = &"stone_mine"
-
-[node name="BeaconIronMine" parent="Beacons" instance=ExtResource("26_beacon")]
-position = Vector2(1616, 544)
-beacon_id = &"iron_mine"
-
-[node name="BeaconGoldMine" parent="Beacons" instance=ExtResource("26_beacon")]
-position = Vector2(2240, 544)
-beacon_id = &"gold_mine"
-
-[node name="BeaconRuins" parent="Beacons" instance=ExtResource("26_beacon")]
-position = Vector2(2096, 1088)
-beacon_id = &"ruins"
-
-[node name="BeaconWest" parent="Beacons" instance=ExtResource("26_beacon")]
-position = Vector2(384, 640)
-beacon_id = &"west"
-
-[node name="BeaconSouth" parent="Beacons" instance=ExtResource("26_beacon")]
-position = Vector2(1008, 1184)
-beacon_id = &"south"
 
 [node name="QuestJournal" parent="." unique_id=911888288 instance=ExtResource("7_quest_journal")]
 

@@ -386,9 +386,6 @@ func _get_placement_block_reason(building_type_id: StringName, grid_pos: Vector2
 	for station in get_tree().get_nodes_in_group("crafting_stations"):
 		if station is Node2D and bounds.intersects(Rect2((station as Node2D).global_position - Vector2(12, 9), Vector2(24, 17))):
 			return "Vị trí bị bàn chế tạo chiếm."
-	for beacon in get_tree().get_nodes_in_group("beacons"):
-		if beacon is Node2D and bounds.intersects(Rect2((beacon as Node2D).global_position - Vector2(14, 42), Vector2(28, 48))):
-			return "Vị trí bị cột mốc chiếm."
 	return ""
 
 func _get_cost_block_reason(definition: BuildingDefinition) -> String:

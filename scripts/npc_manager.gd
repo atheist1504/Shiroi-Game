@@ -19,6 +19,7 @@ var _world_astar: AStarGrid2D = null
 var _grid_region: Rect2i = Rect2i()
 var _base_rect: Rect2 = Rect2()
 var _map_size: Vector2 = Vector2.ZERO
+var _map_origin: Vector2 = Vector2.ZERO # góc trên trái bản đồ (âm khi bản đồ nối ra lục địa)
 var _repath_attempts: int = 0
 var _initializing: bool = false
 var _task_kind: String = ""
@@ -102,7 +103,8 @@ func refresh_navigation() -> void:
 	_map_size = floor.size
 	var plot_size: Vector2 = Vector2(base_plot.get("plot_size"))
 	_base_rect = Rect2(base_plot.global_position, plot_size)
-	_grid_region = Rect2i(Vector2i.ZERO, Vector2i(ceili(_map_size.x / CELL_SIZE), ceili(_map_size.y / CELL_SIZE)))
+	_map_origin = floor.position
+	_grid_region = Rect2i(Vector2i((_map_origin / CELL_SIZE).floor()), Vector2i(ceili(_map_size.x / CELL_SIZE), ceili(_map_size.y / CELL_SIZE)))
 	var grid := _create_grid()
 	var world_grid := _create_grid()
 	var physics := get_viewport().world_2d.direct_space_state
@@ -153,7 +155,7 @@ func get_base_rect() -> Rect2:
 	return _base_rect
 
 func get_map_rect() -> Rect2:
-	return Rect2(Vector2.ZERO, _map_size)
+	return Rect2(_map_origin, _map_size)
 
 # Đường đi toàn bản đồ; điểm đầu và điểm cuối tự dời về ô đi được gần nhất.
 func get_world_path(from_position: Vector2, destination: Vector2) -> PackedVector2Array:

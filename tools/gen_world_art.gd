@@ -22,6 +22,7 @@ extends SceneTree
 #   hàng 18-20 mảng cỏ cao / đất trống / đồng hoa, cột = mặt nạ nối mảng
 #   hàng 21-23 cây to 3x3 ô: cột 0 sồi, 3 sồi sẫm, 6 cây thu, 9 cây hoa hồng, 12 cây trăng
 #   hàng 24-25 vật thể: 0 tảng đá 2x2, 2 bụi hoa 2x2, 4 gốc cây, 5 khúc gỗ 2x1,
+#              10 cụm đá mỏ 2x2, 12 cụm quặng sắt 2x2, 14 cụm quặng vàng 2x2,
 #              7 dương xỉ, 8 đá rêu, 9 cụm nấm
 #   hàng 26    gò đất cao (chặn đường), cột = mặt nạ cạnh hở
 #   hàng 27    cầu gỗ: cột 0 lối đông-tây, cột 1 lối bắc-nam
@@ -53,7 +54,7 @@ const ROW_PROPS := 24
 const ROW_HIGHLAND := 26
 const ROW_BRIDGE := 27
 enum BIG { OAK = 0, DARK = 3, AUTUMN = 6, BLOSSOM = 9, MOON = 12 }
-enum P { BOULDER = 0, BUSH2 = 2, STUMP = 4, LOG = 5, FERN = 7, MOSSROCK = 8, SHROOMS = 9 }
+enum P { BOULDER = 0, BUSH2 = 2, STUMP = 4, LOG = 5, FERN = 7, MOSSROCK = 8, SHROOMS = 9, ORE_STONE = 10, ORE_IRON = 12, ORE_GOLD = 14 }
 const BIG_SHADES := {
 	BIG.OAK: [Color(0.11, 0.24, 0.12), Color(0.18, 0.38, 0.17), Color(0.27, 0.52, 0.22), Color(0.38, 0.65, 0.28), Color(0.55, 0.78, 0.38)],
 	BIG.DARK: [Color(0.07, 0.20, 0.16), Color(0.12, 0.32, 0.25), Color(0.18, 0.44, 0.32), Color(0.27, 0.56, 0.40), Color(0.40, 0.68, 0.50)],
@@ -66,6 +67,11 @@ var _img: Image
 var _box_cells: Array[Vector2i] = []
 # Tham số "-- paint regen_highlands": xóa gò đất cũ, sinh lại theo cấu hình mới.
 var _regen_highlands := false
+# Gốc khung bản đồ (ô) khi tô: MAP_ORIGIN của world_terrain.gd (âm, vì bản đồ nối ra lục địa).
+var _o := Vector2i.ZERO
+const OLD_FOREST_CELLS := Vector2i(160, 90)
+const TERRAIN_SCRIPT := "res://scripts/world_terrain.gd"
+const PLAY_MASK_PNG := "res://assets/maps/play_mask.png"
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -78,6 +84,8 @@ func _run() -> void:
 		print("Đã vẽ ảnh tile và ảnh lục địa.")
 	elif "layout" in args:
 		await _layout()
+	elif "expand" in args:
+		_expand()
 	elif "paint" in args:
 		_regen_highlands = "regen_highlands" in args
 		await _paint()
@@ -586,16 +594,51 @@ const CONT_SIZE := Vector2i(640, 360)
 # Rừng Nguyệt Ảnh trong lục địa (điểm ảnh của continent.png): ô (80, 70) x2.
 const REGION_PX := Rect2i(160, 140, 320, 180)
 
+func _moisture_noise() -> FastNoiseLite:
+	var moist := FastNoiseLite.new()
+	moist.seed = 77
+	moist.frequency = 0.008
+	moist.fractal_octaves = 3
+	return moist
+
 func _make_continent() -> void:
+	var elev := _continent_elevation()
+	var moist := _moisture_noise()
+	var w := CONT_SIZE.x
+	var hgt := CONT_SIZE.y
+	var image := Image.create(w, hgt, false, Image.FORMAT_RGBA8)
+	for y in hgt:
+		for x in w:
+			var e := elev[y * w + x]
+			var m := moist.get_noise_2d(x, y) * 0.5 + 0.5
+			var c := _biome(e, m, float(y) / hgt, float(x) / w)
+			# Đổ bóng địa hình (ánh sáng từ tây bắc) cho cảm giác nổi.
+			if e > 0.39:
+				var e2 := elev[clampi(y - 1, 0, hgt - 1) * w + clampi(x - 1, 0, w - 1)]
+				var shade := clampf((e2 - e) * 16.0, -0.4, 0.4)
+				c = c.lightened(shade) if shade > 0 else c.darkened(-shade)
+			image.set_pixel(x, y, c)
+	for river in CONTINENT_RIVERS:
+		_draw_river(image, river)
+	_save(image, CONTINENT_PNG)
+
+# Sông trên lục địa (điểm ảnh của continent.png): từ hồ núi phía bắc chảy vào Rừng
+# Nguyệt Ảnh đúng chỗ sông trong rừng (x ≈ 1300 px); nhánh từ hồ trong rừng ra hồ lớn
+# phía tây; sông phía đông.
+const CONTINENT_RIVERS := [
+	[Vector2(300, 52), Vector2(292, 80), Vector2(312, 96), Vector2(322, 118), Vector2(322, 146)],
+	[Vector2(158, 288), Vector2(140, 272), Vector2(128, 262)],
+	[Vector2(520, 40), Vector2(530, 90), Vector2(548, 140), Vector2(555, 190), Vector2(560, 215)],
+]
+const RIVER_COLOR := Color(0.20, 0.50, 0.62)
+
+# Độ cao lục địa (mỗi điểm ảnh của continent.png), dùng cho cả ảnh và bước nối bản đồ.
+func _continent_elevation() -> PackedFloat32Array:
 	var noise := FastNoiseLite.new()
 	noise.seed = 20261113
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	noise.fractal_octaves = 5
 	noise.frequency = 0.0055
-	var moist := FastNoiseLite.new()
-	moist.seed = 77
-	moist.frequency = 0.008
-	moist.fractal_octaves = 3
 	var warp := FastNoiseLite.new()
 	warp.seed = 5
 	warp.frequency = 0.01
@@ -628,24 +671,7 @@ func _make_continent() -> void:
 	_carve_lake(elev, w, Vector2(95, 250), Vector2(55, 40))
 	_carve_lake(elev, w, Vector2(560, 225), Vector2(30, 22))
 	_carve_lake(elev, w, Vector2(330, 95), Vector2(26, 14))
-	var image := Image.create(w, hgt, false, Image.FORMAT_RGBA8)
-	for y in hgt:
-		for x in w:
-			var e := elev[y * w + x]
-			var m := moist.get_noise_2d(x, y) * 0.5 + 0.5
-			var c := _biome(e, m, float(y) / hgt, float(x) / w)
-			# Đổ bóng địa hình (ánh sáng từ tây bắc) cho cảm giác nổi.
-			if e > 0.39:
-				var e2 := elev[clampi(y - 1, 0, hgt - 1) * w + clampi(x - 1, 0, w - 1)]
-				var shade := clampf((e2 - e) * 16.0, -0.4, 0.4)
-				c = c.lightened(shade) if shade > 0 else c.darkened(-shade)
-			image.set_pixel(x, y, c)
-	# Sông từ hồ núi phía bắc chảy vào Rừng Nguyệt Ảnh đúng chỗ sông trong rừng (x ≈ 1300 px).
-	_draw_river(image, [Vector2(300, 52), Vector2(292, 80), Vector2(312, 96), Vector2(322, 118), Vector2(322, 146)])
-	# Nhánh từ hồ trong rừng (mép tây nam) chảy ra hồ lớn phía tây.
-	_draw_river(image, [Vector2(158, 288), Vector2(140, 272), Vector2(128, 262)])
-	_draw_river(image, [Vector2(520, 40), Vector2(530, 90), Vector2(548, 140), Vector2(555, 190), Vector2(560, 215)])
-	_save(image, CONTINENT_PNG)
+	return elev
 
 func _carve_lake(elev: PackedFloat32Array, w: int, center: Vector2, radius: Vector2) -> void:
 	for y in range(int(center.y - radius.y - 8), int(center.y + radius.y + 8)):
@@ -691,12 +717,13 @@ func _paint() -> void:
 	var ground := map_root.get_node("Ground") as TileMapLayer
 	var obstacles := map_root.get_node("Obstacles") as TileMapLayer
 	var cells: Vector2i = map_root.MAP_CELLS
+	_o = map_root.MAP_ORIGIN
 	# Đọc loại nền hiện có từ custom data trước khi đổi tileset.
 	var types := {}
 	var solid := {}
 	var highland := {}
-	for x in cells.x:
-		for y in cells.y:
+	for x in range(_o.x, _o.x + cells.x):
+		for y in range(_o.y, _o.y + cells.y):
 			var c := Vector2i(x, y)
 			var gd := ground.get_cell_tile_data(c)
 			types[c] = int(gd.get_custom_data("ground")) if gd else G.GRASS
@@ -742,8 +769,8 @@ func _paint() -> void:
 	var green := [G.GRASS, G.FOREST]
 	var trees := {}
 	var props := {}
-	for x in cells.x:
-		for y in cells.y:
+	for x in range(_o.x, _o.x + cells.x):
+		for y in range(_o.y, _o.y + cells.y):
 			var c := Vector2i(x, y)
 			var t: int = types[c]
 			var r := _h(x, y, 201)
@@ -754,7 +781,7 @@ func _paint() -> void:
 				var mask := 0
 				for i in 4:
 					var n: Vector2i = c + [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT][i]
-					var inside := n.x >= 0 and n.y >= 0 and n.x < cells.x and n.y < cells.y
+					var inside := _in_map(n, cells)
 					if inside and solid.get(n, -1) != kind:
 						mask |= 1 << i
 				var row := ROW_WATER if kind == G.WATER else (ROW_HIGHLAND if highland.has(c) else ROW_CLIFF)
@@ -765,7 +792,7 @@ func _paint() -> void:
 					mask = 0
 					for i in 4:
 						var n: Vector2i = c + [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT][i]
-						if not highland.has(n) and n.x >= 0 and n.y >= 0 and n.x < cells.x and n.y < cells.y:
+						if not highland.has(n) and _in_map(n, cells):
 							mask |= 1 << i
 				obstacles.set_cell(c, 0, Vector2i(mask, row))
 				if kind == G.WATER and mask == 0 and _h(x, y, 204) < 0.04:
@@ -817,6 +844,20 @@ func _paint() -> void:
 	scene.pack(map_root)
 	ResourceSaver.save(scene, MAP_SCENE)
 	print("Đã tô lại bản đồ: %d cây, %d ô đường mòn." % [trees.size(), trail.size()])
+
+func _in_map(c: Vector2i, cells: Vector2i) -> bool:
+	return Rect2i(_o, cells).has_point(c)
+
+# Khoảng cách (ô) tới mép khung bản đồ.
+func _border(c: Vector2i, cells: Vector2i) -> int:
+	var rel := c - _o
+	return mini(mini(rel.x, cells.x - 1 - rel.x), mini(rel.y, cells.y - 1 - rel.y))
+
+# Gần mép vùng chơi thì rừng dày: bản đồ cũ dùng hình bầu dục, bản đồ mở rộng dùng mặt nạ.
+func _edge_value(c: Vector2i) -> float:
+	if _o == Vector2i.ZERO:
+		return _shape_value(c)
+	return load(TERRAIN_SCRIPT).play_shape_value(Vector2(c) * T + Vector2(8, 8))
 
 func _mask(c: Vector2i, test: Callable) -> int:
 	var mask := 0
@@ -927,13 +968,13 @@ func _gameplay_cells() -> Array[Vector2i]:
 
 func _trails(cells: Vector2i, solid: Dictionary, types: Dictionary) -> Dictionary:
 	var grid := AStarGrid2D.new()
-	grid.region = Rect2i(Vector2i.ZERO, cells)
+	grid.region = Rect2i(_o, cells)
 	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
 	grid.update()
 	for c in solid:
 		grid.set_point_solid(c, true)
-	for x in cells.x:
-		for y in cells.y:
+	for x in range(_o.x, _o.x + cells.x):
+		for y in range(_o.y, _o.y + cells.y):
 			grid.set_point_weight_scale(Vector2i(x, y), 1.0 + _h(x / 3, y / 3, 211) * 2.5)
 	# Trại nối ra các khu; sông chỉ qua được ở cầu nên đường mòn tự đi qua cầu.
 	var hub := Vector2i(56, 37)
@@ -998,11 +1039,11 @@ func _pick_deco(t: int, x: int, y: int) -> int:
 	return -1
 
 func _pick_tree(c: Vector2i, t: int, cells: Vector2i, solid: Dictionary, trail: Dictionary, avoid: Array[Vector2i], trees: Dictionary, types_ref: Dictionary) -> int:
-	var border := mini(mini(c.x, cells.x - 1 - c.x), mini(c.y, cells.y - 1 - c.y))
+	var border := _border(c, cells)
 	var chance := 0.0
 	match t:
-		G.GRASS: chance = 0.32 if _shape_value(c) > 0.62 else 0.012
-		G.FOREST: chance = 0.3 if _shape_value(c) > 0.62 else 0.16
+		G.GRASS: chance = 0.32 if _edge_value(c) > 0.62 else 0.012
+		G.FOREST: chance = 0.3 if _edge_value(c) > 0.62 else 0.16
 		G.MUD: chance = 0.03
 		G.RUIN: chance = 0.01
 	if t != G.MUD and t != G.RUIN:
@@ -1039,7 +1080,7 @@ func _round_water(solid: Dictionary, cells: Vector2i) -> void:
 			var land: Array[int] = []
 			for i in 4:
 				var n: Vector2i = c + dirs[i]
-				var inside := n.x >= 0 and n.y >= 0 and n.x < cells.x and n.y < cells.y
+				var inside := _in_map(n, cells)
 				if inside and solid.get(n, -1) != G.WATER:
 					land.append(i)
 			var corner := land.size() == 2 and (land[1] - land[0]) % 2 == 1
@@ -1055,8 +1096,8 @@ func _blend_shore(types: Dictionary, solid: Dictionary, cells: Vector2i) -> void
 		_blend_shore_once(types, solid, cells)
 
 func _blend_shore_once(types: Dictionary, solid: Dictionary, cells: Vector2i) -> void:
-	for x in cells.x:
-		for y in cells.y:
+	for x in range(_o.x, _o.x + cells.x):
+		for y in range(_o.y, _o.y + cells.y):
 			var c := Vector2i(x, y)
 			if solid.has(c):
 				continue
@@ -1318,6 +1359,10 @@ func _props() -> void:
 	_blob(o, 8, 10, 5, 4, Color(0.52, 0.51, 0.50), Color(0.66, 0.65, 0.63), Color(0.32, 0.32, 0.33))
 	for x in range(5, 10):
 		_px(o.x, o.y, x, 7, Color(0.36, 0.58, 0.28))
+	# Cụm đá mỏ 2x2: đá nhiều mặt cắt, quặng lộ thành tinh thể khối (đá xám bạc, sắt cam, vàng).
+	_ore_cluster(_cell(P.ORE_STONE, ROW_PROPS), [Color(0.44, 0.47, 0.54), Color(0.52, 0.55, 0.62), Color(0.60, 0.63, 0.70)], [Color(0.62, 0.68, 0.78), Color(0.86, 0.90, 0.96), Color(1.0, 1.0, 1.0)], 41)
+	_ore_cluster(_cell(P.ORE_IRON, ROW_PROPS), [Color(0.25, 0.27, 0.32), Color(0.31, 0.33, 0.39), Color(0.38, 0.40, 0.46)], [Color(0.70, 0.32, 0.10), Color(0.95, 0.56, 0.18), Color(1.0, 0.80, 0.45)], 42)
+	_ore_cluster(_cell(P.ORE_GOLD, ROW_PROPS), [Color(0.40, 0.34, 0.28), Color(0.48, 0.41, 0.33), Color(0.56, 0.48, 0.38)], [Color(0.72, 0.52, 0.10), Color(1.0, 0.82, 0.25), Color(1.0, 0.96, 0.62)], 43)
 	# Cụm nấm nâu.
 	o = _cell(P.SHROOMS, ROW_PROPS)
 	for p in [Vector2i(5, 10), Vector2i(9, 12), Vector2i(11, 9)]:
@@ -1325,6 +1370,64 @@ func _props() -> void:
 		for dx in range(-1, 2):
 			_px(o.x, o.y, p.x + dx, p.y, Color(0.62, 0.42, 0.26))
 		_px(o.x, o.y, p.x, p.y - 1, Color(0.70, 0.50, 0.32))
+
+# Một cụm đá 32x32: các khối đá chia mặt theo điểm hạt (mỗi mặt một sắc, khe giữa các mặt
+# tối), viền đậm, sáng phía trên trái; rải tinh thể quặng khối vuông có mặt sáng, mặt tối.
+func _ore_cluster(o: Vector2i, rock: Array, ore: Array, s: int) -> void:
+	var outline := Color(0.12, 0.12, 0.15)
+	var seeds: Array[Vector2] = []
+	for i in 10:
+		seeds.append(Vector2(5 + _h(i, 1, s) * 22, 8 + _h(i, 2, s) * 18))
+	var inside := func(x: int, y: int) -> bool:
+		if x < 0 or y < 0 or x >= 32 or y >= 32:
+			return false
+		var mound := pow((x - 15.5) / 13.5, 2) + pow((y - 18.5) / 10.5, 2) <= 1.0
+		var pebble := pow((x - 26.5) / 3.5, 2) + pow((y - 27.0) / 2.5, 2) <= 1.0
+		return mound or pebble
+	var facet_of := func(x: int, y: int) -> int:
+		var best := 0
+		var best_d := INF
+		for i in seeds.size():
+			var d := Vector2(x, y).distance_squared_to(seeds[i])
+			if d < best_d:
+				best_d = d
+				best = i
+		return best
+	_ellipse_shadow(o, 32, 32, Vector2(16, 28), Vector2(14, 3.5), 0.35)
+	for y in 32:
+		for x in 32:
+			if not inside.call(x, y):
+				continue
+			if not inside.call(x - 1, y) or not inside.call(x + 1, y) or not inside.call(x, y - 1) or not inside.call(x, y + 1):
+				_put(o, 32, 32, x, y, outline)
+				continue
+			var f: int = facet_of.call(x, y)
+			if facet_of.call(x + 1, y) != f or facet_of.call(x, y + 1) != f:
+				_put(o, 32, 32, x, y, Color(rock[0]).darkened(0.35))
+				continue
+			var c: Color = rock[int(_h(f, 3, s) * 3)]
+			# Mặt trên của khối sáng hơn, chân khối tối hơn.
+			if y < seeds[f].y - 2:
+				c = c.lightened(0.12)
+			elif y > seeds[f].y + 3:
+				c = c.darkened(0.12)
+			_put(o, 32, 32, x, y, c)
+	for i in 9:
+		var size := 2 + int(_h(i, 4, s) * 3)
+		var p := Vector2i(5 + int(_h(i, 5, s) * 20), 9 + int(_h(i, 6, s) * 15))
+		if i == 8:
+			p = Vector2i(25, 26)
+			size = 2
+		for dy in size:
+			for dx in size:
+				if not inside.call(p.x + dx, p.y + dy):
+					continue
+				var c: Color = ore[1]
+				if dx == 0 or dy == 0:
+					c = ore[2]
+				elif dx == size - 1 or dy == size - 1:
+					c = ore[0]
+				_put(o, 32, 32, p.x + dx, p.y + dy, c)
 
 const GROUND_SHADER := """
 shader_type canvas_item;
@@ -1366,10 +1469,10 @@ func _add_highlands(types: Dictionary, solid: Dictionary, cells: Vector2i, avoid
 	var noise := FastNoiseLite.new()
 	noise.seed = 99
 	noise.frequency = 0.045
-	for x in cells.x:
-		for y in cells.y:
+	for x in range(_o.x, _o.x + cells.x):
+		for y in range(_o.y, _o.y + cells.y):
 			var c := Vector2i(x, y)
-			var border := mini(mini(x, cells.x - 1 - x), mini(y, cells.y - 1 - y))
+			var border := _border(Vector2i(x, y), cells)
 			var sv := _shape_value(c)
 			if sv < 0.35 or sv > 0.78 or solid.has(c) or not types[c] in [G.GRASS, G.FOREST]:
 				continue
@@ -1441,8 +1544,8 @@ func _patches(cells: Vector2i, solid: Dictionary, types: Dictionary, trail: Dict
 	m.seed = 503
 	m.frequency = 0.06
 	var result := {}
-	for x in cells.x:
-		for y in cells.y:
+	for x in range(_o.x, _o.x + cells.x):
+		for y in range(_o.y, _o.y + cells.y):
 			var c := Vector2i(x, y)
 			if solid.has(c) or trail.has(c):
 				continue
@@ -1546,7 +1649,9 @@ func _layout() -> void:
 	var map_root := packed.instantiate()
 	var ground := map_root.get_node("Ground") as TileMapLayer
 	var obstacles := map_root.get_node("Obstacles") as TileMapLayer
-	var cells: Vector2i = map_root.MAP_CELLS
+	# Bố cục chỉ dựng phần Rừng Nguyệt Ảnh cũ (160x90 ô); sau đó chạy -- expand để nối ra lục địa.
+	var cells: Vector2i = OLD_FOREST_CELLS
+	_o = Vector2i.ZERO
 	var avoid: Array[Vector2i] = await _gameplay_cells()
 	var noise := FastNoiseLite.new()
 	noise.seed = 7001
@@ -1556,13 +1661,13 @@ func _layout() -> void:
 	wobble.frequency = 0.15
 	var types := {}
 	var solid := {}
-	for x in cells.x:
-		for y in cells.y:
+	for x in range(_o.x, _o.x + cells.x):
+		for y in range(_o.y, _o.y + cells.y):
 			var c := Vector2i(x, y)
 			var px := Vector2(x, y) * T + Vector2(8, 8)
 			var n := noise.get_noise_2d(x, y)
 			var w := wobble.get_noise_2d(x, y)
-			var border := mini(mini(x, cells.x - 1 - x), mini(y, cells.y - 1 - y))
+			var border := _border(Vector2i(x, y), cells)
 			var t := G.GRASS
 			# Rừng: mảng lớn theo nhiễu, dày ở rìa, khu Rừng phía bắc luôn là rừng.
 			if n > 0.05 or border < 5 + int(w * 3):
@@ -1646,6 +1751,184 @@ func _layout() -> void:
 	scene.pack(map_root)
 	ResourceSaver.save(scene, MAP_SCENE)
 	print("Đã dựng bố cục mới: %d ô nước/vách, %d ô cầu." % [solid.size(), bridges.size()])
+
+# ---------------------------------------------------------------- nối bản đồ ra lục địa
+
+# Mép phía bắc vùng chơi (chủ dự án vẽ trên bản đồ M, 2026-11-15), tính theo ô lục địa.
+# Phía nam đường này tới bờ biển là vùng chơi; phía bắc là mây.
+const NORTH_EDGE := [
+	Vector2(0, 145), Vector2(7, 139), Vector2(22, 125), Vector2(41, 119), Vector2(63, 117), Vector2(73, 119),
+	Vector2(82, 114), Vector2(88, 101), Vector2(96, 91), Vector2(107, 86), Vector2(116, 78), Vector2(128, 85),
+	Vector2(139, 87), Vector2(156, 88), Vector2(164, 78), Vector2(177, 71), Vector2(190, 65), Vector2(204, 62),
+	Vector2(213, 64), Vector2(225, 72), Vector2(238, 81), Vector2(255, 90), Vector2(274, 95), Vector2(289, 100),
+	Vector2(300, 101), Vector2(317, 110), Vector2(320, 112),
+]
+
+# Độ cao trung bình của một ô lục địa (2x2 điểm ảnh).
+func _cell_elevation(elev: PackedFloat32Array, wc: Vector2i) -> float:
+	var e := 0.0
+	for d in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]:
+		var p: Vector2i = (wc * 2 + d).clamp(Vector2i.ZERO, CONT_SIZE - Vector2i.ONE)
+		e += elev[p.y * CONT_SIZE.x + p.x] * 0.25
+	return e
+
+func _north_edge_y(x: float) -> float:
+	for i in NORTH_EDGE.size() - 1:
+		var a: Vector2 = NORTH_EDGE[i]
+		var b: Vector2 = NORTH_EDGE[i + 1]
+		if x <= b.x:
+			return lerpf(a.y, b.y, clampf((x - a.x) / maxf(b.x - a.x, 0.001), 0.0, 1.0))
+	return NORTH_EDGE[NORTH_EDGE.size() - 1].y
+
+# Mở rộng vùng chơi ra lục địa: giữ nguyên Rừng Nguyệt Ảnh (ô 0..160 x 0..90, trừ
+# ô ngoài hình bầu dục cũ), phần còn lại lấy địa hình theo độ cao/độ ẩm của ảnh lục địa
+# (biển, cát, cỏ, rừng, đất cao, núi đá chặn đường, sông). Ghi ảnh mặt nạ vùng chơi.
+# Chạy xong thì chạy --import rồi -- paint để tô lại.
+func _expand() -> void:
+	var packed := load(MAP_SCENE) as PackedScene
+	var map_root := packed.instantiate()
+	var ground := map_root.get_node("Ground") as TileMapLayer
+	var obstacles := map_root.get_node("Obstacles") as TileMapLayer
+	var cells: Vector2i = map_root.MAP_CELLS
+	_o = map_root.MAP_ORIGIN
+	var region: Vector2i = map_root.REGION_OFFSET
+	var old_rect := Rect2i(Vector2i.ZERO, OLD_FOREST_CELLS)
+	var old_types := {}
+	var old_solid := {}
+	var old_tiles := {}
+	for c in ground.get_used_cells():
+		if old_rect.has_point(c):
+			old_types[c] = int(ground.get_cell_tile_data(c).get_custom_data("ground"))
+	for c in obstacles.get_used_cells():
+		if old_rect.has_point(c):
+			old_solid[c] = int(obstacles.get_cell_tile_data(c).get_custom_data("ground"))
+			old_tiles[c] = obstacles.get_cell_atlas_coords(c)
+	var elev := _continent_elevation()
+	var moist := _moisture_noise()
+	var cont := Image.load_from_file(ProjectSettings.globalize_path(CONTINENT_PNG))
+	var wobble := FastNoiseLite.new()
+	wobble.seed = 9101
+	wobble.frequency = 0.08
+	# Cùng nhiễu rừng/cỏ với bố cục Rừng Nguyệt Ảnh (_layout) để chỗ nối liền mạch.
+	var forest_noise := FastNoiseLite.new()
+	forest_noise.seed = 7001
+	forest_noise.frequency = 0.05
+	var types := {}
+	var solid := {}
+	var kept := 0
+	for x in range(_o.x, _o.x + cells.x):
+		for y in range(_o.y, _o.y + cells.y):
+			var c := Vector2i(x, y)
+			if old_types.has(c) and old_solid.get(c, -1) != G.VOID:
+				types[c] = old_types[c]
+				if old_solid.has(c):
+					solid[c] = old_solid[c]
+				# Bố cục cũ làm rừng dày dọc mép khung 160x90; bỏ dải đó để không lộ đường thẳng.
+				var old_border := mini(mini(x, OLD_FOREST_CELLS.x - 1 - x), mini(y, OLD_FOREST_CELLS.y - 1 - y))
+				if old_border < 8 and not solid.has(c) and old_types[c] in [G.GRASS, G.FOREST]:
+					types[c] = G.FOREST if forest_noise.get_noise_2d(x, y) > 0.05 else G.GRASS
+				kept += 1
+				continue
+			# Vòng vách Tàn Tích từng bị hình bầu dục cũ cắt (phần đó là mây): đắp lại vách
+			# để vẫn chỉ vào được qua cổng.
+			var cell_px := Vector2(c) * T + Vector2(8, 8)
+			var ruins_rd := ((cell_px - RUINS_CENTER) / RUINS_RADIUS).length()
+			if old_types.has(c) and ruins_rd <= 1.0:
+				types[c] = G.RUIN if ruins_rd < 0.82 else G.FOREST
+				if ruins_rd >= 1.0 - RUINS_WALL / RUINS_RADIUS.y:
+					solid[c] = G.CLIFF
+				continue
+			var wc := c + region
+			# Mép khung và phía bắc đường ranh: mây. Biển sâu cũng dưới mây, vùng chơi dừng ở bờ.
+			if _border(c, cells) < 10 or wc.y < _north_edge_y(wc.x) + wobble.get_noise_2d(x, y) * 3.0 or _cell_elevation(elev, wc) < 0.30:
+				solid[c] = G.VOID
+				types[c] = G.FOREST
+				continue
+			var px := wc * 2
+			var e := 0.0
+			var river := false
+			for d in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]:
+				var p: Vector2i = (px + d).clamp(Vector2i.ZERO, CONT_SIZE - Vector2i.ONE)
+				e += elev[p.y * CONT_SIZE.x + p.x] * 0.25
+				if cont.get_pixelv(p).is_equal_approx(RIVER_COLOR):
+					river = true
+			var m := moist.get_noise_2d(px.x, px.y) * 0.5 + 0.5
+			var nx := float(px.x) / CONT_SIZE.x
+			var ny := float(px.y) / CONT_SIZE.y
+			var t := G.GRASS
+			if e < 0.385:
+				t = G.SAND
+			elif e > 0.60:
+				t = G.DIRT
+			elif m < 0.36 and nx > 0.55:
+				t = G.SAND
+			elif forest_noise.get_noise_2d(x, y) > 0.05 or m > 0.66:
+				t = G.FOREST
+			types[c] = t
+			if river or e < 0.355:
+				solid[c] = G.WATER
+			elif e > 0.62 + ny * 0.75 or e > 0.70:
+				solid[c] = G.CLIFF
+	_save_play_mask(types, solid, cells)
+	ground.clear()
+	obstacles.clear()
+	for c in types:
+		ground.set_cell(c, 0, Vector2i(0, types[c]))
+	for c in solid:
+		if old_tiles.has(c) and old_solid.get(c, -1) != G.VOID:
+			obstacles.set_cell(c, 0, old_tiles[c])
+		else:
+			var kind_tile := Vector2i(0, ROW_WATER) if solid[c] == G.WATER else (Vector2i(2, ROW_BRIDGE) if solid[c] == G.VOID else Vector2i(0, ROW_CLIFF))
+			obstacles.set_cell(c, 0, kind_tile)
+	var scene := PackedScene.new()
+	scene.pack(map_root)
+	ResourceSaver.save(scene, MAP_SCENE)
+	print("Đã nối bản đồ ra lục địa: %d ô, giữ %d ô Rừng Nguyệt Ảnh cũ." % [types.size(), kept])
+
+# Ảnh mặt nạ vùng chơi: mỗi ô một điểm ảnh, khoảng cách có dấu tới mép (xem world_terrain.gd).
+func _save_play_mask(types: Dictionary, solid: Dictionary, cells: Vector2i) -> void:
+	var w := cells.x
+	var h := cells.y
+	var inside := PackedByteArray()
+	inside.resize(w * h)
+	for x in w:
+		for y in h:
+			var c := Vector2i(x, y) + _o
+			inside[y * w + x] = 0 if solid.get(c, -1) == G.VOID or not types.has(c) else 1
+	var to_out := _chamfer(inside, w, h, 0)
+	var to_in := _chamfer(inside, w, h, 1)
+	var image := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	var range_cells: float = load(TERRAIN_SCRIPT).PLAY_MASK_RANGE
+	for x in w:
+		for y in h:
+			var i := y * w + x
+			var signed := to_out[i] - to_in[i]
+			var v := clampf((signed + range_cells) / (2.0 * range_cells), 0.0, 1.0)
+			image.set_pixel(x, y, Color(v, v, v, 1.0))
+	_save(image, PLAY_MASK_PNG)
+
+# Khoảng cách (ô) từ mỗi ô tới ô gần nhất có inside == target (chamfer 2 lượt).
+func _chamfer(inside: PackedByteArray, w: int, h: int, target: int) -> PackedFloat32Array:
+	var d := PackedFloat32Array()
+	d.resize(w * h)
+	for i in w * h:
+		d[i] = 0.0 if inside[i] == target else 1e9
+	var forward := [[-1, 0, 1.0], [0, -1, 1.0], [-1, -1, 1.414], [1, -1, 1.414]]
+	for y in h:
+		for x in w:
+			for k in forward:
+				var nx: int = x + k[0]
+				var ny: int = y + k[1]
+				if nx >= 0 and ny >= 0 and nx < w and ny < h:
+					d[y * w + x] = minf(d[y * w + x], d[ny * w + nx] + k[2])
+	for y in range(h - 1, -1, -1):
+		for x in range(w - 1, -1, -1):
+			for k in forward:
+				var nx: int = x - k[0]
+				var ny: int = y - k[1]
+				if nx >= 0 and ny >= 0 and nx < w and ny < h:
+					d[y * w + x] = minf(d[y * w + x], d[ny * w + nx] + k[2])
+	return d
 
 # Ô nằm trong mảng hình bầu dục có mép lượn theo nhiễu.
 func _in_patch(px: Vector2, center: Vector2, radius: Vector2, w: float) -> bool:

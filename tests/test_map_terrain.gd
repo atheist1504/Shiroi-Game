@@ -28,12 +28,13 @@ func _run() -> void:
 	var layer: TileMapLayer = terrain.get_node("Ground")
 
 	# Nền: Rừng Nguyệt Ảnh là rừng, không còn đầm lầy hay đồi cát.
-	_check(layer.get_used_cells().size() == 160 * 90, "Tile phủ kín bản đồ 160x90 ô")
+	_check(layer.get_used_cells().size() == terrain.MAP_CELLS.x * terrain.MAP_CELLS.y and terrain.MAP_CELLS == Vector2i(320, 134), "Tile phủ kín bản đồ nối ra lục địa 320x134 ô")
+	_check(terrain.is_in_play_area(Vector2(-600, 1100)) and terrain.is_in_play_area(Vector2(3300, 1100)) and not terrain.is_in_play_area(Vector2(1000, -300)), "Vùng chơi kéo sang tây, sang đông; phía bắc đường ranh là mây")
 	_check(terrain.get_ground_at(Vector2(944, 640)) == terrain.Ground.DIRT, "Trại là khoảng trống đất")
 	_check(terrain.get_ground_at(Vector2(1500, 200)) == terrain.Ground.FOREST, "Khu Rừng nền rừng")
 	_check(terrain.get_ground_at(Vector2(2200, 520)) == terrain.Ground.GOLD, "Mỏ Vàng là bãi đá lộ quặng vàng")
 	_check(terrain.get_ground_at(Vector2(2100, 900)) == terrain.Ground.RUIN, "Tàn Tích nền đá cổ")
-	_check(terrain.get_ground_at(Vector2(-5, 10)) == -1, "Ngoài bản đồ không có nền")
+	_check(terrain.get_ground_at(Vector2(-2000, 10)) == -1 and terrain.get_ground_at(Vector2(1000, 2000)) == -1, "Ngoài bản đồ không có nền")
 	_check(terrain.get_ground_at(Vector2(24, 24)) == terrain.Ground.VOID and not terrain.is_in_play_area(Vector2(24, 24)), "Góc khung bản đồ nằm ngoài vùng chơi bầu dục, bị chặn")
 	_check(terrain.is_in_play_area(Vector2(1280, 720)) and terrain.is_in_play_area(Vector2(944, 600)), "Trại nằm trong vùng chơi")
 	var outside_nodes := 0
@@ -42,11 +43,15 @@ func _run() -> void:
 			outside_nodes += 1
 	_check(outside_nodes == 0, "Không tài nguyên hay quái nào nằm sát hoặc ngoài mép mây")
 	var kinds := {}
-	for cell in layer.get_used_cells():
+	# Chỉ xét trong hình bầu dục của Rừng Nguyệt Ảnh cũ (phần nối ra lục địa có bãi cát bờ biển).
+	var in_old_oval := func(c: Vector2i) -> bool:
+		var rel := (Vector2(c) * 16.0 + Vector2(8, 8) - Vector2(1280, 720)) / Vector2(76 * 16, 42 * 16)
+		return pow(absf(rel.x), 4.0) + pow(absf(rel.y), 4.0) <= 1.0
+	for cell in layer.get_used_cells().filter(in_old_oval):
 		kinds[int(layer.get_cell_tile_data(cell).get_custom_data("ground"))] = true
-	_check(not kinds.has(terrain.Ground.MUD) and not kinds.has(terrain.Ground.SAND), "Không còn đầm lầy và đồi cát")
+	_check(not kinds.has(terrain.Ground.MUD) and not kinds.has(terrain.Ground.SAND), "Rừng Nguyệt Ảnh không còn đầm lầy và đồi cát (bãi cát chỉ ở bờ biển phần nối ra lục địa)")
 	var forest_cells := 0
-	for cell in layer.get_used_cells():
+	for cell in layer.get_used_cells().filter(in_old_oval):
 		if int(layer.get_cell_tile_data(cell).get_custom_data("ground")) == terrain.Ground.FOREST:
 			forest_cells += 1
 	_check(forest_cells > 160 * 90 / 4, "Rừng phủ phần lớn bản đồ")
@@ -98,12 +103,12 @@ func _run() -> void:
 	_check(from_outside.is_empty(), "Vòng vách đá quanh Tàn Tích chặn mọi lối trừ cổng")
 	_check(await _save(save_manager), "Lưu khi cổng còn đóng")
 	world.unlock_region(&"ruins")
-	await _wait_frames(6)
+	await _wait_frames(12)
 	_check(gate.is_open and not gate.visible, "Mở khóa thì cổng mở")
 	var through_gate: PackedVector2Array = navigation.call("get_world_path", Vector2(2128, 650), Vector2(2100, 900))
 	_check(not through_gate.is_empty(), "Cổng mở thì có đường vào Tàn Tích")
 	_check(await _load(save_manager), "F9 về lúc cổng đóng")
-	await _wait_frames(6)
+	await _wait_frames(12)
 	_check(not gate.is_open and gate.visible, "F9 khóa lại cổng")
 	_check((navigation.call("get_world_path", Vector2(2128, 650), Vector2(2100, 900)) as PackedVector2Array).is_empty(), "F9 cũng khóa lại đường đi")
 

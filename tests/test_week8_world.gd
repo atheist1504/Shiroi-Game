@@ -47,7 +47,7 @@ func _run() -> void:
 	npc_manager.call("refresh_navigation")
 	var refresh_ms := (Time.get_ticks_usec() - started) / 1000.0
 	_check(refresh_ms < 100.0, "Cập nhật lưới đường đủ nhanh (%.1f ms)" % refresh_ms)
-	_check(npc_manager.call("get_map_rect").size == Vector2(2560, 1440), "Bản đồ mở rộng 2560x1440")
+	_check(npc_manager.call("get_map_rect") == Rect2(-1280, -384, 5120, 2144), "Lưới đường đi phủ cả bản đồ nối ra lục địa")
 	var counts := {}
 	for node in get_nodes_in_group("resource_nodes"):
 		if str(node.get("node_id")).begins_with("zone_"):

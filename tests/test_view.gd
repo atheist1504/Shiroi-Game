@@ -33,10 +33,11 @@ func _run() -> void:
 
 	# Bản đồ nhỏ.
 	var image: Image = minimap.build_map_image()
-	_check(image.get_size() == Vector2i(160, 90), "Bản đồ nhỏ mỗi ô tile một điểm ảnh")
-	var water := image.get_pixelv(Vector2i(Vector2(260, 1040) / 16.0))
-	var grass := image.get_pixelv(Vector2i(10, 10))
-	var dirt := image.get_pixelv(Vector2i(Vector2(900, 600) / 16.0))
+	_check(image.get_size() == Vector2i(320, 134), "Bản đồ nhỏ mỗi ô tile một điểm ảnh (cả bản đồ nối ra lục địa)")
+	var origin: Vector2i = scene.get_node("Environment/Terrain").MAP_ORIGIN
+	var water := image.get_pixelv(Vector2i(Vector2(260, 1040) / 16.0) - origin)
+	var grass := image.get_pixelv(Vector2i(Vector2(640, 330) / 16.0) - origin)
+	var dirt := image.get_pixelv(Vector2i(Vector2(900, 600) / 16.0) - origin)
 	_check(water != grass and dirt != grass, "Nước, cỏ, đất trên bản đồ nhỏ khác màu nhau")
 	_check(int(terrain.get_ground_at(Vector2(260, 1040))) == terrain.Ground.WATER, "Điểm thử đúng là nước")
 	var frame: Control = minimap.get_node("MinimapFrame")
@@ -85,19 +86,32 @@ func _run() -> void:
 	var expected_dot: Vector2 = minimap.world_to_world_map(player.global_position) - Vector2.ONE * 3.0
 	var region_rect: Rect2 = minimap.get_region_rect_on_world_map()
 	_check(world_dot.position.distance_to(expected_dot) < 1.0 and region_rect.has_point(world_dot.position), "Chấm người chơi nằm trong vùng đang chơi trên bản đồ thế giới")
-	_check(region_rect.size.x < minimap.WORLD_MAP_SIZE.x * 0.6 and region_rect.position.x > 0.0, "Bản đồ M thấy cả lục địa, vùng đang chơi chỉ là một phần")
+	_check(region_rect.size.y < minimap.WORLD_MAP_SIZE.y * 0.8 and region_rect.position.y > 0.0, "Bản đồ M thấy cả lục địa, vùng chơi là phần phía nam")
 	var world_img: Image = (minimap.get("_world_rect").texture as Texture2D).get_image()
 	var inside_px: Color = world_img.get_pixelv(Vector2i(region_rect.get_center() / minimap.WORLD_MAP_SIZE * Vector2(world_img.get_size())))
 	var fog_px: Color = world_img.get_pixel(30, 30)
 	_check(fog_px.get_luminance() < 0.2 and inside_px.get_luminance() > fog_px.get_luminance() * 2.0, "Ngoài vùng đang chơi bị mây đen che")
-	_check(labels.get_node_or_null("RegionName") != null and (labels.get_node("RegionName") as Label).text.begins_with("RỪNG NGUYỆT ẢNH •"), "Bản đồ M ghi tên Rừng Nguyệt Ảnh kèm % khám phá")
+	_check(labels.get_node_or_null("RegionName") != null and (labels.get_node("RegionName") as Label).text == "RỪNG NGUYỆT ẢNH", "Bản đồ M ghi tên Rừng Nguyệt Ảnh")
 	minimap._input(_key(KEY_ESCAPE))
 	_check(not world_layer.visible and not paused, "Esc đóng bản đồ và chạy tiếp")
 	world_state.discover_region(&"zone_iron_mine")
 	minimap._unhandled_input(_key(KEY_M))
-	_check((labels.get_node("Zone_IronMineZone") as Label).text.begins_with("MỎ SẮT ") and (labels.get_node("Zone_IronMineZone") as Label).text.ends_with("%"), "Vùng vừa khám phá hiện tên kèm %")
+	_check((labels.get_node("Zone_IronMineZone") as Label).text == "MỎ SẮT", "Vùng vừa khám phá hiện tên")
+	# Mở bản đồ theo chỗ đã đi; nút ◆ ở Trại để dịch chuyển về.
+	minimap.reveal_around(player.global_position)
+	_check(minimap.is_revealed(player.global_position) and not minimap.is_revealed(Vector2(3300, 1100)), "Bản đồ M mở chỗ đã đi, chỗ chưa tới còn che")
+	_check(world_state.get_flag(&"map_revealed", null) is Array, "Phần bản đồ đã mở lưu trong WorldState")
+	_check(labels.get_node_or_null("CampTeleport") != null and labels.get_node_or_null("RevealFog") != null, "Bản đồ M có lớp che và nút dịch chuyển về Trại")
 	minimap._input(_key(KEY_M))
 	_check(not world_layer.visible and not paused, "Ấn M lần nữa thì đóng")
+	var night_node := scene.get_node_or_null("FirstNight")
+	if night_node:
+		night_node.set_process(false)
+	var player_spot := player.global_position
+	player.global_position = Vector2(1500, 300)
+	minimap.set_world_map_open(true)
+	_check(minimap.teleport_to_camp() and player.global_position.distance_to(minimap.CAMP_TELEPORT_POSITION) < 4.0 and not world_layer.visible, "Bấm ◆ dịch chuyển về Trại rồi đóng bản đồ")
+	player.global_position = player_spot
 	paused = true
 	minimap._unhandled_input(_key(KEY_M))
 	_check(not world_layer.visible, "Đang tạm dừng (menu, túi đồ) thì M không mở")

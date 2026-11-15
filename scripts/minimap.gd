@@ -15,11 +15,16 @@ const MINIMAP_PIXELS_PER_CELL: float = 2.0
 const WORLD_MAP_SIZE := Vector2(576, 324)
 const WORLD_MAP_POSITION := Vector2(32, 28)
 const WORLD_DOT_SIZE: float = 6.0
-# Mở bản đồ M theo cột mốc (beacon.gd); đống lửa Trại luôn mở và dịch chuyển về được.
-const Exploration = preload("res://scripts/exploration.gd")
-const REVEAL_RADIUS: float = 420.0
-const CAMP_BEACON_POSITION := Vector2(944, 640)
+# Bản đồ M mở theo chỗ đã đi: chia vùng chơi thành mảng REVEAL_CHUNK x REVEAL_CHUNK ô,
+# mảng nào có tâm trong REVEAL_RADIUS quanh người chơi thì mở. Lưu trong WorldState
+# (cờ REVEAL_FLAG, mảng số thứ tự mảng) nên có trong save.
+const REVEAL_CHUNK: int = 4
+const REVEAL_RADIUS: float = 360.0
+const REVEAL_FLAG: StringName = &"map_revealed"
+const REVEAL_INTERVAL: float = 0.25
 const UNREVEALED_COLOR := Color(0.05, 0.05, 0.09)
+# Dịch chuyển nhanh chỉ có ở Trại (đống lửa).
+const CAMP_TELEPORT_POSITION := Vector2(944, 640)
 
 var _terrain: Node
 var _player: Node2D
@@ -31,6 +36,9 @@ var _world_rect: TextureRect
 var _world_dot: ColorRect
 var _world_labels: Control
 var _paused_before_open: bool = false
+var _revealed: Dictionary = {} # số thứ tự mảng -> true
+var _revealed_source: Variant = null # mảng trong WorldState mà _revealed đang theo
+var _reveal_timer: float = 0.0
 
 func _ready() -> void:
 	layer = 15
@@ -64,7 +72,7 @@ func build_world_image(map_image: Image) -> Image:
 			continent.decompress()
 		continent.convert(Image.FORMAT_RGBA8)
 		image.blit_rect(continent, Rect2i(Vector2i.ZERO, size), Vector2i.ZERO)
-	var region := Rect2i(_terrain.REGION_OFFSET * scale, _terrain.MAP_CELLS * scale)
+	var region := Rect2i((_terrain.REGION_OFFSET + _terrain.MAP_ORIGIN) * scale, _terrain.MAP_CELLS * scale)
 	var noise := FastNoiseLite.new()
 	noise.seed = 31
 	noise.frequency = 0.03
@@ -77,10 +85,9 @@ func build_world_image(map_image: Image) -> Image:
 				if tile_px.a > 0.5:
 					image.set_pixelv(p, tile_px)
 					continue
-			# Khoảng cách (điểm ảnh lục địa) ra ngoài mép vùng chơi hình bầu dục.
+			# Khoảng cách (điểm ảnh lục địa) ra ngoài mép vùng chơi.
 			var world_pos: Vector2 = (Vector2(p) / scale - Vector2(_terrain.REGION_OFFSET)) * _terrain.TILE_SIZE
-			var shape: float = _terrain.play_shape_value(world_pos)
-			var dist: float = maxf(pow(shape, 0.25) - 1.0, 0.0) * _terrain.PLAY_RADIUS_CELLS.y * scale
+			var dist: float = maxf(-_terrain.play_distance(world_pos) / float(_terrain.TILE_SIZE), 0.0) * scale
 			var n := noise.get_noise_2d(x, y) * 0.5 + 0.5
 			var amount := clampf(0.8 + n * 0.17, 0.0, 0.97) * smoothstep(0.0, 3.0, dist + n * 2.0)
 			var cloud := FOG_COLOR.lerp(Color(0.16, 0.15, 0.21), n * 0.6)
@@ -98,9 +105,10 @@ func build_map_image() -> Image:
 		if not tile_layer:
 			continue
 		for cell in tile_layer.get_used_cells():
-			if cell.x < 0 or cell.y < 0 or cell.x >= cells.x or cell.y >= cells.y:
+			var pixel: Vector2i = cell - _terrain.MAP_ORIGIN
+			if pixel.x < 0 or pixel.y < 0 or pixel.x >= cells.x or pixel.y >= cells.y:
 				continue
-			image.set_pixelv(cell, _tile_color(tile_layer, cell))
+			image.set_pixelv(pixel, _tile_color(tile_layer, cell))
 	return image
 
 func _tile_color(tile_layer: TileMapLayer, cell: Vector2i) -> Color:
@@ -133,9 +141,14 @@ func _tile_color(tile_layer: TileMapLayer, cell: Vector2i) -> Color:
 	_tile_colors[key] = color
 	return color
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _player or not _terrain:
 		return
+	if not get_tree().paused:
+		_reveal_timer -= delta
+		if _reveal_timer <= 0.0:
+			_reveal_timer = REVEAL_INTERVAL
+			reveal_around(_player.global_position)
 	# Trượt ảnh bản đồ để người chơi nằm giữa khung.
 	# Ảnh là cả lục địa; góc trên trái của nó lệch REGION_OFFSET ô so với vùng chơi.
 	_map_rect.position = world_to_minimap(-Vector2(_terrain.REGION_OFFSET * _terrain.TILE_SIZE))
@@ -251,8 +264,9 @@ func world_to_world_map(world_position: Vector2) -> Vector2:
 
 # Khung vùng đang chơi trên bản đồ M.
 func get_region_rect_on_world_map() -> Rect2:
-	var top_left := world_to_world_map(Vector2.ZERO)
-	var bottom_right := world_to_world_map(Vector2(_terrain.MAP_CELLS * _terrain.TILE_SIZE))
+	var map_rect: Rect2 = _terrain.map_rect()
+	var top_left := world_to_world_map(map_rect.position)
+	var bottom_right := world_to_world_map(map_rect.end)
 	return Rect2(top_left, bottom_right - top_left)
 
 func _refresh_world_map() -> void:
@@ -263,26 +277,25 @@ func _refresh_world_map() -> void:
 	for child in _world_labels.get_children():
 		_world_labels.remove_child(child)
 		child.queue_free()
+	# Phần vùng chơi chưa đi tới phủ tối; thêm trước để chữ nằm trên.
+	_add_reveal_fog()
 	var zones := get_parent().get_node_or_null("Environment/Zones")
 	if not zones:
 		return
 	var world_state := get_node_or_null("/root/WorldState")
-	# Phần vùng chơi chưa mở (xa mọi cột mốc đã kích hoạt) phủ mây; dưới cùng để chữ nằm trên.
-	_add_reveal_fog()
-	# Tên vùng lớn đặt trên mép khung vùng đang chơi.
-	var region_rect := get_region_rect_on_world_map()
+	# Tên vùng lớn đặt ở chỗ Rừng Nguyệt Ảnh cũ.
+	var forest_rect := Rect2(world_to_world_map(Vector2.ZERO), world_to_world_map(Vector2(2560, 1440)) - world_to_world_map(Vector2.ZERO))
 	var region_label := Label.new()
 	region_label.name = "RegionName"
-	var region_progress := Exploration.region_progress(get_tree(), zones.get_children())
-	region_label.text = "%s • %d%%" % [str(_terrain.REGION_NAME).to_upper(), Exploration.percent(region_progress)]
+	region_label.text = str(_terrain.REGION_NAME).to_upper()
 	region_label.add_theme_font_size_override("font_size", 12)
 	region_label.add_theme_color_override("font_color", Color(0.75, 0.95, 1.0))
 	region_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 	region_label.add_theme_constant_override("outline_size", 5)
 	region_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	region_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	region_label.size = Vector2(region_rect.size.x, 18)
-	region_label.position = region_rect.position - Vector2(0, 20)
+	region_label.size = Vector2(forest_rect.size.x, 18)
+	region_label.position = forest_rect.position - Vector2(0, 20)
 	_world_labels.add_child(region_label)
 	for zone in zones.get_children():
 		if not "zone_title" in zone or zone.zone_title == "":
@@ -290,7 +303,7 @@ func _refresh_world_map() -> void:
 		var known: bool = world_state == null or zone.region_id == StringName() or world_state.is_region_discovered(zone.region_id)
 		var label := Label.new()
 		label.name = "Zone_" + zone.name
-		label.text = "%s %d%%" % [zone.zone_title, Exploration.percent(Exploration.zone_progress(get_tree(), zone))] if known else "???"
+		label.text = zone.zone_title if known else "???"
 		label.add_theme_font_size_override("font_size", 8)
 		label.add_theme_color_override("font_color", zone.zone_color.lerp(Color.WHITE, 0.6) if known else Color(0.7, 0.7, 0.75))
 		label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
@@ -301,35 +314,71 @@ func _refresh_world_map() -> void:
 		var center: Vector2 = world_to_world_map(zone.position + zone.zone_size * 0.5)
 		label.position = center - label.size * 0.5
 		_world_labels.add_child(label)
-	_add_beacon_markers()
+	_add_camp_marker()
 
-# Các điểm mở bản đồ: đống lửa Trại (luôn mở) và các cột mốc đã kích hoạt.
-func get_revealed_points() -> Array[Vector2]:
-	var points: Array[Vector2] = [CAMP_BEACON_POSITION]
-	for beacon in get_tree().get_nodes_in_group("beacons"):
-		if bool(beacon.call("is_active")):
-			points.append(beacon.global_position)
-	return points
+# --- Mở bản đồ theo chỗ đã đi ---
+
+func _chunk_columns() -> int:
+	return ceili(float(_terrain.MAP_CELLS.x) / REVEAL_CHUNK)
+
+func _chunk_rows() -> int:
+	return ceili(float(_terrain.MAP_CELLS.y) / REVEAL_CHUNK)
+
+func _chunk_of(world_position: Vector2) -> Vector2i:
+	var cell: Vector2i = Vector2i((world_position / float(_terrain.TILE_SIZE)).floor()) - _terrain.MAP_ORIGIN
+	return Vector2i(floori(float(cell.x) / REVEAL_CHUNK), floori(float(cell.y) / REVEAL_CHUNK))
+
+func _chunk_center(chunk: Vector2i) -> Vector2:
+	return (Vector2(chunk * REVEAL_CHUNK + _terrain.MAP_ORIGIN) + Vector2.ONE * REVEAL_CHUNK * 0.5) * float(_terrain.TILE_SIZE)
+
+# Đồng bộ với WorldState (tải save thì mảng trong WorldState đổi, đọc lại).
+func _sync_revealed() -> void:
+	var world_state := get_node_or_null("/root/WorldState")
+	var source: Variant = world_state.get_flag(REVEAL_FLAG, null) if world_state else null
+	if is_same(source, _revealed_source):
+		return
+	_revealed_source = source
+	_revealed.clear()
+	if source is Array:
+		for index in source:
+			_revealed[int(index)] = true
+
+func reveal_around(world_position: Vector2) -> void:
+	_sync_revealed()
+	var center := _chunk_of(world_position)
+	var reach := ceili(REVEAL_RADIUS / float(REVEAL_CHUNK * _terrain.TILE_SIZE))
+	var columns := _chunk_columns()
+	var added := false
+	for y in range(center.y - reach, center.y + reach + 1):
+		for x in range(center.x - reach, center.x + reach + 1):
+			if x < 0 or y < 0 or x >= columns or y >= _chunk_rows():
+				continue
+			var index := y * columns + x
+			if _revealed.has(index) or _chunk_center(Vector2i(x, y)).distance_to(world_position) > REVEAL_RADIUS:
+				continue
+			_revealed[index] = true
+			added = true
+	if added:
+		var world_state := get_node_or_null("/root/WorldState")
+		if world_state:
+			var saved: Array = _revealed.keys()
+			world_state.set_flag(REVEAL_FLAG, saved)
+			_revealed_source = world_state.get_flag(REVEAL_FLAG, null)
 
 func is_revealed(world_position: Vector2) -> bool:
-	for point in get_revealed_points():
-		if point.distance_to(world_position) <= REVEAL_RADIUS:
-			return true
-	return false
+	_sync_revealed()
+	var chunk := _chunk_of(world_position)
+	return _revealed.has(chunk.y * _chunk_columns() + chunk.x)
 
 func _add_reveal_fog() -> void:
-	var cells: Vector2i = _terrain.MAP_CELLS
-	var fog := Image.create(cells.x, cells.y, false, Image.FORMAT_RGBA8)
-	var points := get_revealed_points()
-	for y in cells.y:
-		for x in cells.x:
-			var world_pos := (Vector2(x, y) + Vector2(0.5, 0.5)) * float(_terrain.TILE_SIZE)
-			var nearest := INF
-			for point in points:
-				nearest = minf(nearest, point.distance_to(world_pos))
-			# Mép vùng mở mờ dần trong khoảng 48 đơn vị cho đỡ cứng.
-			var amount := clampf((nearest - REVEAL_RADIUS + 48.0) / 48.0, 0.0, 1.0) * 0.9
-			fog.set_pixel(x, y, Color(UNREVEALED_COLOR, amount))
+	_sync_revealed()
+	var columns := _chunk_columns()
+	var rows := _chunk_rows()
+	var fog := Image.create(columns, rows, false, Image.FORMAT_RGBA8)
+	for y in rows:
+		for x in columns:
+			var open := _revealed.has(y * columns + x)
+			fog.set_pixel(x, y, Color(UNREVEALED_COLOR, 0.0 if open else 0.9))
 	var rect := TextureRect.new()
 	rect.name = "RevealFog"
 	rect.texture = ImageTexture.create_from_image(fog)
@@ -337,38 +386,29 @@ func _add_reveal_fog() -> void:
 	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var region_rect := get_region_rect_on_world_map()
-	rect.position = region_rect.position
-	rect.size = region_rect.size
+	var origin: Vector2 = Vector2(_terrain.MAP_ORIGIN * _terrain.TILE_SIZE)
+	var end: Vector2 = origin + Vector2(columns, rows) * REVEAL_CHUNK * _terrain.TILE_SIZE
+	rect.position = world_to_world_map(origin)
+	rect.size = world_to_world_map(end) - rect.position
 	_world_labels.add_child(rect)
 
-# Cột mốc trên bản đồ M: đã kích hoạt là nút bấm để dịch chuyển, chưa thì chấm xám
-# (chỉ hiện khi chỗ đó đã được mở).
-func _add_beacon_markers() -> void:
-	var entries: Array = [[CAMP_BEACON_POSITION, true, "Trại"]]
-	for beacon in get_tree().get_nodes_in_group("beacons"):
-		entries.append([beacon.global_position, bool(beacon.call("is_active")), "Cột mốc"])
-	for entry in entries:
-		var world_pos: Vector2 = entry[0]
-		var active: bool = entry[1]
-		if not active and not is_revealed(world_pos):
-			continue
-		var marker := Button.new()
-		marker.name = "Beacon_%d_%d" % [int(world_pos.x), int(world_pos.y)]
-		marker.text = "◆"
-		marker.flat = true
-		marker.add_theme_font_size_override("font_size", 10)
-		marker.add_theme_color_override("font_color", Color(0.4, 1.0, 0.9) if active else Color(0.6, 0.62, 0.68))
-		marker.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 0.6))
-		marker.size = Vector2(14, 14)
-		marker.position = world_to_world_map(world_pos) - marker.size * 0.5
-		marker.tooltip_text = "%s: bấm để dịch chuyển" % entry[2] if active else "Cột mốc chưa kích hoạt"
-		marker.disabled = not active
-		marker.pressed.connect(teleport_to.bind(world_pos))
-		_world_labels.add_child(marker)
+# --- Dịch chuyển nhanh về Trại ---
 
-# Dịch chuyển nhanh tới cột mốc đã kích hoạt rồi đóng bản đồ.
-func teleport_to(beacon_position: Vector2) -> bool:
+func _add_camp_marker() -> void:
+	var marker := Button.new()
+	marker.name = "CampTeleport"
+	marker.text = "◆"
+	marker.flat = true
+	marker.add_theme_font_size_override("font_size", 10)
+	marker.add_theme_color_override("font_color", Color(0.4, 1.0, 0.9))
+	marker.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 0.6))
+	marker.size = Vector2(14, 14)
+	marker.position = world_to_world_map(CAMP_TELEPORT_POSITION) - marker.size * 0.5
+	marker.tooltip_text = "Trại: bấm để dịch chuyển về"
+	marker.pressed.connect(teleport_to_camp)
+	_world_labels.add_child(marker)
+
+func teleport_to_camp() -> bool:
 	if not _player or bool(_player.get("is_dead")) or _paused_before_open:
 		return false
 	var night := get_parent().get_node_or_null("FirstNight")
@@ -377,10 +417,7 @@ func teleport_to(beacon_position: Vector2) -> bool:
 		if notifications:
 			notifications.show_warning("Chưa dịch chuyển được trong đêm đầu.")
 		return false
-	# Chỉ tới được đống lửa Trại và cột mốc đã kích hoạt.
-	if not get_revealed_points().has(beacon_position):
-		return false
-	_player.global_position = beacon_position + Vector2(0, 28)
+	_player.global_position = CAMP_TELEPORT_POSITION
 	var camera := _player.get_node_or_null("Camera2D") as Camera2D
 	if camera:
 		camera.reset_smoothing()

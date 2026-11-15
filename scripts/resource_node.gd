@@ -122,9 +122,6 @@ func set_harvested(harvested: bool, notify: bool = false) -> void:
 		var world_state = get_node_or_null("/root/WorldState")
 		if world_state and world_state.has_method("set_flag"):
 			world_state.set_flag(StringName("harvested_" + str(node_id)), true)
-			if notify:
-				# Người chơi tự tay thu thập lần đầu: tính vào % khám phá (exploration.gd).
-				world_state.set_flag(StringName("touched_" + str(node_id)), true)
 
 		_schedule_respawn_if_needed()
 
@@ -252,7 +249,9 @@ func _get_prompt_text() -> String:
 # Hình lấy từ bộ tile pixel của bản đồ (tools/gen_world_art.gd) cho hợp với cây, đá trang trí.
 const ART: Texture2D = preload("res://assets/tiles/terrain_tiles.png")
 const ART_TREE := Rect2(0, 21 * 16, 48, 48) # sồi to 3x3 ô
-const ART_ROCK := Rect2(0, 24 * 16, 32, 32) # tảng đá 2x2 ô
+const ART_ROCK := Rect2(160, 24 * 16, 32, 32) # cụm đá mỏ 2x2 ô
+const ART_IRON := Rect2(192, 24 * 16, 32, 32) # cụm quặng sắt 2x2 ô
+const ART_GOLD := Rect2(224, 24 * 16, 32, 32) # cụm quặng vàng 2x2 ô
 const ART_HERB := Rect2(32, 24 * 16, 32, 32) # bụi hoa 2x2 ô
 
 func _draw() -> void:
@@ -261,14 +260,10 @@ func _draw() -> void:
 			draw_texture_rect_region(ART, Rect2(-24, -42, 48, 48), ART_TREE)
 		"rock":
 			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_ROCK)
-		"iron", "gold":
-			# Mỏ quặng: tảng đá với các đốm quặng theo màu loại mỏ
-			var ore := Color(0.82, 0.48, 0.3, 1.0) if node_type == "iron" else Color(1.0, 0.82, 0.25, 1.0)
-			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_ROCK)
-			draw_rect(Rect2(-8, -14, 3, 3), ore)
-			draw_rect(Rect2(2, -16, 3, 2), ore)
-			draw_rect(Rect2(-3, -9, 2, 2), ore)
-			draw_rect(Rect2(5, -8, 3, 3), ore)
+		"iron":
+			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_IRON)
+		"gold":
+			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_GOLD)
 		"herb":
 			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_HERB)
 			# Hoa vàng để phân biệt với bụi hoa trang trí cùng hình trên bản đồ

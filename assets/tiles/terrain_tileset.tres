@@ -1,6 +1,6 @@
-[gd_resource type="TileSet" format=3 uid="uid://dtnfglas2ebxu"]
+[gd_resource type="TileSet" format=3]
 
-[ext_resource type="Texture2D" uid="uid://6pisfobmtrkn" path="res://assets/tiles/terrain_tiles.png" id="1_fsnex"]
+[ext_resource type="Texture2D" path="res://assets/tiles/terrain_tiles.png" id="1_fsnex"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fsnex"]
 resource_name = "Tile Shiroi (tools/gen_world_art.gd)"
@@ -331,6 +331,8 @@ texture = ExtResource("1_fsnex")
 11:13/0/custom_data_0 = -1
 11:14/0 = 0
 11:14/0/custom_data_0 = -1
+11:15/0 = 0
+11:15/0/custom_data_0 = -1
 12:11/0 = 0
 12:11/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 12:11/0/custom_data_0 = 9
@@ -391,6 +393,10 @@ texture = ExtResource("1_fsnex")
 4:16/0 = 0
 4:16/0/texture_origin = Vector2i(0, 8)
 4:16/0/custom_data_0 = -1
+6:16/size_in_atlas = Vector2i(2, 2)
+6:16/0 = 0
+6:16/0/texture_origin = Vector2i(0, 8)
+6:16/0/custom_data_0 = -1
 0:18/0 = 0
 0:18/0/custom_data_0 = -1
 0:19/0 = 0
@@ -481,6 +487,8 @@ texture = ExtResource("1_fsnex")
 9:26/0 = 0
 9:26/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 9:26/0/custom_data_0 = 10
+10:18/0 = 0
+10:18/0/custom_data_0 = -1
 10:19/0 = 0
 10:19/0/custom_data_0 = -1
 10:20/0 = 0
@@ -515,6 +523,8 @@ texture = ExtResource("1_fsnex")
 13:26/0 = 0
 13:26/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 13:26/0/custom_data_0 = 10
+14:18/0 = 0
+14:18/0/custom_data_0 = -1
 14:19/0 = 0
 14:19/0/custom_data_0 = -1
 14:20/0 = 0
@@ -522,6 +532,8 @@ texture = ExtResource("1_fsnex")
 14:26/0 = 0
 14:26/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 14:26/0/custom_data_0 = 10
+15:18/0 = 0
+15:18/0/custom_data_0 = -1
 15:19/0 = 0
 15:19/0/custom_data_0 = -1
 15:20/0 = 0
@@ -557,6 +569,9 @@ texture = ExtResource("1_fsnex")
 2:24/0 = 0
 2:24/0/texture_origin = Vector2i(0, 8)
 2:24/0/custom_data_0 = -1
+5:24/size_in_atlas = Vector2i(2, 1)
+5:24/0 = 0
+5:24/0/custom_data_0 = -1
 0:27/0 = 0
 0:27/0/custom_data_0 = -1
 1:27/0 = 0
@@ -564,32 +579,14 @@ texture = ExtResource("1_fsnex")
 2:27/0 = 0
 2:27/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
 2:27/0/custom_data_0 = 11
+4:24/0 = 0
+4:24/0/custom_data_0 = -1
 7:24/0 = 0
 7:24/0/custom_data_0 = -1
 8:24/0 = 0
 8:24/0/custom_data_0 = -1
 9:24/0 = 0
 9:24/0/custom_data_0 = -1
-14:18/0 = 0
-14:18/0/custom_data_0 = -1
-8:16/0 = 0
-8:17/0 = 0
-10:24/0 = 0
-6:16/size_in_atlas = Vector2i(2, 2)
-6:16/0 = 0
-6:16/0/texture_origin = Vector2i(0, 8)
-6:16/0/custom_data_0 = -1
-10:18/0 = 0
-10:18/0/custom_data_0 = -1
-11:15/0 = 0
-11:15/0/custom_data_0 = -1
-4:24/0 = 0
-4:24/0/custom_data_0 = -1
-5:24/size_in_atlas = Vector2i(2, 1)
-5:24/0 = 0
-5:24/0/custom_data_0 = -1
-15:18/0 = 0
-15:18/0/custom_data_0 = -1
 
 [resource]
 physics_layer_0/collision_layer = 1
