@@ -1,6 +1,6 @@
 extends SceneTree
 
-# Bản đồ tile: dữ liệu nền, va chạm, lối đi nam bắc, cổng khóa theo nhiệm vụ, save/load.
+# Bản đồ Rừng Nguyệt Ảnh: nền, sông và cầu, hồ, vòng vách Tàn Tích, cổng khóa theo nhiệm vụ, save/load.
 const TEST_SLOT := 92
 
 var _passed := 0
@@ -27,22 +27,45 @@ func _run() -> void:
 	navigation.call("refresh_navigation")
 	var layer: TileMapLayer = terrain.get_node("Ground")
 
-	# Nền.
+	# Nền: Rừng Nguyệt Ảnh là rừng, không còn đầm lầy hay đồi cát.
 	_check(layer.get_used_cells().size() == 160 * 90, "Tile phủ kín bản đồ 160x90 ô")
-	_check(terrain.get_ground_at(Vector2(900, 600)) == terrain.Ground.DIRT, "Căn cứ nền đất")
+	_check(terrain.get_ground_at(Vector2(944, 640)) == terrain.Ground.DIRT, "Trại là khoảng trống đất")
 	_check(terrain.get_ground_at(Vector2(1500, 200)) == terrain.Ground.FOREST, "Khu Rừng nền rừng")
-	_check(terrain.get_ground_at(Vector2(2200, 500)) == terrain.Ground.GOLD, "Mỏ Vàng nền vàng")
-	_check(terrain.get_ground_at(Vector2(400, 900)) == terrain.Ground.MUD, "Đầm Lầy nền bùn")
-	_check(terrain.get_ground_at(Vector2(1200, 900)) == terrain.Ground.SAND, "Đồi Cát nền cát")
+	_check(terrain.get_ground_at(Vector2(2200, 520)) == terrain.Ground.GOLD, "Mỏ Vàng là bãi đá lộ quặng vàng")
 	_check(terrain.get_ground_at(Vector2(2100, 900)) == terrain.Ground.RUIN, "Tàn Tích nền đá cổ")
 	_check(terrain.get_ground_at(Vector2(-5, 10)) == -1, "Ngoài bản đồ không có nền")
-	# Bản đồ vẽ tay: nằm trong scene riêng, tileset lưu thành file để sửa trong editor.
-	_check(terrain.scene_file_path == "res://scenes/world_map.tscn", "Bản đồ nạp từ scene vẽ tay world_map.tscn")
+	_check(terrain.get_ground_at(Vector2(24, 24)) == terrain.Ground.VOID and not terrain.is_in_play_area(Vector2(24, 24)), "Góc khung bản đồ nằm ngoài vùng chơi bầu dục, bị chặn")
+	_check(terrain.is_in_play_area(Vector2(1280, 720)) and terrain.is_in_play_area(Vector2(944, 600)), "Trại nằm trong vùng chơi")
+	var outside_nodes := 0
+	for node in get_nodes_in_group("resource_nodes") + get_nodes_in_group("enemies"):
+		if terrain.play_shape_value((node as Node2D).global_position) > 0.85:
+			outside_nodes += 1
+	_check(outside_nodes == 0, "Không tài nguyên hay quái nào nằm sát hoặc ngoài mép mây")
+	var kinds := {}
+	for cell in layer.get_used_cells():
+		kinds[int(layer.get_cell_tile_data(cell).get_custom_data("ground"))] = true
+	_check(not kinds.has(terrain.Ground.MUD) and not kinds.has(terrain.Ground.SAND), "Không còn đầm lầy và đồi cát")
+	var forest_cells := 0
+	for cell in layer.get_used_cells():
+		if int(layer.get_cell_tile_data(cell).get_custom_data("ground")) == terrain.Ground.FOREST:
+			forest_cells += 1
+	_check(forest_cells > 160 * 90 / 4, "Rừng phủ phần lớn bản đồ")
+	# Bản đồ nằm trong scene riêng, tileset lưu thành file để sửa trong editor.
+	_check(terrain.scene_file_path == "res://scenes/world_map.tscn", "Bản đồ nạp từ scene world_map.tscn")
 	_check(layer.tile_set.resource_path == "res://assets/tiles/terrain_tileset.tres", "Tileset là file riêng, sửa được trong editor")
 	var obstacles: TileMapLayer = terrain.get_node("Obstacles")
 	_check(terrain.has_node("Decoration") and obstacles.get_used_cells().size() > 0, "Có lớp Vật cản và lớp Trang trí")
-	_check(terrain.get_ground_at(Vector2(260, 1040)) == terrain.Ground.WATER, "Nước nằm ở lớp Vật cản, đè lên nền")
-	_check(layer.get_cell_tile_data(Vector2i(10, 10)).get_custom_data("ground") == terrain.Ground.GRASS, "Tile mang loại nền trong custom data")
+	_check(terrain.get_ground_at(Vector2(380, 1080)) == terrain.Ground.WATER, "Hồ nước nằm ở lớp Vật cản")
+	_check(layer.get_cell_tile_data(Vector2i(40, 21)).get_custom_data("ground") == terrain.Ground.GRASS, "Tile mang loại nền trong custom data")
+	# Không còn bức vách thẳng chia đôi bản đồ.
+	var long_wall := false
+	for y in 90:
+		var run := 0
+		for x in 160:
+			run = run + 1 if int(terrain.get_ground_at(Vector2(x, y) * 16.0 + Vector2(8, 8))) == terrain.Ground.CLIFF else 0
+			if run >= 60:
+				long_wall = true
+	_check(not long_wall, "Không có bức vách thẳng dài chia cắt rừng")
 
 	# Tài nguyên không nằm trên ô chặn.
 	var blocked_nodes := 0
@@ -56,28 +79,23 @@ func _run() -> void:
 			far_count += 1
 	_check(far_count == 11, "Vùng phía nam có 11 điểm tài nguyên")
 
-	# Va chạm và lối đi.
-	player.global_position = Vector2(150, 700)
+	# Sông chặn đường, chỉ qua được ở cầu.
+	player.global_position = Vector2(1240, 400)
 	player.velocity = Vector2.ZERO
 	await physics_frame
-	var blocked := player.test_move(player.global_transform, Vector2(0, 80))
-	_check(blocked, "Vách đá chặn người chơi")
-	var to_swamp: PackedVector2Array = navigation.call("get_world_path", Vector2(900, 600), Vector2(400, 900))
-	_check(not to_swamp.is_empty() and _passes_through(to_swamp, 384.0, 480.0), "Tới Đầm Lầy đi qua đúng lối mở")
-	var to_dunes: PackedVector2Array = navigation.call("get_world_path", Vector2(900, 600), Vector2(1200, 900))
-	_check(not to_dunes.is_empty() and _passes_through(to_dunes, 1240.0, 1336.0), "Tới Đồi Cát đi qua đúng lối mở")
-	var water_path: PackedVector2Array = navigation.call("get_world_path", Vector2(150, 1050), Vector2(420, 1050))
-	var crosses_water := false
-	for point in water_path:
-		if int(terrain.get_ground_at(point)) == terrain.Ground.WATER:
-			crosses_water = true
-	_check(not water_path.is_empty() and not crosses_water, "Đường đi tránh nước")
+	_check(player.test_move(player.global_transform, Vector2(120, 0)), "Sông chặn người chơi")
+	var to_iron: PackedVector2Array = navigation.call("get_world_path", Vector2(944, 640), Vector2(1600, 560))
+	_check(not to_iron.is_empty() and not _crosses_water(terrain, to_iron), "Từ Trại tới Mỏ Sắt đi qua cầu, không lội nước")
+	var to_south: PackedVector2Array = navigation.call("get_world_path", Vector2(944, 640), Vector2(700, 1180))
+	_check(not to_south.is_empty() and not _crosses_water(terrain, to_south), "Từ Trại xuống rừng phía nam qua cầu")
+	var water_path: PackedVector2Array = navigation.call("get_world_path", Vector2(200, 1200), Vector2(560, 1200))
+	_check(not water_path.is_empty() and not _crosses_water(terrain, water_path), "Đường đi vòng tránh hồ")
 
 	# Cổng Tàn Tích.
 	_check(not gate.is_open and not bool(world.is_region_unlocked(&"ruins")), "Cổng Tàn Tích ban đầu đóng")
 	_check((navigation.call("get_world_path", Vector2(2128, 650), Vector2(2100, 900)) as PackedVector2Array).is_empty(), "Cổng đóng thì không có đường vào Tàn Tích")
-	var from_dunes: PackedVector2Array = navigation.call("get_world_path", Vector2(1500, 900), Vector2(2100, 900))
-	_check(from_dunes.is_empty(), "Vách đá chặn lối từ Đồi Cát sang Tàn Tích")
+	var from_outside: PackedVector2Array = navigation.call("get_world_path", Vector2(1500, 900), Vector2(2100, 900))
+	_check(from_outside.is_empty(), "Vòng vách đá quanh Tàn Tích chặn mọi lối trừ cổng")
 	_check(await _save(save_manager), "Lưu khi cổng còn đóng")
 	world.unlock_region(&"ruins")
 	await _wait_frames(6)
@@ -97,12 +115,6 @@ func _run() -> void:
 
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(_slot_path()))
 	_finish()
-
-func _passes_through(path: PackedVector2Array, min_x: float, max_x: float) -> bool:
-	for point in path:
-		if point.y >= 720.0 and point.y <= 752.0:
-			return point.x >= min_x and point.x <= max_x
-	return false
 
 func _wait_frames(count: int) -> void:
 	for _i in count:
@@ -131,3 +143,9 @@ func _check(ok: bool, description: String) -> void:
 func _finish() -> void:
 	print("Map terrain checks: %d/%d passed" % [_passed, _total])
 	quit(0 if _passed == _total else 1)
+
+func _crosses_water(terrain: Node, path: PackedVector2Array) -> bool:
+	for point in path:
+		if int(terrain.get_ground_at(point)) == terrain.Ground.WATER:
+			return true
+	return false

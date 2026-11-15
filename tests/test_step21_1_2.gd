@@ -83,10 +83,11 @@ func _run() -> void:
 	wall.collision_mask = 0
 	var wall_shape := CollisionShape2D.new()
 	var wall_rectangle := RectangleShape2D.new()
-	wall_rectangle.size = Vector2(16, 176)
+	var npc_area: Rect2 = npc_manager.call("get_base_rect")
+	wall_rectangle.size = Vector2(16, npc_area.size.y + 32.0)
 	wall_shape.shape = wall_rectangle
 	wall.add_child(wall_shape)
-	wall.position = Vector2(944, 600)
+	wall.position = Vector2(944, npc_area.get_center().y)
 	scene.get_node("Environment").add_child(wall)
 	await physics_frame
 	npc_manager.call("refresh_navigation")

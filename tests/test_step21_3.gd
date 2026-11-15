@@ -41,13 +41,16 @@ func _run() -> void:
 	_check(is_equal_approx(float(rock.call("get_respawn_duration")), 90.0), "Đá hồi sau 90 giây")
 	_check(is_equal_approx(float(herb.call("get_respawn_duration")), 45.0), "Thảo dược hồi sau 45 giây")
 
+	# Tài nguyên ngoài Trại vẫn hồi sinh; trong Trại khai thác xong là hết.
+	var wild := _find_node(nodes, &"zone_tree_01")
+	_check(wild != null and not root.get_node("BaseManager").is_in_camp(wild.global_position), "Có cây ngoài Trại để thử hồi sinh")
 	var start := float(clock.call("get_time"))
-	tree.call("set_harvested", true, false)
-	var respawn_at := float(world_state.call("get_flag", &"respawn_at_hv_tree_01", -1.0))
+	wild.call("set_harvested", true, false)
+	var respawn_at := float(world_state.call("get_flag", &"respawn_at_zone_tree_01", -1.0))
 	_check(absf(respawn_at - (start + 60.0)) < 1.0, "Khai thác đặt mốc hồi sinh theo đồng hồ thế giới")
 	clock.call("advance", 30.0)
 	await process_frame
-	_check(bool(tree.get("is_harvested")), "Chưa đến giờ thì tài nguyên chưa hồi")
+	_check(bool(wild.get("is_harvested")), "Chưa đến giờ thì tài nguyên chưa hồi")
 
 	# F9 giữ nguyên mốc giờ: lưu khi còn ~30 giây, chơi tiếp đến khi hồi, rồi tải lại.
 	_check(await _save(save_manager), "Lưu game khi tài nguyên đang chờ hồi")
@@ -56,32 +59,32 @@ func _run() -> void:
 	clock.call("advance", 40.0)
 	await process_frame
 	await process_frame
-	_check(not bool(tree.get("is_harvested")), "Đến giờ thì tài nguyên hồi lại")
-	_check(float(world_state.call("get_flag", &"respawn_at_hv_tree_01", -1.0)) < 0.0 and world_state.call("get_flag", &"harvested_hv_tree_01") != true, "Hồi sinh xóa trạng thái đã cạn trong WorldState")
+	_check(not bool(wild.get("is_harvested")), "Đến giờ thì tài nguyên hồi lại")
+	_check(float(world_state.call("get_flag", &"respawn_at_zone_tree_01", -1.0)) < 0.0 and world_state.call("get_flag", &"harvested_zone_tree_01") != true, "Hồi sinh xóa trạng thái đã cạn trong WorldState")
 	_check(await _load(save_manager), "F9 tải lại bản lưu")
 	_check(absf(float(clock.call("get_time")) - saved_clock) < 1.0, "F9 khôi phục đồng hồ thế giới")
-	_check(bool(tree.get("is_harvested")), "F9 khôi phục tài nguyên về trạng thái đã cạn")
-	_check(is_equal_approx(float(world_state.call("get_flag", &"respawn_at_hv_tree_01", -1.0)), respawn_at), "F9 không đặt lại mốc hồi sinh")
+	_check(bool(wild.get("is_harvested")), "F9 khôi phục tài nguyên về trạng thái đã cạn")
+	_check(is_equal_approx(float(world_state.call("get_flag", &"respawn_at_zone_tree_01", -1.0)), respawn_at), "F9 không đặt lại mốc hồi sinh")
 	_check(nodes.get_child_count() == node_count, "F9 không tạo thêm node tài nguyên")
 	_check(await _load(save_manager), "Tải lại lần hai")
-	_check(is_equal_approx(float(world_state.call("get_flag", &"respawn_at_hv_tree_01", -1.0)), respawn_at) and nodes.get_child_count() == node_count, "Tải liên tiếp vẫn giữ nguyên dữ liệu")
+	_check(is_equal_approx(float(world_state.call("get_flag", &"respawn_at_zone_tree_01", -1.0)), respawn_at) and nodes.get_child_count() == node_count, "Tải liên tiếp vẫn giữ nguyên dữ liệu")
 	clock.call("advance", 40.0)
 	await process_frame
 	await process_frame
-	_check(not bool(tree.get("is_harvested")), "Sau F9 tài nguyên vẫn hồi theo giờ đã lưu")
+	_check(not bool(wild.get("is_harvested")), "Sau F9 tài nguyên vẫn hồi theo giờ đã lưu")
 
 	# Save cũ: không có world_clock và không có mốc hồi sinh.
-	tree.call("set_harvested", true, false)
+	wild.call("set_harvested", true, false)
 	_check(await _save(save_manager), "Lưu bản dùng để giả lập save cũ")
 	_check(_strip_to_old_save(), "Chuyển file thành dạng save cũ")
 	_check(await _load(save_manager), "Save cũ vẫn tải được")
 	_check(float(clock.call("get_time")) < 5.0, "Save cũ bắt đầu đồng hồ từ đầu")
-	var old_respawn := float(world_state.call("get_flag", &"respawn_at_hv_tree_01", -1.0))
-	_check(bool(tree.get("is_harvested")) and old_respawn > 0.0 and old_respawn <= float(clock.call("get_time")) + 60.5, "Tài nguyên đã cạn trong save cũ được đặt giờ hồi mới")
+	var old_respawn := float(world_state.call("get_flag", &"respawn_at_zone_tree_01", -1.0))
+	_check(bool(wild.get("is_harvested")) and old_respawn > 0.0 and old_respawn <= float(clock.call("get_time")) + 60.5, "Tài nguyên đã cạn trong save cũ được đặt giờ hồi mới")
 	clock.call("advance", 61.0)
 	await process_frame
 	await process_frame
-	_check(not bool(tree.get("is_harvested")), "Tài nguyên trong save cũ hồi được")
+	_check(not bool(wild.get("is_harvested")), "Tài nguyên trong save cũ hồi được")
 
 	# Vòng lặp NPC với kho thật có va chạm: khai thác, giao, chờ hồi, khai thác lại.
 	var storage := BaseBuilding.new()
@@ -99,21 +102,23 @@ func _run() -> void:
 			node.call("set_harvested", true, false)
 	var base_manager := root.get_node("BaseManager")
 	base_manager.call("unlock_base_for_debug")
-	_check(bool(rock.get("is_harvested")) and not bool(base_manager.call("can_place_at", &"storage", Vector2i(55, 41))), "Không được xây đè lên điểm tài nguyên đã cạn")
+	# Quy tắc dọn đất: tài nguyên đã cạn không còn chặn xây (xây lên thì nó mất hẳn, xem test_camp.gd).
+	_check(bool(rock.get("is_harvested")) and not str(base_manager.call("_get_placement_block_reason", &"storage", Vector2i(55, 41))).contains("tài nguyên"), "Tài nguyên đã cạn không chặn xây")
 	var npc: Node = npc_manager.call("get_npc")
 	if not npc:
 		_check(false, "NPC tồn tại để chạy vòng lặp")
 		_finish()
 		return
+	# NPC dân làng không còn tự đi khai thác (việc khai thác do trạm khai thác lo).
 	npc.set("move_speed", 180.0)
 	npc_manager.set_process(true)
-	await _wait_until(func() -> bool: return _stored(storage) == 3, 900)
-	_check(_stored(storage) == 3, "NPC khai thác và giao đúng 3 gỗ vào kho thật có va chạm")
-	_check(bool(tree.get("is_harvested")), "Tài nguyên đã cạn sau khi NPC khai thác")
-	_check(int(npc.call("cargo_used")) == 0, "Túi NPC trống sau khi giao")
+	await _wait_until(func() -> bool: return bool(tree.get("is_harvested")), 300)
+	_check(not bool(tree.get("is_harvested")) and _stored(storage) == 0, "NPC dân làng không tự đi khai thác")
+	tree.call("set_harvested", true, false)
 	clock.call("advance", 61.0)
-	await _wait_until(func() -> bool: return _stored(storage) == 6, 900)
-	_check(_stored(storage) == 6, "NPC tự khai thác lại sau khi tài nguyên hồi sinh")
+	await process_frame
+	await process_frame
+	_check(bool(tree.get("is_harvested")) and float(world_state.call("get_flag", &"respawn_at_hv_tree_01", -1.0)) < 0.0, "Tài nguyên trong Trại khai thác xong không hồi sinh")
 	_cleanup_slot()
 	_finish()
 
@@ -142,7 +147,7 @@ func _strip_to_old_save() -> bool:
 	if not data is Dictionary:
 		return false
 	data.erase("world_clock")
-	data["world_state"]["world_flags"].erase("respawn_at_hv_tree_01")
+	data["world_state"]["world_flags"].erase("respawn_at_zone_tree_01")
 	var out := FileAccess.open(_slot_path(), FileAccess.WRITE)
 	if not out:
 		return false

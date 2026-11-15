@@ -24,7 +24,21 @@ func _process(_delta: float) -> void:
 		return
 	var respawn_at := _get_respawn_at()
 	if respawn_at >= 0.0 and float(clock.call("get_time")) >= respawn_at:
-		set_harvested(false, false)
+		if _is_in_camp():
+			_stop_respawn() # Trại đã nở tới đây trong lúc chờ: không mọc lại nữa
+		else:
+			set_harvested(false, false)
+
+# Tài nguyên trong vòng Trại khai thác xong là hết, không hồi sinh.
+func _is_in_camp() -> bool:
+	var base := get_node_or_null("/root/BaseManager")
+	return base != null and bool(base.call("is_in_camp", global_position))
+
+func _stop_respawn() -> void:
+	var world_state = get_node_or_null("/root/WorldState")
+	if world_state:
+		world_state.set_flag(_respawn_flag_id(), -1.0)
+	set_process(false)
 
 func _ready() -> void:
 	set_process(false)
@@ -35,9 +49,12 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if prompt_label:
 		prompt_label.visible = false
 		prompt_label.text = _get_prompt_text()
+		if node_type == "tree":
+			prompt_label.position.y -= 16.0 # cây cao, đẩy chữ lên trên tán
 
 	# Kiểm tra xem tài nguyên này đã từng thu thập trước đó chưa (từ WorldState)
 	var world_state = get_node_or_null("/root/WorldState")
@@ -71,6 +88,9 @@ func _try_gather() -> void:
 	set_harvested(true, true)
 
 func set_harvested(harvested: bool, notify: bool = false) -> void:
+	# Chỗ đã bị công trình xây lên thì không bao giờ mọc lại (kể cả khi tải save).
+	if not harvested and is_cleared():
+		return
 	is_harvested = harvested
 	if is_harvested:
 		if prompt_label:
@@ -102,6 +122,9 @@ func set_harvested(harvested: bool, notify: bool = false) -> void:
 		var world_state = get_node_or_null("/root/WorldState")
 		if world_state and world_state.has_method("set_flag"):
 			world_state.set_flag(StringName("harvested_" + str(node_id)), true)
+			if notify:
+				# Người chơi tự tay thu thập lần đầu: tính vào % khám phá (exploration.gd).
+				world_state.set_flag(StringName("touched_" + str(node_id)), true)
 
 		_schedule_respawn_if_needed()
 
@@ -135,7 +158,29 @@ func _get_respawn_at() -> float:
 		return -1.0
 	return float(world_state.get_flag(_respawn_flag_id(), -1.0))
 
+func _cleared_flag_id() -> StringName:
+	return StringName("cleared_" + str(node_id))
+
+func is_cleared() -> bool:
+	var world_state = get_node_or_null("/root/WorldState")
+	return world_state != null and world_state.get_flag(_cleared_flag_id(), false) == true
+
+# Công trình xây lên chỗ tài nguyên đã khai thác: dọn đất, tài nguyên mất hẳn.
+func clear_for_building() -> void:
+	var world_state = get_node_or_null("/root/WorldState")
+	if world_state:
+		world_state.set_flag(_cleared_flag_id(), true)
+		world_state.set_flag(_respawn_flag_id(), -1.0)
+	if not is_harvested:
+		set_harvested(true, false)
+	set_process(false)
+	_kill_fade()
+	visible = false
+
 func _schedule_respawn_if_needed() -> void:
+	if is_cleared() or _is_in_camp():
+		_stop_respawn()
+		return
 	var clock := get_node_or_null("/root/WorldClock")
 	var world_state = get_node_or_null("/root/WorldState")
 	if not clock or not world_state:
@@ -204,43 +249,28 @@ func _get_prompt_text() -> String:
 			item_name = def.name
 	return "[F] Thu thập %s (x%d)" % [item_name, yield_amount]
 
+# Hình lấy từ bộ tile pixel của bản đồ (tools/gen_world_art.gd) cho hợp với cây, đá trang trí.
+const ART: Texture2D = preload("res://assets/tiles/terrain_tiles.png")
+const ART_TREE := Rect2(0, 21 * 16, 48, 48) # sồi to 3x3 ô
+const ART_ROCK := Rect2(0, 24 * 16, 32, 32) # tảng đá 2x2 ô
+const ART_HERB := Rect2(32, 24 * 16, 32, 32) # bụi hoa 2x2 ô
+
 func _draw() -> void:
-	# Vẽ tài nguyên Pixel Art tự nhiên
 	match node_type:
 		"tree":
-			# Bóng gốc cây
-			draw_circle(Vector2(0, 4), 10.0, Color(0.0, 0.0, 0.0, 0.25))
-			# Thân cây
-			draw_rect(Rect2(-4, -12, 8, 16), Color(0.35, 0.22, 0.14, 1.0))
-			draw_rect(Rect2(-3, -10, 6, 12), Color(0.48, 0.32, 0.2, 1.0))
-			# Tán lá
-			draw_circle(Vector2(0, -18), 14.0, Color(0.18, 0.45, 0.25, 1.0))
-			draw_circle(Vector2(-4, -20), 10.0, Color(0.24, 0.58, 0.32, 1.0))
-			draw_circle(Vector2(4, -18), 11.0, Color(0.2, 0.52, 0.28, 1.0))
-			draw_circle(Vector2(0, -22), 8.0, Color(0.32, 0.68, 0.38, 1.0))
+			draw_texture_rect_region(ART, Rect2(-24, -42, 48, 48), ART_TREE)
 		"rock":
-			# Bóng tảng đá
-			draw_circle(Vector2(0, 3), 11.0, Color(0.0, 0.0, 0.0, 0.25))
-			# Khối đá xám
-			draw_rect(Rect2(-10, -8, 20, 12), Color(0.3, 0.35, 0.42, 1.0))
-			draw_rect(Rect2(-8, -12, 16, 14), Color(0.42, 0.48, 0.56, 1.0))
-			draw_rect(Rect2(-5, -14, 10, 8), Color(0.55, 0.62, 0.72, 1.0))
-			draw_line(Vector2(-6, -6), Vector2(4, -8), Color(0.25, 0.28, 0.35, 1.0), 1.0)
+			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_ROCK)
 		"iron", "gold":
-			# Mỏ quặng: khối đá với các đốm quặng theo màu loại mỏ
+			# Mỏ quặng: tảng đá với các đốm quặng theo màu loại mỏ
 			var ore := Color(0.82, 0.48, 0.3, 1.0) if node_type == "iron" else Color(1.0, 0.82, 0.25, 1.0)
-			draw_circle(Vector2(0, 3), 11.0, Color(0.0, 0.0, 0.0, 0.25))
-			draw_rect(Rect2(-10, -8, 20, 12), Color(0.24, 0.24, 0.28, 1.0))
-			draw_rect(Rect2(-8, -12, 16, 14), Color(0.34, 0.34, 0.4, 1.0))
-			draw_rect(Rect2(-6, -10, 4, 4), ore)
-			draw_rect(Rect2(2, -8, 4, 3), ore)
-			draw_rect(Rect2(-3, -4, 3, 3), ore)
-			draw_rect(Rect2(4, -2, 3, 3), ore)
+			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_ROCK)
+			draw_rect(Rect2(-8, -14, 3, 3), ore)
+			draw_rect(Rect2(2, -16, 3, 2), ore)
+			draw_rect(Rect2(-3, -9, 2, 2), ore)
+			draw_rect(Rect2(5, -8, 3, 3), ore)
 		"herb":
-			# Bụi thảo dược nhỏ phát sáng
-			draw_circle(Vector2(0, 2), 7.0, Color(0.0, 0.0, 0.0, 0.2))
-			draw_circle(Vector2(-3, -4), 5.0, Color(0.2, 0.6, 0.3, 1.0))
-			draw_circle(Vector2(3, -4), 5.0, Color(0.25, 0.68, 0.35, 1.0))
-			draw_circle(Vector2(0, -7), 5.0, Color(0.35, 0.8, 0.45, 1.0))
-			# Hoa thảo dược vàng/trắng
-			draw_circle(Vector2(0, -6), 2.0, Color(1.0, 0.95, 0.5, 1.0))
+			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_HERB)
+			# Hoa vàng để phân biệt với bụi hoa trang trí cùng hình trên bản đồ
+			for p in [Vector2(-6, -14), Vector2(4, -17), Vector2(1, -9)]:
+				draw_rect(Rect2(p, Vector2(2, 2)), Color(1.0, 0.9, 0.35, 1.0))

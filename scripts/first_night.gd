@@ -22,7 +22,7 @@ const FANG_ID: StringName = &"wolf_fang"
 const ENEMY_SCENE: PackedScene = preload("res://slime.tscn")
 const DUMMY_SCRIPT: Script = preload("res://scripts/training_dummy.gd")
 const NIGHT_COLOR := Color(0.06, 0.07, 0.13)
-const DUSK_COLOR := Color(0.85, 0.66, 0.6)
+const DUSK_COLOR := Color(0.95, 0.85, 0.8)
 const LIGHT_RADIUS: float = 150.0
 const SYSTEM_COLOR := Color(0.45, 0.95, 0.85)
 const MAP_MIN := Vector2(48, 48)
@@ -195,7 +195,7 @@ func _cap_r_cooldown(cap: float) -> void:
 func _ensure_dummy() -> void:
 	if is_instance_valid(_dummy):
 		return
-	_dummy = StaticBody2D.new()
+	_dummy = CharacterBody2D.new()
 	_dummy.set_script(DUMMY_SCRIPT)
 	_dummy.name = "TrainingDummy"
 	_dummy.position = (_player.global_position + DUMMY_OFFSET).clamp(MAP_MIN, MAP_MAX)
@@ -407,9 +407,11 @@ func _on_load_completed(_slot_id: int, success: bool, _message: String) -> void:
 		_begin_night(Stage.READY if stage >= Stage.READY else Stage.MOVE)
 
 # --- Dòng hướng dẫn ---
+# Khung gọn dưới bản đồ nhỏ: một dòng bước, một-hai dòng phím cần bấm.
 
-const METHOD_NAMES: Dictionary = {"Sword": "đòn chém (chuột trái)", "E": "kỹ năng E", "R": "kỹ năng R"}
+const METHOD_NAMES: Dictionary = {"Sword": "chuột trái", "E": "E", "R": "R"}
 const STEP_COUNT: int = 7
+const PANEL_WIDTH: float = 200.0
 
 func _update_hint() -> void:
 	if not is_instance_valid(_hint_label):
@@ -421,38 +423,36 @@ func _update_hint() -> void:
 		Stage.MOVE:
 			step = 1
 			heading = "Di chuyển"
-			text = "WASD: đi lại.\n[%s] Giữ chuột phải trong lúc đi: chạy nhanh.\n[%s] Nhấn Space: lướt nhanh một đoạn để né đòn." % ["x" if _sprint_time >= 0.4 else " ", "x" if _dodged else " "]
+			text = "WASD: đi lại\n[%s] Giữ chuột phải: chạy\n[%s] Space: lướt né" % ["x" if _sprint_time >= 0.4 else " ", "x" if _dodged else " "]
 		Stage.SWORD:
 			step = 2
 			heading = "Đánh thường"
-			text = "Cọc gỗ để tập đã dựng trước mặt. Đòn chém đánh về phía con trỏ chuột.\nNhấn chuột trái chém trúng cọc 3 lần (%d/3)." % _hits
+			text = "Chuột trái: chém về phía con trỏ.\nChém trúng cọc gỗ (%d/3)" % _hits
 		Stage.SKILL_E:
 			step = 3
 			heading = "Kỹ năng E"
-			text = "E bắn lưỡi gió bay thẳng về phía con trỏ, xuyên qua mọi con trên đường; hồi chiêu 5 giây.\nNhắm con trỏ vào cọc rồi nhấn E (%d/1)." % _hits
+			text = "E: lưỡi gió bay xuyên tới con trỏ.\nBắn trúng cọc (%d/1)" % _hits
 		Stage.SKILL_R:
 			step = 4
 			heading = "Kỹ năng R"
-			text = "R tạo lốc xoáy tại con trỏ, hút quái xung quanh vào giữa. R tốn đầy thanh năng lượng (lần này được nạp sẵn).\nĐặt con trỏ lên cọc rồi nhấn R (%d/1)." % _hits
+			text = "R: lốc xoáy hút quái tại con trỏ.\nĐặt trỏ lên cọc rồi nhấn R (%d/1)" % _hits
 		Stage.READY:
 			step = 5
 			heading = "Sẵn sàng"
-			text = "Đã tập xong. Trời sắp tối hẳn, bầy sói sẽ kéo đến.\nMuốn tập thêm thì cứ đánh cọc. Sẵn sàng thì nhấn Enter."
+			text = "Đánh cọc thêm tùy ý.\nEnter: vào đêm, bầy sói kéo đến"
 		Stage.PACK:
 			step = 6
 			heading = "Bầy sói"
-			text = "Bầy sói kéo đến. Sói Đầu Đàn to và đánh đau hơn: giữ khoảng cách, lướt né khi nó áp sát.\nHạ 3 sói và Sói Đầu Đàn (%d/4)." % (_pack.size() - get_pack().size())
+			text = "Hạ cả bầy (%d/4). Đầu Đàn đánh đau: lướt né." % (_pack.size() - get_pack().size())
 			if _fang_hint_shown:
-				text += "\nCó đồ rơi: đứng gần và nhấn F để nhặt."
+				text += "\nF: nhặt đồ rơi"
 		Stage.LOOT:
 			step = 7
 			heading = "Nhặt đồ"
-			text = "Sói rơi răng nanh. Đứng gần món đồ và nhấn F để nhặt vào túi (B để xem túi)."
+			text = "Đứng gần răng nanh, F: nhặt\nB: xem túi"
 	if not _wrong_method.is_empty() and HIT_GOALS.has(stage):
-		text += "\nLần vừa rồi là %s, bước này cần %s." % [METHOD_NAMES.get(_wrong_method, _wrong_method), METHOD_NAMES[HIT_GOALS[stage][0]]]
-	_title_label.text = "[HỆ THỐNG] Chuẩn bị trước màn đêm." if is_practicing() else "[HỆ THỐNG] Sống sót đến sáng."
-	if step > 0:
-		_title_label.text += "   Bước %d/%d: %s" % [step, STEP_COUNT, heading]
+		text += "\nSai chiêu, bước này cần %s." % METHOD_NAMES[HIT_GOALS[stage][0]]
+	_title_label.text = "Bước %d/%d · %s" % [step, STEP_COUNT, heading] if step > 0 else "[HỆ THỐNG]"
 	_hint_label.text = text
 
 func _show_message(text: String, seconds: float) -> void:
@@ -476,31 +476,31 @@ func _build_ui() -> void:
 	var panel := PanelContainer.new()
 	# Góc trên bên phải, dưới bản đồ nhỏ, tránh thanh máu và năng lượng bên trái.
 	panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	panel.position = Vector2(-446, 88)
-	panel.custom_minimum_size = Vector2(440, 0)
+	panel.position = Vector2(-PANEL_WIDTH - 6.0, 112)
+	panel.custom_minimum_size = Vector2(PANEL_WIDTH, 0)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.03, 0.04, 0.08, 0.82)
 	style.border_color = Color(SYSTEM_COLOR, 0.6)
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(4)
-	style.set_content_margin_all(6)
+	style.set_content_margin_all(5)
 	panel.add_theme_stylebox_override("panel", style)
 	_ui.add_child(panel)
 	var box := VBoxContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_theme_constant_override("separation", 3)
 	panel.add_child(box)
-	_title_label = _make_label(SYSTEM_COLOR, 11)
-	_hint_label = _make_label(Color(0.95, 0.96, 1.0), 10)
+	_title_label = _make_label(SYSTEM_COLOR, 10)
+	_hint_label = _make_label(Color(0.95, 0.96, 1.0), 9)
 	box.add_child(_title_label)
 	box.add_child(_hint_label)
 
 func _make_label(color: Color, font_size: int) -> Label:
 	var label := Label.new()
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.custom_minimum_size = Vector2(428, 0)
+	label.custom_minimum_size = Vector2(PANEL_WIDTH - 10.0, 0)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)

@@ -47,7 +47,7 @@ func _run() -> void:
 	_check(night.is_dusk() and scene.get_node_or_null("NightModulate") != null and player.get_node_or_null("NightLight") == null, "Lúc tập trời chạng vạng, chưa cần đèn")
 	_check(not slime.is_in_group("enemies") and not slime.visible and not boss.visible, "Slime và Thủ Lĩnh Slime chưa xuất hiện")
 	_check(night.stage == night.Stage.MOVE and get_nodes_in_group("first_night_wolves").is_empty(), "Tập di chuyển chưa có sói hay cọc")
-	_check(str(night.get("_title_label").text).contains("Bước 1/7") and str(night.get("_title_label").text).contains("Chuẩn bị"), "Hướng dẫn ghi số bước, đang chuẩn bị")
+	_check(str(night.get("_title_label").text).contains("Bước 1/7") and (night.get("_ui").get_child(0) as Control).custom_minimum_size.x <= 220.0, "Hướng dẫn ghi số bước, khung gọn")
 	var hint: Label = night.get("_hint_label")
 	_check(hint.text.contains("Space") and hint.text.contains("chuột phải"), "Hướng dẫn lướt và chạy")
 
@@ -69,13 +69,24 @@ func _run() -> void:
 
 	# Đánh sai chiêu thì báo, không tính.
 	await _hit_dummy(night, skill, "E", 1)
-	_check(night.get_hit_count() == 0 and hint.text.contains("bước này cần đòn chém"), "Đánh cọc sai chiêu thì báo chiêu đúng")
+	_check(night.get_hit_count() == 0 and hint.text.contains("bước này cần chuột trái"), "Đánh cọc sai chiêu thì báo chiêu đúng")
 	await _hit_dummy(night, skill, "Sword", 2)
 	_check(night.stage == night.Stage.SWORD and hint.text.contains("2/3"), "Chém đếm từng lần trúng")
 	await _hit_dummy(night, skill, "Sword", 1)
 	_check(night.stage == night.Stage.SKILL_E and night.get_dummy() == dummy, "Chém trúng 3 lần thì sang E, vẫn cọc cũ")
 	_check(not bool(dummy.get("is_dead")), "Cọc không gãy")
-	await _hit_dummy(night, skill, "E", 1)
+	# Bắn lưỡi gió thật (va chạm vật lý) vào cọc, nối như try_cast_e().
+	var blade: Node2D = (skill.get("wind_blade_scene") as PackedScene).instantiate()
+	blade.hit_enemy.connect(Callable(skill, "_on_e_hit_enemy"))
+	scene.add_child(blade)
+	blade.setup(dummy.global_position - Vector2(50, 0), Vector2.RIGHT)
+	for _i in 30:
+		await physics_frame
+		if night.stage != night.Stage.SKILL_E:
+			break
+	_check(night.stage == night.Stage.SKILL_R, "Lưỡi gió E bắn thật trúng cọc, không bị coi là tường")
+	if night.stage == night.Stage.SKILL_E:
+		await _hit_dummy(night, skill, "E", 1)
 	_check(night.stage == night.Stage.SKILL_R and float(skill.get("current_energy")) >= float(skill.get("r_energy_cost")), "E trúng thì sang R, được nạp năng lượng")
 
 	# Lưu giữa lúc tập: cọc không vào save, tải lại thì tập lại từ đầu.
@@ -107,7 +118,7 @@ func _run() -> void:
 	await physics_frame
 	_check(night.stage == night.Stage.PACK and night.get_pack().size() == 4, "Nhấn Enter thì bầy 3 sói và Sói Đầu Đàn kéo đến")
 	_check(night.is_dark() and player.get_node_or_null("NightLight") != null, "Trời tối hẳn, chỉ sáng quanh nhân vật")
-	_check(str(night.get("_title_label").text).contains("Sống sót đến sáng") and str(night.get("_title_label").text).contains("Bước 6/7"), "Hướng dẫn chuyển sang sống sót")
+	_check(str(night.get("_title_label").text).contains("Bước 6/7 · Bầy sói"), "Hướng dẫn chuyển sang sống sót")
 	await process_frame
 	_check(night.get_dummy() == null and get_nodes_in_group("first_night_wolves").size() == 4, "Cọc gỗ được dọn khi vào đêm")
 	var all_in_light := true

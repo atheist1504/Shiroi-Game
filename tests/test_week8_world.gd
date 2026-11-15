@@ -54,7 +54,7 @@ func _run() -> void:
 			counts[node.get("resource_id")] = int(counts.get(node.get("resource_id"), 0)) + 1
 	_check(counts.get(&"wood") == 6 and counts.get(&"herb") == 3 and counts.get(&"stone") == 6, "Khu rừng và mỏ đá đủ điểm tài nguyên")
 	_check(counts.get(&"iron_ore") == 6 and counts.get(&"gold_ore") == 5, "Mỏ sắt và mỏ vàng đủ điểm tài nguyên")
-	_check(scene.get_node("Environment/Zones").get_child_count() == 8, "Có đủ các khu trên bản đồ (4 khu khai thác, 3 vùng phía nam, căn cứ)")
+	_check(scene.get_node("Environment/Zones").get_child_count() == 6, "Có đủ các khu trên bản đồ (4 khu khai thác, Tàn Tích, Trại)")
 	_check(inventory.get_item_def(&"iron_ore") != null and inventory.get_item_def(&"gold_ore") != null, "Có vật phẩm quặng sắt và quặng vàng")
 	var far_path: PackedVector2Array = npc_manager.call("get_world_path", Vector2(704, 600), Vector2(2240, 500))
 	_check(not far_path.is_empty() and far_path[far_path.size() - 1].distance_to(Vector2(2240, 500)) < 24.0, "Có đường từ căn cứ tới mỏ vàng")
@@ -83,43 +83,95 @@ func _run() -> void:
 	workers.sync_workers()
 	_check(workers.get_worker_body(MINER) == first_body, "Đồng bộ lại không tạo thợ trùng")
 
-	# Chọn việc đúng nghề.
-	var expected := {BLACKSMITH: [&"iron_ore"], ALCHEMIST: [&"herb"], LUMBERJACK: [&"wood"], MINER: [&"stone", &"gold_ore"]}
-	for character_id in expected:
-		var worker = workers.get("_workers")[character_id]
-		_check(workers.call("_assign_gather", worker) and worker.task_node.get("resource_id") in expected[character_id], "Thợ %s chọn đúng tài nguyên" % str(character_id))
-		workers.call("_cancel_task", worker, "test")
-	_check(workers.call("_assign_gather", workers.get("_workers")[GUARD]) == false, "Lính canh không đi khai thác")
+	# Thợ không còn tự đi khai thác: chưa có trạm hợp nghề thì đứng chờ.
+	for character_id in [BLACKSMITH, ALCHEMIST, LUMBERJACK, MINER, GUARD]:
+		_check(workers.call("_assign_station", workers.get("_workers")[character_id]) == false, "Chưa có trạm thì thợ %s không đi khai thác" % str(character_id))
 
-	# Khai thác và giao hàng thật qua _process.
+	# Trạm khai thác: đặt trong khu đã khám phá, ngoài Trại.
 	base_manager.unlock_base_for_debug()
-	inventory.add_item(&"wooden_plank", 4)
-	inventory.add_item(&"processed_stone", 2)
+	inventory.add_item(&"wooden_plank", 20)
+	inventory.add_item(&"processed_stone", 10)
+	var world_flags := root.get_node("WorldState")
+	var iron_zone: Node2D = scene.get_node("Environment/Zones/IronMineZone")
+	var iron_grid := _find_free_grid(base_manager, &"iron_mine", iron_zone)
+	_check(base_manager._get_placement_block_reason(&"iron_mine", iron_grid).begins_with("Cần khám phá"), "Chưa khám phá Mỏ Sắt thì chưa xây được mỏ sắt")
+	world_flags.discover_region(&"zone_iron_mine")
+	iron_grid = _find_free_grid(base_manager, &"iron_mine", iron_zone)
+	world_flags.discover_region(&"zone_forest")
+	_check(base_manager._get_placement_block_reason(&"lumber_camp", iron_grid).contains("phải đặt trong"), "Trại gỗ không đặt được trong Mỏ Sắt")
 	base_manager.set("is_build_mode", true)
-	_check(base_manager.place_building(&"storage", Vector2i(52, 35)), "Xây kho chứa")
+	_check(base_manager.place_building(&"iron_mine", iron_grid), "Xây mỏ sắt ngoài Trại, trong Mỏ Sắt đã khám phá")
+	var camp_area := Rect2(base_manager.CAMP_CENTER - Vector2(150, 150), Vector2(300, 300))
+	_check(base_manager.place_building(&"storage", _find_free_grid_in(base_manager, &"storage", camp_area)), "Xây kho chứa")
 	base_manager.set("is_build_mode", false)
 	await physics_frame
 	await physics_frame
 	npc_manager.call("refresh_navigation")
-	var storage: Node2D = get_nodes_in_group("placed_buildings")[0]
+	var mine: BaseBuilding = null
+	var storage: Node2D = null
+	for node in get_nodes_in_group("placed_buildings"):
+		if node.building_type_id == &"iron_mine":
+			mine = node
+		elif node.building_type_id == &"storage":
+			storage = node
 	var storage_id := StringName(str(storage.get("instance_id")))
+	mine.set_physics_process(false) # tính sản lượng bằng tay cho chắc
+
+	# Thợ rèn tới mỏ sắt làm việc; người khác nghề không tới.
 	var smith = workers.get("_workers")[BLACKSMITH]
 	var smith_body: Node2D = smith.body
-	smith_body.set("move_speed", 130.0)
-	smith_body.global_position = Vector2(1400, 450)
+	smith_body.set("move_speed", 160.0)
+	smith_body.global_position = mine.global_position + Vector2(0, 80)
+	_check(workers.call("_assign_station", workers.get("_workers")[LUMBERJACK]) == false, "Tiều phu không tới mỏ sắt")
 	for character_id in [ALCHEMIST, LUMBERJACK, MINER, GUARD]:
 		workers.get_worker_body(character_id).set_physics_process(false)
 		workers.get("_workers")[character_id].idle_retry = 9999.0
-	workers.set_process(true)
-	await _wait_until(func() -> bool: return smith_body.call("cargo_used") >= 3, 900)
-	_check(int(smith_body.get("cargo").get(&"iron_ore", 0)) >= 3, "Thợ rèn đào được quặng sắt ở mỏ ngoài căn cứ")
-	var harvested_duration: float = workers.WORK_DURATION / float(gacha.get_work_speed(BLACKSMITH))
-	_check(is_equal_approx(harvested_duration, 2.0), "Tốc độ làm việc rút ngắn thời gian đào")
-	smith_body.set("cargo", {&"iron_ore": 9})
 	smith.idle_retry = 0.0
-	await _wait_until(func() -> bool: return _storage_count(base_manager, storage_id, &"iron_ore") >= 9, 1200)
-	_check(_storage_count(base_manager, storage_id, &"iron_ore") == 9 and int(smith_body.call("cargo_used")) == 0, "Thợ giao quặng vào kho, hàng không mất và không nhân đôi")
+	workers.set_process(true)
+	await _wait_until(func() -> bool: return workers.count_station_workers(mine.instance_id) == 1, 900)
+	_check(workers.count_station_workers(mine.instance_id) == 1, "Thợ rèn tới mỏ sắt và làm việc ở đó")
 	workers.set_process(false)
+
+	# Thuê NPC bằng vàng, tối đa 3.
+	wallet.add_gold(200)
+	var gold_start := int(wallet.get_gold())
+	for i in 3:
+		base_manager.hire_station_npc(mine)
+	_check(mine.hired == 3 and int(wallet.get_gold()) == gold_start - 150, "Thuê 3 NPC, mỗi NPC 50 vàng")
+	_check(not base_manager.hire_station_npc(mine) and int(wallet.get_gold()) == gold_start - 150, "Không thuê quá 3 NPC")
+
+	# Tự sinh: (1 + 3 NPC + 2 x 1 thợ đúng nghề) / 30 giây = 6 đơn vị trong 30 giây, có xuất đặc biệt.
+	_check(is_equal_approx(mine.get_production_rate(), 6.0 / 30.0), "Tốc độ sinh tính cả NPC thuê và thợ đúng nghề")
+	mine._update_station(30.0)
+	_check(int(mine.stock.get(&"iron_ore", 0)) == 6 and int(mine.stock.get(&"basic_building_kit", 0)) == 1, "Trạm sinh quặng sắt và xuất đặc biệt nhờ thợ rèn")
+
+	# Đầy thì chở về kho Trại.
+	mine.stock = {&"iron_ore": 30}
+	mine._update_station(0.1)
+	_check(mine.is_hauling(), "Kho trạm đầy thì NPC bắt đầu chở hàng")
+	mine._update_station(BaseBuilding.STATION_HAUL_SECONDS + 0.1)
+	_check(_storage_count(base_manager, storage_id, &"iron_ore") == 30 and mine.get_stock_total() == 0, "Chở về kho chứa đủ 30 quặng sắt")
+
+	# Không có người làm thì đầy là dừng.
+	mine.hired = 0
+	smith.task_kind = ""
+	mine.stock = {&"iron_ore": 30}
+	mine._update_station(5.0)
+	_check(not mine.is_hauling() and mine.get_stock_total() == 30, "Không có người làm thì trạm đầy là dừng")
+
+	# Lưu và tải giữ kho trạm, số NPC.
+	mine.hired = 2
+	var base_save: Dictionary = base_manager.to_dict()
+	_check(base_manager.load_from_dict(base_save), "Tải lại công trình có trạm")
+	var loaded_mine: BaseBuilding = null
+	for node in get_nodes_in_group("placed_buildings"):
+		if node.building_type_id == &"iron_mine":
+			loaded_mine = node
+	_check(loaded_mine and loaded_mine.hired == 2 and int(loaded_mine.stock.get(&"iron_ore", 0)) == 30, "Save giữ kho trạm và số NPC")
+	await physics_frame
+	for node in get_nodes_in_group("placed_buildings"):
+		if node.building_type_id == &"storage":
+			storage = node
 
 	# Vàng giao về thành tiền trong ví.
 	var miner = workers.get("_workers")[MINER]
@@ -177,7 +229,7 @@ func _run() -> void:
 	attacker.global_position = Vector2(50, 50)
 	workers.get_worker_body(LUMBERJACK).set("cargo", {})
 	_check(await _load(save_manager), "F9 tải lại")
-	storage = get_nodes_in_group("placed_buildings")[0]
+	storage = _first_storage()
 	_check(is_equal_approx(storage.get("current_health"), 123.0), "Khôi phục máu công trình")
 	_check(raid.is_raid_active() and raid.get_alive_raider_count() == 2, "Khôi phục đợt quái và số quái")
 	_check(_count_sorted(workers.get_worker_ids()) == _count_sorted(saved_ids) and int(workers.get_worker_body(LUMBERJACK).get("cargo").get(&"wood", 0)) == 6, "Khôi phục thợ và hàng đang mang")
@@ -192,7 +244,7 @@ func _run() -> void:
 		for entry in data["base_state"]["buildings"]:
 			entry.erase("health")), "Giả lập save cũ")
 	_check(await _load(save_manager), "Save cũ vẫn tải được")
-	storage = get_nodes_in_group("placed_buildings")[0]
+	storage = _first_storage()
 	_check(is_equal_approx(storage.get("current_health"), 400.0), "Save cũ: công trình đầy máu")
 	workers.sync_workers()
 	_check(workers.get_worker_ids().size() == 5, "Save cũ: tạo thợ theo danh sách nhân vật")
@@ -231,18 +283,34 @@ func _run() -> void:
 	clock.advance(241.0)
 	raid.call("_process", 0.0)
 	_check(raid.get_wave() == 2 and raid.get_alive_raider_count() == 3, "Đợt 2 có 3 quái")
+	var storage_spot := storage.global_position
 	storage.call("take_damage", 99999.0)
 	await process_frame
-	_check(get_nodes_in_group("placed_buildings").is_empty() and not base_manager.get("_storage_inventories").has(storage_id), "Kho hết máu thì bị phá và mất đồ bên trong")
+	_check(_first_storage() == null and not base_manager.get("_storage_inventories").has(storage_id), "Kho hết máu thì bị phá và mất đồ bên trong")
 	await physics_frame
 	await physics_frame
 	await physics_frame
 	await process_frame
-	var cleared_path: PackedVector2Array = npc_manager.call("get_world_path", Vector2(704, 600), Vector2(832, 560))
-	_check(not cleared_path.is_empty() and cleared_path[cleared_path.size() - 1].distance_to(Vector2(832, 560)) < 12.0, "Ô của công trình bị phá đi lại được")
+	var cleared_path: PackedVector2Array = npc_manager.call("get_world_path", Vector2(704, 600), storage_spot)
+	_check(not cleared_path.is_empty() and cleared_path[cleared_path.size() - 1].distance_to(storage_spot) < 12.0, "Ô của công trình bị phá đi lại được")
 
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(_slot_path()))
 	_finish()
+
+# Ô lưới trống đầu tiên bên trong khu (trạm 3x2 ô) để bài thử không phụ thuộc chỗ cây, đá.
+func _find_free_grid(base_manager: Node, type_id: StringName, zone: Node2D) -> Vector2i:
+	return _find_free_grid_in(base_manager, type_id, Rect2(zone.global_position, zone.get("zone_size")).grow(-48.0))
+
+func _find_free_grid_in(base_manager: Node, type_id: StringName, area: Rect2) -> Vector2i:
+	var start := Vector2i((area.position / 16.0).ceil())
+	var size := Vector2i((area.size / 16.0).floor())
+	for y in range(0, size.y, 2):
+		for x in range(0, size.x, 2):
+			var grid := start + Vector2i(x, y)
+			var reason: String = base_manager._get_placement_block_reason(type_id, grid)
+			if reason.is_empty() or reason.begins_with("Cần khám phá"):
+				return grid
+	return start
 
 func _find_resource(node_id: StringName) -> Node:
 	for node in get_nodes_in_group("resource_nodes"):
@@ -309,3 +377,9 @@ func _check(ok: bool, description: String) -> void:
 func _finish() -> void:
 	print("Week 8 world checks: %d/%d passed" % [_passed, _total])
 	quit(0 if _passed == _total else 1)
+
+func _first_storage() -> Node2D:
+	for node in get_nodes_in_group("placed_buildings"):
+		if node.get("building_type_id") == &"storage":
+			return node
+	return null

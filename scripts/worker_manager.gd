@@ -14,7 +14,6 @@ const JOB_RESOURCES: Dictionary = {
 }
 const SPAWN_POSITION: Vector2 = Vector2(704, 600)
 const MOVE_SPEED: float = 80.0
-const WORK_DURATION: float = 4.0 # Chia cho tốc độ làm việc của nhân vật
 const INTERACTION_RANGE: float = 32.0
 const INTERACTION_GAP: float = 16.0
 const RETRY_DELAY: float = 2.0
@@ -42,6 +41,7 @@ var _workers: Dictionary = {} # character_id -> Worker
 var _sync_pending: bool = true
 
 func _ready() -> void:
+	add_to_group("worker_manager") # trạm khai thác hỏi số thợ đang làm
 	get_node("/root/GachaManager").roster_changed.connect(_request_sync)
 	get_node("/root/PartyManager").party_changed.connect(_request_sync)
 
@@ -203,25 +203,23 @@ func _update_gatherer(worker: Worker, delta: float) -> void:
 	var body := worker.body
 	var state := str(body.call("get_state_name"))
 	if state == "MOVING":
-		if worker.task_kind == "gather" and not _is_task_node_usable(worker):
-			_cancel_task(worker, "Điểm tài nguyên đã cạn.")
-		elif worker.task_kind == "deliver" and not is_instance_valid(worker.task_building):
-			_cancel_task(worker, "Kho không còn khả dụng.")
+		if worker.task_kind in ["station", "deliver"] and not is_instance_valid(worker.task_building):
+			_cancel_task(worker, "Trạm hoặc kho không còn.")
 		return
 	if state == "WORKING":
-		worker.work_remaining -= delta
-		if worker.work_remaining <= 0.0:
-			_complete_gather(worker)
+		# Làm ở trạm: đứng yên làm việc, trạm tự tính sản lượng (BaseBuilding).
+		if worker.task_kind != "station" or not is_instance_valid(worker.task_building):
+			_cancel_task(worker, "Trạm không còn.")
 		return
 	if state != "IDLE":
 		body.call("set_idle")
 		return
-	if worker.task_kind == "gather":
-		if _is_task_node_usable(worker) and body.global_position.distance_to(worker.task_node.global_position) <= INTERACTION_RANGE:
-			worker.work_remaining = WORK_DURATION / float(get_node("/root/GachaManager").get_work_speed(worker.character_id))
+	if worker.task_kind == "station":
+		if is_instance_valid(worker.task_building) and _distance_to_building(body.global_position, worker.task_building) <= INTERACTION_RANGE:
 			body.call("set_working")
+			body.set("status_message", "Đang làm ở trạm.")
 		else:
-			_cancel_task(worker, "Không tới được điểm tài nguyên.")
+			_cancel_task(worker, "Không tới được trạm.")
 		return
 	if worker.task_kind == "deliver":
 		if is_instance_valid(worker.task_building) and _distance_to_building(body.global_position, worker.task_building) <= INTERACTION_RANGE:
@@ -233,51 +231,45 @@ func _update_gatherer(worker: Worker, delta: float) -> void:
 	if worker.idle_retry > 0.0:
 		return
 	worker.idle_retry = RETRY_DELAY
-	if _assign_gather(worker):
+	# Hàng cũ còn mang (save trước khi có trạm) thì giao nốt trước.
+	if int(body.call("cargo_used")) > 0:
+		if not _assign_delivery(worker):
+			body.set("status_message", "Cần xây kho chứa còn chỗ trong căn cứ.")
 		return
-	if int(body.call("cargo_used")) > 0 and not _assign_delivery(worker):
-		body.set("status_message", "Cần xây kho chứa còn chỗ trong căn cứ.")
+	if not _assign_station(worker):
+		body.set("status_message", "Chờ trạm khai thác hợp nghề.")
 
-func _is_task_node_usable(worker: Worker) -> bool:
-	return is_instance_valid(worker.task_node) and bool(worker.task_node.call("is_available_for_npc", worker.npc_id))
-
-func _assign_gather(worker: Worker) -> bool:
+# Nhân vật gacha có nghề không tự đi khai thác: tới trạm hợp nghề gần nhất để làm.
+func _assign_station(worker: Worker) -> bool:
 	var body := worker.body
 	var resources: Array = JOB_RESOURCES.get(worker.job, [])
-	var free_cargo: int = int(body.get("cargo_capacity")) - int(body.call("cargo_used"))
-	var candidates: Array[Node2D] = []
-	for candidate in get_tree().get_nodes_in_group("resource_nodes"):
-		var node := candidate as Node2D
-		if not node or not StringName(str(node.get("resource_id"))) in resources:
-			continue
-		if int(node.get("yield_amount")) <= free_cargo and bool(node.call("is_available_for_npc", worker.npc_id)):
-			candidates.append(node)
-	# Chỉ tìm đường cho vài điểm gần nhất để không giật khi nhiều thợ cùng chọn việc.
-	candidates.sort_custom(func(a: Node2D, b: Node2D) -> bool: return body.global_position.distance_squared_to(a.global_position) < body.global_position.distance_squared_to(b.global_position))
-	for node in candidates.slice(0, MAX_PATH_TRIES):
-		var stand_point: Vector2 = node.global_position + (body.global_position - node.global_position).normalized() * 20.0
+	var stations: Array[Node2D] = []
+	for candidate in get_tree().get_nodes_in_group("placed_buildings"):
+		var building := candidate as BaseBuilding
+		if building and building.is_station() and building.get_station_item() in resources:
+			stations.append(building)
+	stations.sort_custom(func(a: Node2D, b: Node2D) -> bool: return body.global_position.distance_squared_to(a.global_position) < body.global_position.distance_squared_to(b.global_position))
+	for building in stations.slice(0, MAX_PATH_TRIES):
+		var half: Vector2 = (building.call("get_footprint") as Vector2) * 0.5 + Vector2(INTERACTION_GAP, INTERACTION_GAP)
+		var stand_point: Vector2 = body.global_position.clamp(building.global_position - half, building.global_position + half)
 		var path: PackedVector2Array = _navigation().get_world_path(body.global_position, stand_point)
-		if path.is_empty() or path[path.size() - 1].distance_to(node.global_position) > INTERACTION_RANGE:
+		if path.is_empty() or _distance_to_building(path[path.size() - 1], building) > INTERACTION_RANGE:
 			continue
-		if not bool(node.call("reserve_for_npc", worker.npc_id)):
-			continue
-		worker.task_node = node
-		worker.task_kind = "gather"
+		worker.task_building = building
+		worker.task_kind = "station"
 		worker.repaths = 0
 		body.call("set_path", path, path[path.size() - 1])
 		return true
 	return false
 
-func _complete_gather(worker: Worker) -> void:
-	var body := worker.body
-	if is_instance_valid(worker.task_node):
-		var item_id := StringName(str(worker.task_node.get("resource_id")))
-		var amount := int(worker.task_node.call("harvest_for_npc", worker.npc_id))
-		if amount > 0:
-			body.call("add_cargo", item_id, amount)
-	_release_task(worker)
-	body.call("set_idle")
-	worker.idle_retry = 0.3
+# Số nhân vật gacha đang làm việc tại trạm (BaseBuilding dùng để tăng tốc và xuất đặc biệt).
+func count_station_workers(station_id: StringName) -> int:
+	var count := 0
+	for worker: Worker in _workers.values():
+		if worker.task_kind == "station" and is_instance_valid(worker.task_building) and is_instance_valid(worker.body) \
+				and StringName(str(worker.task_building.get("instance_id"))) == station_id and str(worker.body.call("get_state_name")) == "WORKING":
+			count += 1
+	return count
 
 func _split_cargo(body: Node2D) -> Dictionary:
 	var storable: Dictionary = {}

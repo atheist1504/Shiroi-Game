@@ -53,3 +53,10 @@ func load_from_dict(data: Dictionary) -> bool:
 	_tinh_van = int(data.get("tinh_van", 0))
 	wallet_changed.emit()
 	return true
+
+func spend_gold(amount: int) -> bool:
+	if amount <= 0 or _gold < amount:
+		return false
+	_gold -= amount
+	wallet_changed.emit()
+	return true

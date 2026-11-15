@@ -26,7 +26,8 @@ func _ready() -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	# Vẽ bàn chế tạo gỗ pixel art phong cách mộc (kích thước khoảng 32x24)
+	# Vẽ bàn chế tạo gỗ pixel art phong cách mộc (kích thước khoảng 32x24, thu còn 70% cho gọn trong Trại)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(0.7, 0.7))
 	# Bóng đổ bàn
 	draw_ellipse(Vector2(0, 10), 18.0, 6.0, Color(0.0, 0.0, 0.0, 0.3))
 

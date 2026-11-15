@@ -12,7 +12,7 @@ const MAX_TOASTS: int = 3
 const TOAST_DURATION: float = 3.0
 const ANTI_SPAM_WINDOW_MS: int = 800
 const REGION_NAMES: Dictionary = {
-	&"hope_valley_area": "Thung Lũng Hy Vọng", &"zone_forest": "Khu Rừng", &"zone_stone_mine": "Mỏ Đá",
+	&"hope_valley_area": "Trại", &"zone_forest": "Khu Rừng", &"zone_stone_mine": "Mỏ Đá",
 	&"zone_iron_mine": "Mỏ Sắt", &"zone_gold_mine": "Mỏ Vàng", &"zone_swamp": "Đầm Lầy", &"zone_dunes": "Đồi Cát",
 	&"zone_ruins": "Tàn Tích", &"ruins": "Tàn Tích", &"ancient_archive": "Bản ghi cổ", &"forest_traces": "Di Tích Cổ"
 }
@@ -44,9 +44,9 @@ func _create_ui() -> void:
 	_vbox.anchor_bottom = 0.0
 	_vbox.offset_left = -230.0
 	# Dưới bản đồ nhỏ ở góc trên phải.
-	_vbox.offset_top = 88.0
+	_vbox.offset_top = 112.0
 	_vbox.offset_right = -10.0
-	_vbox.offset_bottom = 238.0
+	_vbox.offset_bottom = 262.0
 	_vbox.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_vbox.add_theme_constant_override("separation", 5)

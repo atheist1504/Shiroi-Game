@@ -24,7 +24,7 @@ func _run() -> void:
 	resource.set("node_id", &"step21_test_tree")
 	resource.set("resource_id", &"wood")
 	resource.set("yield_amount", 3)
-	resource.position = Vector2(752, 560)
+	resource.position = Vector2(768, 560) # trong vòng Trại khởi đầu (bán kính 192)
 	scene.get_node("ResourceNodes").add_child(resource)
 	var storage := BaseBuilding.new()
 	storage.set("instance_id", &"step21_test_storage")

@@ -73,7 +73,7 @@ func _run() -> void:
 	_check(_quests.complete_quest(CHAIN[0]) and int(wallet.get_tinh_van()) == tinh_van + 30, "Trả nhiệm vụ nhận 30 Tinh Vẫn")
 	_check(_status(SHELTER) == ACTIVE and _status(CHAIN[1]) == LOCKED, "Hoàn thành thì mở đúng nhiệm vụ kế: Dựng nơi trú ngụ")
 	_check(not _quests.complete_quest(CHAIN[0]) and int(wallet.get_tinh_van()) == tinh_van + 30, "Không nhận thưởng hai lần")
-	_check(bool(base_manager.is_base_unlocked()), "Tới Thung Lũng thì mở căn cứ, không cần F3")
+	_check(bool(base_manager.is_base_unlocked()), "Tới chỗ dựng Trại thì mở căn cứ, không cần F3")
 
 	# Dựng nơi trú ngụ: gỗ đang có được tính, nhặt thêm thì cộng theo số lượng.
 	_check(str(_quests.get_quest_definition(SHELTER)["description"]).contains("Cần: gỗ"), "Hệ thống chỉ báo: cần gỗ")
@@ -85,7 +85,7 @@ func _run() -> void:
 	_check(int(_quests.get_objective_progress(SHELTER, &"gather_wood")) == 9 and _status(SHELTER) == ACTIVE, "Đủ gỗ, còn phải xây nhà")
 	inventory.add_item(&"wooden_plank", 6)
 	base_manager.set("is_build_mode", true)
-	_check(base_manager.place_building(&"house", Vector2i(59, 35)), "Xây Nhà ở chỉ bằng ván gỗ")
+	_check(base_manager.place_building(&"house", Vector2i(66, 37)), "Xây Nhà ở chỉ bằng ván gỗ")
 	base_manager.set("is_build_mode", false)
 	_check(_status(SHELTER) == READY, "Xây nhà hoàn thành nhiệm vụ")
 	tinh_van = int(wallet.get_tinh_van())

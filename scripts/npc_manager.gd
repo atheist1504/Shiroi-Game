@@ -68,9 +68,8 @@ func _process(delta: float) -> void:
 			if int(_npc.call("cargo_used")) > 0:
 				if not _assign_delivery():
 					_idle_retry = RETRY_DELAY
-			else:
-				if not _assign_gather():
-					_idle_retry = RETRY_DELAY
+			else: # NPC dân làng không còn tự đi khai thác; việc khai thác do trạm lo
+				_idle_retry = RETRY_DELAY
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -142,6 +141,13 @@ func _create_grid() -> AStarGrid2D:
 
 func has_world_navigation() -> bool:
 	return _world_astar != null
+
+# Dân làng chỉ khai thác trong vòng Trại hiện tại (rộng dần theo số công trình).
+func _in_work_area(world_position: Vector2) -> bool:
+	var base_manager := get_node_or_null("/root/BaseManager")
+	if base_manager and base_manager.has_method("is_in_camp"):
+		return _base_rect.has_point(world_position) and bool(base_manager.is_in_camp(world_position))
+	return _base_rect.has_point(world_position)
 
 func get_base_rect() -> Rect2:
 	return _base_rect
@@ -255,7 +261,7 @@ func _assign_gather() -> bool:
 	var best_length := INF
 	for candidate in get_tree().get_nodes_in_group("resource_nodes"):
 		var node := candidate as Node2D
-		if not node or not _base_rect.has_point(node.global_position) or bool(node.get("is_harvested")):
+		if not node or not _in_work_area(node.global_position) or bool(node.get("is_harvested")):
 			continue
 		if not node.has_method("is_available_for_npc") or not node.call("is_available_for_npc", StringName(str(_npc.get("npc_id")))):
 			continue

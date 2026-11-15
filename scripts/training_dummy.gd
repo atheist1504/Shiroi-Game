@@ -1,4 +1,4 @@
-extends StaticBody2D
+extends CharacterBody2D
 
 # Cọc gỗ tập đánh ở đêm đầu. Không mất máu, không đánh trả; trúng đòn thì
 # rung và chớp sáng. Ở nhóm "enemies" để đòn chém, E và R nhận làm mục tiêu;
@@ -20,6 +20,7 @@ func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("no_save")
 	add_to_group("first_night_wolves")
+	add_to_group("training_targets") # tháp canh không bắn cọc tập
 	collision_layer = 4
 	collision_mask = 0
 	var shape := CollisionShape2D.new()

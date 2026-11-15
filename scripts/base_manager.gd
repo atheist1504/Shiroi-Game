@@ -5,18 +5,35 @@ signal storage_changed(building_id: StringName)
 signal building_destroyed(instance_id: StringName)
 
 const BASE_ID: StringName = &"hope_valley_base"
-const BASE_NAME: String = "Thung Lũng Hy Vọng"
+const BASE_NAME: String = "Trại"
 const BASE_REGION_ID: StringName = &"forest_clearing"
 const GRID_SIZE: int = 16
 const STORAGE_SLOT_COUNT: int = 30
 const STORAGE_INTERACTION_RANGE: float = 48.0
-const PLOT_RECT: Rect2 = Rect2(672, 520, 544, 160)
+# Trại là một vòng tròn quanh đống lửa, nở rộng thêm mỗi khi xây một công trình.
+const CAMP_CENTER: Vector2 = Vector2(944, 600)
+const CAMP_RADIUS_START: float = 192.0
+const CAMP_RADIUS_STEP: float = 32.0 # mỗi cấp Nhà ở
+# Giá nâng Nhà ở lên cấp tương ứng.
+const HOUSE_UPGRADE_COSTS: Dictionary = {2: {"wooden_plank": 10, "processed_stone": 4}, 3: {"wooden_plank": 14, "processed_stone": 8, "basic_building_kit": 1}}
+const HOUSE_INTERACTION_RANGE: float = 28.0
+# Trạm khai thác xây ngoài Trại, trong khu đã khám phá của loại tài nguyên đó (Dược viên đặt đâu cũng được).
+const STATION_REGIONS: Dictionary = {&"lumber_camp": &"zone_forest", &"stone_quarry": &"zone_stone_mine", &"iron_mine": &"zone_iron_mine", &"gold_mine": &"zone_gold_mine", &"herb_garden": &""}
+const STATION_HIRE_GOLD: int = 50
+const CAMP_RADIUS_MAX: float = 320.0
+# Quanh đống lửa giữ trống để đi lại.
+const CAMP_FIRE_CLEAR: float = 40.0
 const BUILDING_SCENE: PackedScene = preload("res://scenes/base_building.tscn")
 const BUILDING_DEFINITIONS: Dictionary = {
 	&"storage": preload("res://data/buildings/storage.tres"),
 	&"house": preload("res://data/buildings/house.tres"),
 	&"watchtower": preload("res://data/buildings/watchtower.tres"),
-	&"fence": preload("res://data/buildings/fence.tres")
+	&"fence": preload("res://data/buildings/fence.tres"),
+	&"lumber_camp": preload("res://data/buildings/lumber_camp.tres"),
+	&"stone_quarry": preload("res://data/buildings/stone_quarry.tres"),
+	&"iron_mine": preload("res://data/buildings/iron_mine.tres"),
+	&"gold_mine": preload("res://data/buildings/gold_mine.tres"),
+	&"herb_garden": preload("res://data/buildings/herb_garden.tres")
 }
 
 var is_build_mode: bool = false
@@ -64,6 +81,7 @@ func _process(_delta: float) -> void:
 		return
 	if not is_build_mode:
 		_update_storage_prompt()
+		_update_house_prompt()
 		return
 	_hide_storage_prompts()
 	if not is_instance_valid(_preview):
@@ -129,7 +147,7 @@ func _input(event: InputEvent) -> void:
 				_enter_build_mode()
 			get_viewport().set_input_as_handled()
 			return
-		if _is_interact_pressed(event) and _try_open_nearby_storage():
+		if _is_interact_pressed(event) and (_try_open_nearby_storage() or _try_upgrade_nearby_house()):
 			get_viewport().set_input_as_handled()
 			return
 		return
@@ -168,11 +186,8 @@ func _enter_build_mode() -> void:
 	if not player:
 		_notify("Không tìm thấy Shiroi trong khu vực hiện tại.", true)
 		return
-	if not PLOT_RECT.has_point(player.global_position):
-		_notify("Bạn cần đứng trong khu căn cứ Thung Lũng Hy Vọng để xây dựng.", true)
-		return
 	if not is_base_unlocked(BASE_ID):
-		_notify("Căn cứ Thung Lũng Hy Vọng chưa được mở khóa. Hãy mở khóa căn cứ trước.", true)
+		_notify("Trại chưa được mở khóa. Hãy mở khóa Trại trước.", true)
 		return
 	if _other_modal_is_open():
 		_notify("Hãy đóng bảng đang mở trước khi vào chế độ xây dựng.", true)
@@ -246,7 +261,52 @@ func get_current_region_id() -> StringName:
 
 func get_current_base_id() -> StringName:
 	var player := _get_player()
-	return BASE_ID if player and PLOT_RECT.has_point(player.global_position) else StringName()
+	return BASE_ID if player and is_in_camp(player.global_position) else StringName()
+
+# Bán kính Trại hiện tại: rộng thêm theo tổng cấp các Nhà ở (xây mới = cấp 1).
+func get_camp_radius() -> float:
+	return minf(CAMP_RADIUS_START + CAMP_RADIUS_STEP * get_house_level_total(), CAMP_RADIUS_MAX)
+
+func get_house_level_total() -> int:
+	var total := 0
+	for building in get_tree().get_nodes_in_group("placed_buildings"):
+		if is_instance_valid(building) and building.get("building_type_id") == &"house":
+			total += int(building.get("level"))
+	return total
+
+func is_in_camp(world_position: Vector2) -> bool:
+	return world_position.distance_to(CAMP_CENTER) <= get_camp_radius()
+
+func _camp_encloses(bounds: Rect2) -> bool:
+	var radius := get_camp_radius()
+	for corner in [bounds.position, Vector2(bounds.end.x, bounds.position.y), bounds.end, Vector2(bounds.position.x, bounds.end.y)]:
+		if (corner as Vector2).distance_to(CAMP_CENTER) > radius:
+			return false
+	return true
+
+# Trạm phải nằm gọn trong khu của nó và khu đó đã được khám phá.
+func _station_region_block_reason(building_type_id: StringName, bounds: Rect2) -> String:
+	var region_id: StringName = STATION_REGIONS[building_type_id]
+	if region_id == StringName():
+		return ""
+	var zone := _find_zone(region_id)
+	var zone_name := str(zone.get("zone_title")) if zone else str(region_id)
+	var world_state := get_node_or_null("/root/WorldState")
+	if not world_state or not bool(world_state.call("is_region_discovered", region_id)):
+		return "Cần khám phá %s trước." % zone_name
+	if not zone or not Rect2(zone.global_position, zone.get("zone_size")).encloses(bounds):
+		return "%s phải đặt trong %s." % [get_definition(building_type_id).display_name, zone_name]
+	return ""
+
+func _find_zone(region_id: StringName) -> Node2D:
+	var scene := get_tree().current_scene
+	var zones := scene.get_node_or_null("Environment/Zones") if scene else null
+	if not zones:
+		return null
+	for zone in zones.get_children():
+		if zone.get("region_id") == region_id:
+			return zone as Node2D
+	return null
 
 func get_building_count(base_id: StringName = BASE_ID) -> int:
 	var count := 0
@@ -267,8 +327,12 @@ func _get_placement_block_reason(building_type_id: StringName, grid_pos: Vector2
 	var center := Vector2(grid_pos) * GRID_SIZE
 	var footprint := Vector2(def.footprint_cells) * GRID_SIZE
 	var bounds := Rect2(center - footprint * 0.5, footprint)
-	if not PLOT_RECT.encloses(bounds):
-		return "Công trình nằm ngoài ranh giới căn cứ."
+	if STATION_REGIONS.has(building_type_id):
+		var region_reason := _station_region_block_reason(building_type_id, bounds)
+		if not region_reason.is_empty():
+			return region_reason
+	elif not _camp_encloses(bounds):
+		return "Công trình nằm ngoài vòng Trại. Xây hoặc nâng cấp Nhà ở để Trại rộng ra."
 	for existing in get_tree().get_nodes_in_group("placed_buildings"):
 		if not is_instance_valid(existing):
 			continue
@@ -279,10 +343,10 @@ func _get_placement_block_reason(building_type_id: StringName, grid_pos: Vector2
 			if bounds.intersects(Rect2(other_center - other_size * 0.5, other_size)):
 				return "Vị trí bị công trình '%s' chiếm." % other_definition.display_name
 
-	# Giữ hành lang giữa khu căn cứ luôn đi lại được.
-	var path_lane := Rect2(PLOT_RECT.position.x, PLOT_RECT.position.y + PLOT_RECT.size.y * 0.5 - 12.0, PLOT_RECT.size.x, 24.0)
-	if bounds.intersects(path_lane):
-		return "Vị trí nằm trên lối đi chính của căn cứ."
+	# Giữ trống quanh đống lửa trại để luôn đi lại được.
+	var nearest := Vector2(clampf(CAMP_CENTER.x, bounds.position.x, bounds.end.x), clampf(CAMP_CENTER.y, bounds.position.y, bounds.end.y))
+	if nearest.distance_to(CAMP_CENTER) < CAMP_FIRE_CLEAR:
+		return "Vị trí nằm trên lối đi quanh đống lửa trại."
 
 	var query := PhysicsShapeQueryParameters2D.new()
 	var shape := RectangleShape2D.new()
@@ -303,21 +367,28 @@ func _get_placement_block_reason(building_type_id: StringName, grid_pos: Vector2
 		return "Vị trí va chạm với '%s'." % collider_name
 
 	# ResourceNode dùng collision layer 0 nên được kiểm tra trực tiếp.
-	# Điểm đã cạn vẫn chặn vì sẽ hồi sinh lại đúng vị trí đó.
+	# Tài nguyên còn thì chặn; đã khai thác thì xây lên được và chỗ đó bị dọn hẳn (_clear_resources_under).
 	for node in get_tree().get_nodes_in_group("resource_nodes"):
 		if not is_instance_valid(node):
 			continue
 		var resource_node := node as Node2D
-		if not resource_node:
+		if not resource_node or node.get("is_harvested") == true:
 			continue
 		var shape_node := node.get_node_or_null("CollisionShape2D") as CollisionShape2D
-		if not shape_node or shape_node.disabled:
+		if not shape_node:
 			continue
 		var circle := shape_node.shape as CircleShape2D
 		if circle:
 			var closest := Vector2(clampf(resource_node.global_position.x, bounds.position.x, bounds.end.x), clampf(resource_node.global_position.y, bounds.position.y, bounds.end.y))
 			if closest.distance_to(resource_node.global_position) < circle.radius:
 				return "Vị trí bị điểm tài nguyên '%s' chiếm." % node.name
+	# Bàn chế tạo nằm trong Trại nhưng không có va chạm, chặn trực tiếp phần bàn (~24x17).
+	for station in get_tree().get_nodes_in_group("crafting_stations"):
+		if station is Node2D and bounds.intersects(Rect2((station as Node2D).global_position - Vector2(12, 9), Vector2(24, 17))):
+			return "Vị trí bị bàn chế tạo chiếm."
+	for beacon in get_tree().get_nodes_in_group("beacons"):
+		if beacon is Node2D and bounds.intersects(Rect2((beacon as Node2D).global_position - Vector2(14, 42), Vector2(28, 48))):
+			return "Vị trí bị cột mốc chiếm."
 	return ""
 
 func _get_cost_block_reason(definition: BuildingDefinition) -> String:
@@ -392,8 +463,23 @@ func _place_building_transaction(building_type_id: StringName, grid_pos: Vector2
 		event_bus.emit_signal("building_placed", instance_id, building_type_id, BASE_ID)
 	if building_type_id == &"storage":
 		_storage_inventories[instance_id] = _create_empty_storage_slots()
+	_clear_resources_under(building as Node2D, definition)
 	_notify("Đã xây %s." % definition.display_name)
 	return true
+
+# Dọn đất: tài nguyên đã khai thác nằm dưới công trình mới thì mất hẳn, không mọc lại.
+func _clear_resources_under(building: Node2D, definition: BuildingDefinition) -> void:
+	var footprint := Vector2(definition.footprint_cells) * GRID_SIZE
+	var bounds := Rect2(building.global_position - footprint * 0.5, footprint)
+	for node in get_tree().get_nodes_in_group("resource_nodes"):
+		var resource_node := node as Node2D
+		if not resource_node or node.get("is_harvested") != true:
+			continue
+		var shape_node := node.get_node_or_null("CollisionShape2D") as CollisionShape2D
+		var radius := (shape_node.shape as CircleShape2D).radius if shape_node and shape_node.shape is CircleShape2D else 0.0
+		var closest := resource_node.global_position.clamp(bounds.position, bounds.end)
+		if closest.distance_to(resource_node.global_position) < radius:
+			node.call("clear_for_building")
 
 # Công trình hết máu: gỡ khỏi thế giới; kho bị phá thì đồ bên trong mất theo.
 func destroy_building(building: Node2D) -> void:
@@ -443,6 +529,12 @@ func validate_save_data(data: Variant) -> bool:
 		var saved_health := float(entry.get("health", 1.0))
 		if not is_finite(saved_health) or saved_health <= 0.0:
 			return false
+		var saved_level := int(entry.get("level", 1))
+		if saved_level < 1 or saved_level > BaseBuilding.HOUSE_MAX_LEVEL:
+			return false
+		var saved_hired := int(entry.get("hired", 0))
+		if saved_hired < 0 or saved_hired > BaseBuilding.STATION_MAX_HIRED or not entry.get("stock", {}) is Dictionary:
+			return false
 	if data.has("storage_inventories"):
 		var inventories: Variant = data["storage_inventories"]
 		if not inventories is Dictionary:
@@ -473,6 +565,9 @@ func load_from_dict(data: Dictionary) -> bool:
 		building.call("configure", definition, instance_id, StringName(str(entry["base_id"])), Vector2i(int(entry["grid_x"]), int(entry["grid_y"])), false)
 		building.rotation = float(entry.get("rotation", 0.0))
 		building.call("restore_health", float(entry.get("health", -1.0)))
+		building.call("set_level", int(entry.get("level", 1)))
+		var saved_stock: Variant = entry.get("stock", {})
+		building.call("restore_station", saved_stock if saved_stock is Dictionary else {}, int(entry.get("hired", 0)), float(entry.get("haul_left", -1.0)))
 		staged.append(building)
 		if type_id == &"storage":
 			staged_storage[instance_id] = _deserialize_storage_slots(saved_storage.get(str(instance_id), {}))
@@ -543,6 +638,132 @@ func _try_open_nearby_storage() -> bool:
 		return false
 	var storage := _get_nearest_storage(player)
 	return open_storage_interaction(storage.instance_id) if storage else false
+
+# Nâng Nhà ở lên một cấp, trừ nguyên liệu; mỗi cấp làm vòng Trại rộng thêm.
+func upgrade_house(building: BaseBuilding) -> bool:
+	if not building or building.building_type_id != &"house":
+		return false
+	var next_level := building.level + 1
+	if next_level > BaseBuilding.HOUSE_MAX_LEVEL:
+		_notify("Nhà ở đã đạt cấp tối đa.", true)
+		return false
+	var costs: Dictionary = HOUSE_UPGRADE_COSTS[next_level]
+	var inventory := get_node_or_null("/root/InventoryManager")
+	if not inventory or not bool(inventory.call("remove_items_atomic", costs)):
+		_notify("Thiếu nguyên liệu: cần %s." % _format_costs(costs), true)
+		return false
+	building.set_level(next_level)
+	_notify("Nhà ở lên cấp %d — Trại rộng ra." % next_level)
+	return true
+
+# "Khai thác lâu dài": thuê NPC làm ở trạm, tốn vàng, tối đa STATION_MAX_HIRED mỗi trạm.
+func hire_station_npc(building: BaseBuilding) -> bool:
+	if not building or not building.is_station():
+		return false
+	if building.hired >= BaseBuilding.STATION_MAX_HIRED:
+		_notify("Trạm đã đủ %d NPC." % BaseBuilding.STATION_MAX_HIRED, true)
+		return false
+	var wallet := get_node_or_null("/root/WalletManager")
+	if not wallet or not bool(wallet.call("spend_gold", STATION_HIRE_GOLD)):
+		_notify("Cần %d vàng để thuê NPC." % STATION_HIRE_GOLD, true)
+		return false
+	building.hire_npc()
+	_notify("Đã thuê NPC cho %s (%d/%d)." % [get_definition(building.building_type_id).display_name, building.hired, BaseBuilding.STATION_MAX_HIRED])
+	return true
+
+# NPC chở kho trạm về Trại: quặng vàng đổi thẳng ra vàng, còn lại vào một Kho chứa còn chỗ.
+func deliver_station_stock(station_stock: Dictionary) -> bool:
+	var storable: Dictionary = {}
+	var gold_ore := 0
+	for item_id in station_stock:
+		if StringName(str(item_id)) == &"gold_ore":
+			gold_ore += int(station_stock[item_id])
+		elif int(station_stock[item_id]) > 0:
+			storable[StringName(str(item_id))] = int(station_stock[item_id])
+	if not storable.is_empty():
+		var delivered := false
+		for node in get_tree().get_nodes_in_group("placed_buildings"):
+			var storage := node as BaseBuilding
+			if storage and storage.building_type_id == &"storage" and can_deposit_npc_cargo(storage.instance_id, storable):
+				delivered = deposit_npc_cargo(storage.instance_id, storable)
+				if delivered:
+					break
+		if not delivered:
+			return false
+	if gold_ore > 0:
+		var wallet := get_node_or_null("/root/WalletManager")
+		if wallet:
+			wallet.add_gold(gold_ore * wallet.GOLD_PER_ORE)
+	return true
+
+func _station_status_text(station: BaseBuilding, near: bool) -> String:
+	var item_def = get_node("/root/InventoryManager").call("get_item_def", station.get_station_item())
+	var item_name := str(item_def.name) if item_def else str(station.get_station_item())
+	var text := "%s • Kho %d/%d • NPC %d/%d" % [item_name, station.get_stock_total(), BaseBuilding.STATION_CAPACITY, station.hired, BaseBuilding.STATION_MAX_HIRED]
+	if not station.station_status.is_empty():
+		text += "\n" + station.station_status
+	if near and station.hired < BaseBuilding.STATION_MAX_HIRED:
+		text += "\n[F] Khai thác lâu dài: thuê NPC (%d vàng)" % STATION_HIRE_GOLD
+	return text
+
+func _format_costs(costs: Dictionary) -> String:
+	var parts: Array[String] = []
+	var inventory := get_node_or_null("/root/InventoryManager")
+	for item_id in costs:
+		var item_name := str(item_id)
+		var item_def = inventory.call("get_item_def", StringName(item_id)) if inventory else null
+		if item_def:
+			item_name = str(item_def.name)
+		parts.append("%d %s" % [int(costs[item_id]), item_name])
+	return ", ".join(PackedStringArray(parts))
+
+func _get_nearest_house(player: Node2D) -> BaseBuilding:
+	var nearest: BaseBuilding = null
+	var nearest_distance := HOUSE_INTERACTION_RANGE
+	for node in get_tree().get_nodes_in_group("placed_buildings"):
+		var building := node as BaseBuilding
+		if not building or building.is_preview or not (building.building_type_id == &"house" or building.is_station()):
+			continue
+		var distance := _storage_distance_to_building(player.global_position, building)
+		if distance <= nearest_distance:
+			nearest = building
+			nearest_distance = distance
+	return nearest
+
+func _try_upgrade_nearby_house() -> bool:
+	if _world_interaction_is_blocked():
+		return false
+	var player := _get_player()
+	if not player or bool(player.get("is_dead")) or _has_existing_interaction_target():
+		return false
+	var house := _get_nearest_house(player)
+	if not house:
+		return false
+	if house.is_station():
+		hire_station_npc(house)
+	else:
+		upgrade_house(house)
+	return true
+
+func _update_house_prompt() -> void:
+	var player := _get_player()
+	var target: BaseBuilding = null
+	if player and not _world_interaction_is_blocked() and not bool(player.get("is_dead")) and not _has_existing_interaction_target() and not _get_nearest_storage(player):
+		target = _get_nearest_house(player)
+	for node in get_tree().get_nodes_in_group("placed_buildings"):
+		var building := node as BaseBuilding
+		if not building or not (building.building_type_id == &"house" or building.is_station()):
+			continue
+		var text := ""
+		if building.is_station():
+			# Trạm luôn hiện tình trạng; đứng gần thì thêm lời nhắc thuê NPC.
+			text = _station_status_text(building, building == target)
+		elif building == target:
+			if building.level >= BaseBuilding.HOUSE_MAX_LEVEL:
+				text = "Nhà ở cấp %d (tối đa)" % building.level
+			else:
+				text = "[F] Nâng cấp nhà lên cấp %d: %s" % [building.level + 1, _format_costs(HOUSE_UPGRADE_COSTS[building.level + 1])]
+		building.set_upgrade_prompt(text)
 
 func _is_interact_pressed(event: InputEvent) -> bool:
 	return event.is_action_pressed("interact") or (event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_F)
@@ -619,6 +840,8 @@ func _hide_storage_prompts() -> void:
 		var building := node as BaseBuilding
 		if building and building.building_type_id == &"storage":
 			building.set_storage_prompt_visible(false)
+		if building and (building.building_type_id == &"house" or building.is_station()):
+			building.set_upgrade_prompt("")
 
 func _update_storage_panel() -> void:
 	if not _storage_status_label or not _storage_inventory_status:
@@ -1178,7 +1401,7 @@ func _create_build_ui() -> void:
 	box.add_theme_constant_override("separation", 3)
 	_build_panel.add_child(box)
 	var title := Label.new()
-	title.text = "XÂY DỰNG • THUNG LŨNG HY VỌNG"
+	title.text = "XÂY DỰNG • %s" % BASE_NAME.to_upper()
 	title.add_theme_font_size_override("font_size", 9)
 	title.add_theme_color_override("font_color", Color(0.55, 0.95, 0.72))
 	box.add_child(title)
@@ -1187,7 +1410,7 @@ func _create_build_ui() -> void:
 	_status_label.add_theme_font_size_override("font_size", 8)
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(_status_label)
-	for type_id in [&"storage", &"house", &"watchtower", &"fence"]:
+	for type_id in [&"storage", &"house", &"watchtower", &"fence", &"lumber_camp", &"stone_quarry", &"iron_mine", &"gold_mine", &"herb_garden"]:
 		var captured_type: StringName = type_id
 		var definition := get_definition(type_id)
 		var row := HBoxContainer.new()

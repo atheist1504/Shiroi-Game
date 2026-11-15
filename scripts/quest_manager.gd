@@ -80,11 +80,11 @@ var _quest_definitions: Dictionary = {
 	},
 	&"sys_01_arrival": {
 		"id": &"sys_01_arrival", "title": "[Hệ Thống] Người Đến Sau",
-		"description": "Tìm tới Thung Lũng Hy Vọng.",
+		"description": "Tìm chỗ dựng Trại.",
 		"quest_type": "system", "requires": &"sys_00_first_night", "auto_activate": true,
-		"objectives": [{"id": &"reach_base", "description": "Tới Thung Lũng Hy Vọng", "type": "discover_region", "target_id": &"hope_valley_area", "region_id": &"", "required_amount": 1}],
+		"objectives": [{"id": &"reach_base", "description": "Tới chỗ dựng Trại", "type": "discover_region", "target_id": &"hope_valley_area", "region_id": &"", "required_amount": 1}],
 		# Mở khóa căn cứ: trước đây chỉ mở được bằng bảng gỡ lỗi F3.
-		"rewards": {"tinh_van": 30, "flags": {&"base_unlocked_hope_valley_base": true}, "ledger": ["30 Tinh Vẫn", "Mở căn cứ Thung Lũng Hy Vọng"]}
+		"rewards": {"tinh_van": 30, "flags": {&"base_unlocked_hope_valley_base": true}, "ledger": ["30 Tinh Vẫn", "Mở Trại"]}
 	},
 	# Diễn biến đã chốt trong docs/NHIEM_VU.md: "Dựng nơi trú ngụ. Cần: gỗ."
 	&"sys_01b_shelter": {

@@ -25,15 +25,13 @@
 [ext_resource type="Script" uid="uid://srovr6objhsr" path="res://scripts/first_night.gd" id="23_first_night"]
 [ext_resource type="Script" path="res://scripts/minimap.gd" id="24_minimap"]
 [ext_resource type="Script" path="res://scripts/title_menu.gd" id="25_title_menu"]
+[ext_resource type="PackedScene" path="res://scenes/beacon.tscn" id="26_beacon"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_horiz_wall"]
 size = Vector2(2560, 24)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vert_wall"]
 size = Vector2(24, 1440)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_box"]
-size = Vector2(64, 64)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_bg"]
 bg_color = Color(0.109804, 0.12549, 0.160784, 0.862745)
@@ -129,7 +127,7 @@ color = Color(0.137255, 0.152941, 0.180392, 1)
 [node name="Terrain" parent="Environment" unique_id=387080525 instance=ExtResource("21_world_map")]
 
 [node name="HopeValleyBasePlot" type="Node2D" parent="Environment" unique_id=397723153]
-position = Vector2(672, 520)
+position = Vector2(624, 280)
 script = ExtResource("13_base_plot")
 
 [node name="Walls" type="Node2D" parent="Environment" unique_id=1523367575]
@@ -141,6 +139,7 @@ position = Vector2(1280, 12)
 shape = SubResource("RectangleShape2D_horiz_wall")
 
 [node name="Visual" type="ColorRect" parent="Environment/Walls/WallTop" unique_id=917732859]
+visible = false
 offset_left = -1279.0
 offset_top = -15.0
 offset_right = 1281.0
@@ -154,6 +153,7 @@ position = Vector2(1280, 1428)
 shape = SubResource("RectangleShape2D_horiz_wall")
 
 [node name="Visual" type="ColorRect" parent="Environment/Walls/WallBottom" unique_id=1676327332]
+visible = false
 offset_left = -1280.0
 offset_top = -12.0
 offset_right = 1280.0
@@ -167,6 +167,7 @@ position = Vector2(12, 720)
 shape = SubResource("RectangleShape2D_vert_wall")
 
 [node name="Visual" type="ColorRect" parent="Environment/Walls/WallLeft" unique_id=1525937400]
+visible = false
 offset_left = -12.0
 offset_top = -720.0
 offset_right = 12.0
@@ -180,6 +181,7 @@ position = Vector2(2548, 720)
 shape = SubResource("RectangleShape2D_vert_wall")
 
 [node name="Visual" type="ColorRect" parent="Environment/Walls/WallRight" unique_id=658133760]
+visible = false
 offset_left = -12.0
 offset_top = -720.0
 offset_right = 12.0
@@ -191,7 +193,7 @@ color = Color(0.298039, 0.337255, 0.415686, 1)
 [node name="HopeValleyArea" type="Node2D" parent="Environment/Zones" unique_id=102267097]
 position = Vector2(672, 520)
 script = ExtResource("17_map_zone")
-zone_title = "Thung Lũng Hy Vọng"
+zone_title = "Trại"
 zone_size = Vector2(544, 160)
 region_id = &"hope_valley_area"
 show_area = false
@@ -199,6 +201,7 @@ show_area = false
 [node name="ForestZone" type="Node2D" parent="Environment/Zones" unique_id=1972513025]
 position = Vector2(1320, 60)
 script = ExtResource("17_map_zone")
+show_area = false
 zone_title = "KHU RỪNG"
 zone_size = Vector2(580, 280)
 zone_color = Color(0.3, 0.72, 0.38, 1)
@@ -207,6 +210,7 @@ region_id = &"zone_forest"
 [node name="StoneMineZone" type="Node2D" parent="Environment/Zones" unique_id=1607767117]
 position = Vector2(1960, 60)
 script = ExtResource("17_map_zone")
+show_area = false
 zone_title = "MỎ ĐÁ"
 zone_color = Color(0.58, 0.64, 0.74, 1)
 region_id = &"zone_stone_mine"
@@ -214,6 +218,7 @@ region_id = &"zone_stone_mine"
 [node name="IronMineZone" type="Node2D" parent="Environment/Zones" unique_id=483297064]
 position = Vector2(1320, 400)
 script = ExtResource("17_map_zone")
+show_area = false
 zone_title = "MỎ SẮT"
 zone_size = Vector2(580, 280)
 zone_color = Color(0.82, 0.48, 0.3, 1)
@@ -222,29 +227,15 @@ region_id = &"zone_iron_mine"
 [node name="GoldMineZone" type="Node2D" parent="Environment/Zones" unique_id=942813359]
 position = Vector2(1960, 400)
 script = ExtResource("17_map_zone")
+show_area = false
 zone_title = "MỎ VÀNG"
 zone_color = Color(1, 0.82, 0.25, 1)
 region_id = &"zone_gold_mine"
 
-[node name="SwampZone" type="Node2D" parent="Environment/Zones" unique_id=2138927593]
-position = Vector2(60, 780)
-script = ExtResource("17_map_zone")
-zone_title = "ĐẦM LẦY"
-zone_size = Vector2(760, 620)
-zone_color = Color(0.5, 0.72, 0.42, 1)
-region_id = &"zone_swamp"
-
-[node name="DunesZone" type="Node2D" parent="Environment/Zones" unique_id=988421863]
-position = Vector2(880, 780)
-script = ExtResource("17_map_zone")
-zone_title = "ĐỒI CÁT"
-zone_size = Vector2(760, 620)
-zone_color = Color(0.95, 0.78, 0.45, 1)
-region_id = &"zone_dunes"
-
 [node name="RuinsZone" type="Node2D" parent="Environment/Zones" unique_id=217608544]
 position = Vector2(1700, 780)
 script = ExtResource("17_map_zone")
+show_area = false
 zone_title = "TÀN TÍCH"
 zone_size = Vector2(800, 620)
 zone_color = Color(0.72, 0.6, 0.95, 1)
@@ -256,58 +247,6 @@ script = ExtResource("22_region_gate")
 
 [node name="Obstacles" type="Node2D" parent="Environment" unique_id=2032122463]
 
-[node name="Box1" type="StaticBody2D" parent="Environment/Obstacles" unique_id=442140346]
-position = Vector2(400, 250)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box1" unique_id=217920206]
-shape = SubResource("RectangleShape2D_box")
-
-[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box1" unique_id=1920867708]
-offset_left = -32.0
-offset_top = -32.0
-offset_right = 32.0
-offset_bottom = 32.0
-color = Color(0.423529, 0.470588, 0.54902, 1)
-
-[node name="Box2" type="StaticBody2D" parent="Environment/Obstacles" unique_id=1026584389]
-position = Vector2(880, 250)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box2" unique_id=1642482342]
-shape = SubResource("RectangleShape2D_box")
-
-[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box2" unique_id=648236294]
-offset_left = -32.0
-offset_top = -32.0
-offset_right = 32.0
-offset_bottom = 32.0
-color = Color(0.423529, 0.470588, 0.54902, 1)
-
-[node name="Box3" type="StaticBody2D" parent="Environment/Obstacles" unique_id=2001214933]
-position = Vector2(400, 470)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box3" unique_id=1691501322]
-shape = SubResource("RectangleShape2D_box")
-
-[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box3" unique_id=1169703474]
-offset_left = -32.0
-offset_top = -32.0
-offset_right = 32.0
-offset_bottom = 32.0
-color = Color(0.423529, 0.470588, 0.54902, 1)
-
-[node name="Box4" type="StaticBody2D" parent="Environment/Obstacles" unique_id=1330168042]
-position = Vector2(880, 470)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Box4" unique_id=1548974094]
-shape = SubResource("RectangleShape2D_box")
-
-[node name="Visual" type="ColorRect" parent="Environment/Obstacles/Box4" unique_id=640304582]
-offset_left = -32.0
-offset_top = -32.0
-offset_right = 32.0
-offset_bottom = 32.0
-color = Color(0.423529, 0.470588, 0.54902, 1)
-
 [node name="Slime1" parent="." unique_id=1495991237 instance=ExtResource("3_slime")]
 position = Vector2(460, 360)
 persistent_id = &"forest_clearing_slime_01"
@@ -317,7 +256,7 @@ position = Vector2(820, 360)
 persistent_id = &"forest_clearing_slime_02"
 
 [node name="Slime3" parent="." unique_id=167770340 instance=ExtResource("3_slime")]
-position = Vector2(240, 240)
+position = Vector2(300, 280)
 persistent_id = &"forest_clearing_slime_03"
 
 [node name="Slime4" parent="." unique_id=367678360 instance=ExtResource("3_slime")]
@@ -357,12 +296,12 @@ region_id = &"mine_fields"
 persistent_id = &"mine_fields_slime_04"
 
 [node name="MineSlime5" parent="." unique_id=272611616 instance=ExtResource("3_slime")]
-position = Vector2(2440, 590)
+position = Vector2(2380, 580)
 region_id = &"mine_fields"
 persistent_id = &"mine_fields_slime_05"
 
 [node name="AncientArchive" parent="." unique_id=706040027 instance=ExtResource("6_discovery_pt")]
-position = Vector2(2300, 1250)
+position = Vector2(2220, 1180)
 region_id = &"ancient_archive"
 prompt_text = "[F] Khám phá di tích"
 
@@ -400,7 +339,7 @@ persistent_id = &"ruins_slime_06"
 position = Vector2(640, 360)
 
 [node name="TestBoss" parent="." unique_id=901913416 instance=ExtResource("4_test_boss")]
-position = Vector2(960, 420)
+position = Vector2(1197, 165)
 persistent_id = &"forest_clearing_boss_01"
 
 [node name="DebugPanel" parent="." unique_id=1889085205 instance=ExtResource("5_debug_panel")]
@@ -417,6 +356,36 @@ script = ExtResource("19_base_raid")
 [node name="DiscoveryPoint" parent="." unique_id=1533715145 instance=ExtResource("6_discovery_pt")]
 position = Vector2(640, 110)
 
+[node name="Beacons" type="Node2D" parent="."]
+
+[node name="BeaconForest" parent="Beacons" instance=ExtResource("26_beacon")]
+position = Vector2(1632, 208)
+beacon_id = &"forest"
+
+[node name="BeaconStoneMine" parent="Beacons" instance=ExtResource("26_beacon")]
+position = Vector2(2224, 192)
+beacon_id = &"stone_mine"
+
+[node name="BeaconIronMine" parent="Beacons" instance=ExtResource("26_beacon")]
+position = Vector2(1616, 544)
+beacon_id = &"iron_mine"
+
+[node name="BeaconGoldMine" parent="Beacons" instance=ExtResource("26_beacon")]
+position = Vector2(2240, 544)
+beacon_id = &"gold_mine"
+
+[node name="BeaconRuins" parent="Beacons" instance=ExtResource("26_beacon")]
+position = Vector2(2096, 1088)
+beacon_id = &"ruins"
+
+[node name="BeaconWest" parent="Beacons" instance=ExtResource("26_beacon")]
+position = Vector2(384, 640)
+beacon_id = &"west"
+
+[node name="BeaconSouth" parent="Beacons" instance=ExtResource("26_beacon")]
+position = Vector2(1008, 1184)
+beacon_id = &"south"
+
 [node name="QuestJournal" parent="." unique_id=911888288 instance=ExtResource("7_quest_journal")]
 
 [node name="PauseMenu" parent="." unique_id=832475513 instance=ExtResource("8_pause_menu")]
@@ -424,7 +393,7 @@ position = Vector2(640, 110)
 [node name="InventoryUI" parent="." unique_id=1204722365 instance=ExtResource("9_inv_ui")]
 
 [node name="CraftingStation" parent="." unique_id=1182789460 instance=ExtResource("11_craft_station")]
-position = Vector2(560, 340)
+position = Vector2(944, 728)
 
 [node name="CraftingUI" parent="." unique_id=25628921 instance=ExtResource("12_craft_ui")]
 
@@ -469,14 +438,14 @@ node_type = "herb"
 resource_id = &"herb"
 
 [node name="Tree01" parent="ResourceNodes" unique_id=1659798561 instance=ExtResource("10_res_node")]
-position = Vector2(280, 160)
+position = Vector2(330, 220)
 
 [node name="Tree02" parent="ResourceNodes" unique_id=1766305809 instance=ExtResource("10_res_node")]
 position = Vector2(480, 220)
 node_id = &"tree_02"
 
 [node name="Rock01" parent="ResourceNodes" unique_id=1165413512 instance=ExtResource("10_res_node")]
-position = Vector2(200, 320)
+position = Vector2(250, 330)
 node_id = &"rock_01"
 node_type = "rock"
 resource_id = &"stone"
@@ -550,19 +519,19 @@ node_type = "rock"
 resource_id = &"stone"
 
 [node name="ZoneRock02" parent="ResourceNodes" unique_id=2010384525 instance=ExtResource("10_res_node")]
-position = Vector2(2180, 110)
+position = Vector2(2150, 200)
 node_id = &"zone_rock_02"
 node_type = "rock"
 resource_id = &"stone"
 
 [node name="ZoneRock03" parent="ResourceNodes" unique_id=1028901571 instance=ExtResource("10_res_node")]
-position = Vector2(2330, 150)
+position = Vector2(2250, 260)
 node_id = &"zone_rock_03"
 node_type = "rock"
 resource_id = &"stone"
 
 [node name="ZoneRock04" parent="ResourceNodes" unique_id=398795488 instance=ExtResource("10_res_node")]
-position = Vector2(2450, 120)
+position = Vector2(2200, 320)
 node_id = &"zone_rock_04"
 node_type = "rock"
 resource_id = &"stone"
@@ -574,7 +543,7 @@ node_type = "rock"
 resource_id = &"stone"
 
 [node name="ZoneRock06" parent="ResourceNodes" unique_id=864937607 instance=ExtResource("10_res_node")]
-position = Vector2(2380, 280)
+position = Vector2(2330, 320)
 node_id = &"zone_rock_06"
 node_type = "rock"
 resource_id = &"stone"
@@ -630,7 +599,7 @@ resource_id = &"gold_ore"
 yield_amount = 2
 
 [node name="ZoneGold03" parent="ResourceNodes" unique_id=2007103869 instance=ExtResource("10_res_node")]
-position = Vector2(2420, 520)
+position = Vector2(2370, 540)
 node_id = &"zone_gold_03"
 node_type = "gold"
 resource_id = &"gold_ore"
@@ -675,11 +644,11 @@ node_type = "herb"
 resource_id = &"herb"
 
 [node name="FarTree01" parent="ResourceNodes" unique_id=1332685852 instance=ExtResource("10_res_node")]
-position = Vector2(140, 1300)
+position = Vector2(320, 1180)
 node_id = &"far_tree_01"
 
 [node name="FarTree02" parent="ResourceNodes" unique_id=365353460 instance=ExtResource("10_res_node")]
-position = Vector2(460, 1340)
+position = Vector2(500, 1270)
 node_id = &"far_tree_02"
 
 [node name="FarRock01" parent="ResourceNodes" unique_id=1594493875 instance=ExtResource("10_res_node")]

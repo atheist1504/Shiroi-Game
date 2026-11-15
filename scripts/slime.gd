@@ -154,6 +154,8 @@ func _physics_process(delta: float) -> void:
 	var pull := status_effect.get_pull_velocity() if status_effect else Vector2.ZERO
 	velocity = target_vel + knockback_velocity + pull
 	move_and_slide()
+	if raid_mode:
+		_check_fence_block()
 
 # Xử lý trạng thái đuổi theo người chơi
 func _process_chase() -> Vector2:
@@ -192,7 +194,9 @@ func _process_chase() -> Vector2:
 
 func _process_raid() -> Vector2:
 	_raid_retarget_timer -= get_physics_process_delta_time()
-	if not is_instance_valid(_raid_target) or _raid_retarget_timer <= 0.0:
+	# Đang phá hàng rào chặn đường thì phá tới khi rào sập.
+	var breaking_fence: bool = is_instance_valid(_raid_target) and _raid_target.get("building_type_id") == &"fence"
+	if not is_instance_valid(_raid_target) or (_raid_retarget_timer <= 0.0 and not breaking_fence):
 		_raid_retarget_timer = RAID_RETARGET_SECONDS
 		_raid_target = _find_nearest_building()
 	if not is_instance_valid(_raid_target):
@@ -217,7 +221,8 @@ func _find_nearest_building() -> Node2D:
 	var best_distance := INF
 	for candidate in get_tree().get_nodes_in_group("placed_buildings"):
 		var building := candidate as Node2D
-		if building and _distance_to_building(building) < best_distance:
+		# Hàng rào không phải mục tiêu; quái chỉ phá rào khi bị rào chặn đường.
+		if building and building.get("building_type_id") != &"fence" and _distance_to_building(building) < best_distance:
 			best = building
 			best_distance = _distance_to_building(building)
 	return best
@@ -432,3 +437,11 @@ func _spawn_loot() -> void:
 			p2.global_position = global_position + offset
 			scene_root.call_deferred("add_child", p2)
 
+
+# Bị hàng rào chặn khi đang đi phá căn cứ thì quay sang phá rào.
+func _check_fence_block() -> void:
+	for i in get_slide_collision_count():
+		var collider := get_slide_collision(i).get_collider() as Node2D
+		if collider and collider.is_in_group("placed_buildings") and collider.get("building_type_id") == &"fence":
+			_raid_target = collider
+			return

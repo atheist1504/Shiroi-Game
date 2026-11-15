@@ -41,13 +41,32 @@ func _run() -> void:
 	_check(int(terrain.get_ground_at(Vector2(260, 1040))) == terrain.Ground.WATER, "Điểm thử đúng là nước")
 	var frame: Control = minimap.get_node("MinimapFrame")
 	_check(minimap.get("_map_rect").texture != null and frame.visible, "Bản đồ nhỏ hiện trên màn hình")
-	_check(minimap.world_to_minimap(Vector2.ZERO) == Vector2.ZERO and minimap.world_to_minimap(Vector2(2560, 1440)) == minimap.DISPLAY_SIZE, "Góc bản đồ khớp góc khung bản đồ nhỏ")
 	player.global_position = Vector2(1280, 720)
 	await process_frame
 	var dot: ColorRect = minimap.get("_player_dot")
-	_check(dot.position.distance_to(minimap.DISPLAY_SIZE * 0.5 - Vector2.ONE * 2.0) < 1.0, "Chấm người chơi đi theo vị trí")
+	var map_rect: TextureRect = minimap.get("_map_rect")
+	_check(dot.position.distance_to(minimap.DISPLAY_SIZE * 0.5 - Vector2.ONE * 2.0) < 1.0, "Chấm người chơi luôn ở giữa bản đồ nhỏ")
+	_check(map_rect.size.x > minimap.DISPLAY_SIZE.x * 2.0, "Bản đồ nhỏ phóng to, chỉ thấy vùng quanh người chơi")
+	_check(minimap.world_to_minimap(player.global_position).distance_to(minimap.DISPLAY_SIZE * 0.5) < 0.01, "Vị trí người chơi ứng với giữa khung")
+	var cell_px: float = minimap.MINIMAP_PIXELS_PER_CELL
+	var visible_cells: Vector2 = minimap.DISPLAY_SIZE / cell_px
+	_check(visible_cells.x * 16.0 > 640.0 and visible_cells.x * 16.0 < 1000.0, "Bản đồ nhỏ thấy rộng hơn màn hình một chút")
+	var before := map_rect.position
+	player.global_position += Vector2(160, 0)
+	await process_frame
+	_check(is_equal_approx(before.x - map_rect.position.x, 10.0 * cell_px), "Đi sang phải thì bản đồ trượt sang trái theo")
+	player.global_position = Vector2(1280, 720)
+	await process_frame
 	var frame_right: float = frame.position.x + frame.size.x
 	_check(frame.position.y < 20.0 and frame_right > 600.0 and frame_right <= 640.0, "Bản đồ nhỏ nằm ở góc trên phải")
+	_check(is_equal_approx(minimap.DISPLAY_SIZE.x, minimap.DISPLAY_SIZE.y) and map_rect.material is ShaderMaterial, "Bản đồ nhỏ hình tròn (khung vuông, mặt nạ tròn)")
+	_check(map_rect.texture == minimap.get("_world_rect").texture, "Bản đồ nhỏ dùng chung ảnh với bản đồ M (cả phần viền dưới mây)")
+	await process_frame
+	var shared_img: Image = map_rect.texture.get_image()
+	var mini_uv: Vector2 = (minimap.DISPLAY_SIZE * 0.5 - map_rect.position) / map_rect.size
+	var big_uv: Vector2 = minimap.world_to_world_map(player.global_position) / minimap.WORLD_MAP_SIZE
+	_check(mini_uv.distance_to(big_uv) < 0.01, "Giữa bản đồ nhỏ và chấm trên bản đồ M chỉ cùng một chỗ")
+	_check(shared_img.get_pixel(4, 4).get_luminance() < 0.2 and shared_img.get_pixel(4, 4).a > 0.9, "Ngoài rừng trên bản đồ nhỏ là lục địa dưới mây, không để trống")
 
 	# Bản đồ thế giới phím M.
 	var world_layer: CanvasLayer = minimap.get_node("WorldMap")
@@ -57,18 +76,26 @@ func _run() -> void:
 	_check(world_layer.visible and paused, "Ấn M mở bản đồ thế giới và tạm dừng")
 	var labels: Control = minimap.get("_world_labels")
 	var forest: Label = labels.get_node_or_null("Zone_ForestZone")
-	var swamp: Label = labels.get_node_or_null("Zone_SwampZone")
+	var swamp: Label = labels.get_node_or_null("Zone_IronMineZone")
 	var world_state := root.get_node("/root/WorldState")
 	var forest_known: bool = world_state.is_region_discovered(&"zone_forest")
 	_check(forest != null and forest.text == ("KHU RỪNG" if forest_known else "???"), "Vùng rừng hiện tên hay ??? theo đã khám phá")
-	_check(swamp != null and labels.get_child_count() >= 8, "Bản đồ thế giới ghi đủ các vùng")
+	_check(swamp != null and labels.get_child_count() >= 7, "Bản đồ thế giới ghi đủ các vùng")
 	var world_dot: ColorRect = minimap.get("_world_dot")
-	_check(world_dot.position.distance_to(minimap.WORLD_MAP_SIZE * 0.5 - Vector2.ONE * 3.0) < 1.0, "Chấm người chơi trên bản đồ thế giới đúng chỗ")
+	var expected_dot: Vector2 = minimap.world_to_world_map(player.global_position) - Vector2.ONE * 3.0
+	var region_rect: Rect2 = minimap.get_region_rect_on_world_map()
+	_check(world_dot.position.distance_to(expected_dot) < 1.0 and region_rect.has_point(world_dot.position), "Chấm người chơi nằm trong vùng đang chơi trên bản đồ thế giới")
+	_check(region_rect.size.x < minimap.WORLD_MAP_SIZE.x * 0.6 and region_rect.position.x > 0.0, "Bản đồ M thấy cả lục địa, vùng đang chơi chỉ là một phần")
+	var world_img: Image = (minimap.get("_world_rect").texture as Texture2D).get_image()
+	var inside_px: Color = world_img.get_pixelv(Vector2i(region_rect.get_center() / minimap.WORLD_MAP_SIZE * Vector2(world_img.get_size())))
+	var fog_px: Color = world_img.get_pixel(30, 30)
+	_check(fog_px.get_luminance() < 0.2 and inside_px.get_luminance() > fog_px.get_luminance() * 2.0, "Ngoài vùng đang chơi bị mây đen che")
+	_check(labels.get_node_or_null("RegionName") != null and (labels.get_node("RegionName") as Label).text.begins_with("RỪNG NGUYỆT ẢNH •"), "Bản đồ M ghi tên Rừng Nguyệt Ảnh kèm % khám phá")
 	minimap._input(_key(KEY_ESCAPE))
 	_check(not world_layer.visible and not paused, "Esc đóng bản đồ và chạy tiếp")
-	world_state.discover_region(&"zone_swamp")
+	world_state.discover_region(&"zone_iron_mine")
 	minimap._unhandled_input(_key(KEY_M))
-	_check((labels.get_node("Zone_SwampZone") as Label).text == "ĐẦM LẦY", "Vùng vừa khám phá hiện tên")
+	_check((labels.get_node("Zone_IronMineZone") as Label).text.begins_with("MỎ SẮT ") and (labels.get_node("Zone_IronMineZone") as Label).text.ends_with("%"), "Vùng vừa khám phá hiện tên kèm %")
 	minimap._input(_key(KEY_M))
 	_check(not world_layer.visible and not paused, "Ấn M lần nữa thì đóng")
 	paused = true
