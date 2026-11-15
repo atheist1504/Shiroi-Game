@@ -795,7 +795,8 @@ func _paint() -> void:
 						if not highland.has(n) and _in_map(n, cells):
 							mask |= 1 << i
 				obstacles.set_cell(c, 0, Vector2i(mask, row))
-				if kind == G.WATER and mask == 0 and _h(x, y, 204) < 0.04:
+				# Lá súng chỉ ở hồ, sông trong Rừng Nguyệt Ảnh, không rải ra biển.
+				if kind == G.WATER and mask == 0 and _h(x, y, 204) < 0.04 and Rect2i(Vector2i.ZERO, OLD_FOREST_CELLS).has_point(c):
 					deco.set_cell(c, 0, Vector2i(D.LILY, ROW_DECO))
 				continue
 			if trail.has(c):
@@ -1839,8 +1840,8 @@ func _expand() -> void:
 					solid[c] = G.CLIFF
 				continue
 			var wc := c + region
-			# Mép khung và phía bắc đường ranh: mây. Biển sâu cũng dưới mây, vùng chơi dừng ở bờ.
-			if _border(c, cells) < 10 or wc.y < _north_edge_y(wc.x) + wobble.get_noise_2d(x, y) * 3.0 or _cell_elevation(elev, wc) < 0.30:
+			# Phía bắc đường ranh: mây. Phía nam mở hết tới mép khung (cả biển sâu); chỉ chừa 3 ô sát mép khung cho mây che mép.
+			if _border(c, cells) < 3 or wc.y < _north_edge_y(wc.x) + wobble.get_noise_2d(x, y) * 3.0:
 				solid[c] = G.VOID
 				types[c] = G.FOREST
 				continue

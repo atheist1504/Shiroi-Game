@@ -19,11 +19,11 @@ uniform sampler2D cloud_noise : repeat_enable, filter_linear;
 void fragment() {
 	vec2 p = rect_origin + UV * rect_size;
 	vec2 m = (p - map_origin) / map_size;
-	// Khoảng cách tới mép vùng chơi, dương là ra ngoài; ngoài khung bản đồ coi như rất xa.
-	float signed_dist = mask_range * 2.0;
-	if (m.x >= 0.0 && m.y >= 0.0 && m.x <= 1.0 && m.y <= 1.0) {
-		signed_dist = -(texture(play_mask, m).r * 2.0 - 1.0) * mask_range;
-	}
+	// Khoảng cách tới mép vùng chơi, dương là ra ngoài. Ngoài khung bản đồ: lấy giá trị ở
+	// mép khung gần nhất cộng quãng đã ra ngoài, để mây dày dần chứ không cắt thẳng ở mép khung.
+	vec2 mc = clamp(m, vec2(0.0), vec2(1.0));
+	float signed_dist = -(texture(play_mask, mc).r * 2.0 - 1.0) * mask_range;
+	signed_dist += length((m - mc) * map_size);
 	float big = texture(cloud_noise, p / 640.0 + vec2(TIME * 0.006, TIME * 0.004)).r;
 	float small = texture(cloud_noise, p / 210.0 - vec2(TIME * 0.012, -TIME * 0.005)).r;
 	float cloud = big * 0.65 + small * 0.35;

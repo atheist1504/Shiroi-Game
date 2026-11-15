@@ -31,7 +31,7 @@ Mảng 6.
 Chủ dự án vẽ đường ranh phía bắc trên bản đồ M; vùng chơi là phần lục địa phía nam đường đó tới bờ biển, thay cho hình bầu dục. Đã bỏ cột mốc và % khám phá (thử một lượt rồi bỏ).
 
 - Khung bản đồ 320×134 ô, bắt đầu ở ô (-80, -24) (`MAP_ORIGIN`, `MAP_CELLS` trong `scripts/world_terrain.gd`). Rừng Nguyệt Ảnh cũ giữ nguyên tọa độ 0..160 × 0..90 nên Trại, vật thể, nhiệm vụ không phải dời.
-- Phần mới lấy địa hình theo độ cao, độ ẩm của ảnh lục địa: biển nông, bãi cát, cỏ, rừng (cùng nhiễu với rừng cũ để chỗ nối liền), đất cao, núi đá chặn đường, sông. Biển sâu, phía bắc đường ranh và 10 ô quanh mép khung là mây. Vòng vách Tàn Tích chỗ trước bị hình bầu dục cắt đã đắp lại. Phần mới chưa có tài nguyên, quái, nhiệm vụ.
+- Phần mới lấy địa hình theo độ cao, độ ẩm của ảnh lục địa: biển nông, bãi cát, cỏ, rừng (cùng nhiễu với rừng cũ để chỗ nối liền), đất cao, núi đá chặn đường, sông. Phía bắc đường ranh là mây; phía nam mở hết tới mép khung, cả biển sâu hai góc dưới (2026-11-15, chủ dự án yêu cầu), chỉ 3 ô sát mép khung là mây. Lá súng chỉ rải ở hồ, sông trong Rừng Nguyệt Ảnh. Vòng vách Tàn Tích chỗ trước bị hình bầu dục cắt đã đắp lại. Phần mới chưa có tài nguyên, quái, nhiệm vụ.
 - Mép vùng chơi lưu ở `assets/maps/play_mask.png` (khoảng cách tới mép); mây trong game (`fog_border.gd`) và bản đồ M dùng ảnh này.
 - Bản đồ M mở theo chỗ đã đi (bán kính 360 quanh người chơi, lưu cờ `map_revealed` trong WorldState). Chỉ có một nút ◆ ở Trại để dịch chuyển về (không dùng trong đêm đầu). Bản đồ nhỏ góc phải chưa che.
 - Đá, sắt, vàng khai thác được vẽ thành cụm đá có tinh thể quặng (xám bạc, cam, vàng), hàng 24 cột 10/12/14 của ảnh tile.
