@@ -102,6 +102,16 @@ func _run() -> void:
 		bush.call("_try_gather")
 		_check(bush.get("node_type") == "herb" and int(inv_h.call("get_item_count", &"herb")) == herb_before + 1 and bool(bush.get("is_harvested")), "Nhặt bụi thảo dược được 1 thảo dược")
 		bush.call("set_harvested", false, false)
+	# Gốc cây nhặt được 1 gỗ (2026-11-17).
+	var stumps: Node = terrain.get_node_or_null("WoodPickups")
+	_check(stumps != null and stumps.get_child_count() >= 10, "Có gốc cây nhặt được gỗ rải trên bản đồ")
+	if stumps and stumps.get_child_count() > 0:
+		var stump: Node = stumps.get_child(0)
+		var inv_w := root.get_node("InventoryManager")
+		var wood_before := int(inv_w.call("get_item_count", &"wood"))
+		stump.call("_try_gather")
+		_check(stump.get("node_type") == "stump" and int(inv_w.call("get_item_count", &"wood")) == wood_before + 1 and bool(stump.get("is_harvested")), "Nhặt gốc cây được 1 gỗ")
+		stump.call("set_harvested", false, false)
 	_check(far_count == 6,"Vùng phía nam có 6 điểm tài nguyên (cây, thảo dược; đá và vàng chỉ ở bãi mỏ)")
 
 	# Sông chặn đường, chỉ qua được ở cầu.
@@ -109,6 +119,19 @@ func _run() -> void:
 	player.velocity = Vector2.ZERO
 	await physics_frame
 	_check(player.test_move(player.global_transform, Vector2(120, 0)), "Sông chặn người chơi")
+	# (2026-11-17) Cầu đông-tây rộng 3 ô: đứng ở hàng giữa (hàng dưới của cầu 2 ô cũ) vẫn đi qua được.
+	var bridge_cells: Array = terrain.get_meta("bridges", []).filter(func(b): return b[1] and b[0].x < 90 and b[0].y < 20)
+	var bx := Vector2i(9999, 9999)
+	var bmax := Vector2i(-9999, -9999)
+	for b in bridge_cells:
+		bx = Vector2i(mini(bx.x, b[0].x), mini(bx.y, b[0].y))
+		bmax = Vector2i(maxi(bmax.x, b[0].x), maxi(bmax.y, b[0].y))
+	_check(bmax.y - bx.y + 1 == 3, "Cầu đông-tây phía bắc rộng 3 ô")
+	player.global_position = Vector2(bx.x * 16 - 8, (bx.y + 1) * 16 + 8)
+	await physics_frame
+	_check(not player.test_move(player.global_transform, Vector2((bmax.x - bx.x + 2) * 16, 0)), "Đứng hàng dưới của cầu cũ vẫn đi qua sông được")
+	player.global_position = Vector2(1240, 400)
+	await physics_frame
 	var to_iron: PackedVector2Array = navigation.call("get_world_path", Vector2(944, 640), Vector2(1600, 560))
 	_check(not to_iron.is_empty() and not _crosses_water(terrain, to_iron), "Từ Trại tới Mỏ Sắt đi qua cầu, không lội nước")
 	var to_south: PackedVector2Array = navigation.call("get_world_path", Vector2(944, 640), Vector2(700, 1180))

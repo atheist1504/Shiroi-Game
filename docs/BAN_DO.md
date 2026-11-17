@@ -59,6 +59,10 @@ Chủ dự án yêu cầu, làm ở bước `-- paint`:
 - **Hòn đá nhỏ nhặt được:** rải trên cỏ và đất trống (tránh Trại, đường mòn, cây, vật cản), mỗi hòn bấm F được 1 Đá, hồi sau 90 giây. Là điểm tài nguyên `node_type = "pebble"` dưới node `StonePickups` của `world_map.tscn`, `node_id = pebble_<x>_<y>` theo ô. Hiện 42 hòn. Đá trang trí nhỏ không còn rải trên cỏ, đất để khỏi lẫn với hòn nhặt được (trên bãi mỏ, cát vẫn còn).
 - Còn lại chưa đổi: tảng đá trang trí 2x2 (cột 0 hàng 24) trông giống điểm đá mỏ nhưng không khai thác được.
 - **Bụi thảo dược nhặt được** (sau, cùng ngày): bụi tối 1 ô (cột 7 hàng 24, dương xỉ) không còn rải làm trang trí; chỗ đó (ngoài Trại, xa mép mây) thành điểm thảo dược `node_type = "herb"`, hình bụi quả đỏ, 1 Thảo dược mỗi bụi, hồi sau 45 giây, dưới node `HerbPickups` (`node_id = herb_<x>_<y>`). Hiện 31 bụi. Cùng hình với các điểm thảo dược đặt sẵn.
+- (sau nữa) **Cầu** rộng 3 ô thay vì 2 (nhân vật cao 24 px, đứng hàng dưới cầu 2 ô bị nước chặn); bước `-- paint` nới một lần, đánh dấu metadata `bridges_widened`.
+- **Ô đất lạc giữa nước** (đảo dưới 8 ô, mũi đất 1 ô có 3 mặt là nước) đổi thành nước, trừ cầu và chỗ có người/quái/tài nguyên.
+- Bỏ **bụi xanh nhỏ** (cột 12 hàng 15), **tinh thể xanh** (cột 9 hàng 15) và **tảng đá trang trí trên nền mỏ** (đá, sắt, vàng).
+- **Gốc cây** (cột 4 hàng 24) bớt một nửa; gốc còn lại là điểm tài nguyên `node_type = "stump"`, 1 Gỗ, hồi sau 60 giây, dưới node `WoodPickups` (`node_id = stump_<x>_<y>`). Hiện 25 gốc; 33 bụi thảo dược, 42 hòn đá.
 
 ## Sửa bản đồ
 

@@ -739,6 +739,20 @@ func _paint() -> void:
 				solid[c] = int(od.get_custom_data("ground"))
 	var avoid: Array[Vector2i] = await _gameplay_cells()
 	_drop_stray_rock_patches(types, solid)
+	# (2026-11-17) Cầu rộng thêm 1 hàng: nhân vật cao 24 px, cầu 2 ô thì đứng hàng
+	# dưới bị nước bên dưới chặn. Chỉ nới một lần (đánh dấu bằng metadata).
+	if not map_root.has_meta("bridges_widened"):
+		var bridges: Array = map_root.get_meta("bridges", [])
+		var extra: Array = []
+		for b in bridges:
+			var n: Vector2i = b[0] + (Vector2i.DOWN if b[1] else Vector2i.RIGHT)
+			if solid.get(n, -1) == G.WATER:
+				solid.erase(n)
+				types[n] = G.DIRT
+				extra.append([n, b[1]])
+		map_root.set_meta("bridges", bridges + extra)
+		map_root.set_meta("bridges_widened", true)
+	_drop_stray_islands(types, solid, map_root, avoid)
 	# Chỉ bo hồ một lần, chạy lại script không ăn mòn thêm.
 	if not map_root.has_meta("water_rounded"):
 		_round_water(solid, cells)
@@ -768,6 +782,7 @@ func _paint() -> void:
 	var props := {}
 	var pebbles := {}
 	var herbs := {}
+	var stumps := {}
 	for x in range(_o.x, _o.x + cells.x):
 		for y in range(_o.y, _o.y + cells.y):
 			var c := Vector2i(x, y)
@@ -809,7 +824,7 @@ func _paint() -> void:
 			var item := _pick_deco(t, x, y)
 			if item >= 0:
 				deco.set_cell(c, 0, Vector2i(item, ROW_DECO))
-			var kind_tree := -1 if _near_any(pebbles, c, 2) or _near_any(herbs, c, 2) else _pick_tree(c, t, cells, solid, trail, avoid, trees, types)
+			var kind_tree := -1 if _near_any(pebbles, c, 2) or _near_any(herbs, c, 2) or _near_any(stumps, c, 2) else _pick_tree(c, t, cells, solid, trail, avoid, trees, types)
 			if kind_tree >= 0:
 				trees[c] = true
 				canopy.set_cell(c, 0, _tree_coords(kind_tree, x, y))
@@ -821,10 +836,13 @@ func _paint() -> void:
 				continue
 			var prop := _pick_prop(c, t, solid, trail, avoid, props)
 			# (2026-11-17) Bụi tối (FERN) thay bằng bụi quả đỏ: thảo dược nhặt được.
-			if prop.x == P.FERN:
+			if prop.x == P.FERN or prop.x == P.STUMP:
 				if _pickup_spot_ok(c, solid, trail, avoid, trees):
 					props[c] = true
-					herbs[c] = true
+					if prop.x == P.FERN:
+						herbs[c] = true
+					else:
+						stumps[c] = true
 					deco.erase_cell(c)
 			elif prop.x >= 0:
 				props[c] = true
@@ -839,6 +857,7 @@ func _paint() -> void:
 
 	_write_pickups(map_root, "StonePickups", pebbles, "pebble", &"stone")
 	_write_pickups(map_root, "HerbPickups", herbs, "herb", &"herb")
+	_write_pickups(map_root, "WoodPickups", stumps, "stump", &"wood")
 
 	var fog := map_root.get_node_or_null("FogBorder")
 	if not fog:
@@ -850,7 +869,7 @@ func _paint() -> void:
 	var scene := PackedScene.new()
 	scene.pack(map_root)
 	ResourceSaver.save(scene, MAP_SCENE)
-	print("Đã tô lại bản đồ: %d cây, %d ô đường mòn, %d hòn đá, %d bụi thảo dược nhặt được." % [trees.size(), trail.size(), pebbles.size(), herbs.size()])
+	print("Đã tô lại bản đồ: %d cây, %d ô đường mòn, %d hòn đá, %d bụi thảo dược, %d gốc cây nhặt được." % [trees.size(), trail.size(), pebbles.size(), herbs.size(), stumps.size()])
 
 # (2026-11-17) Nền đá/gỉ sắt/vàng chỉ còn ở 3 bãi mỏ lớn; các bãi nhỏ lạc chỗ (dưới
 # 100 ô) đổi thành cỏ/rừng theo cùng nhiễu với phần còn lại của rừng.
@@ -877,6 +896,53 @@ func _drop_stray_rock_patches(types: Dictionary, solid: Dictionary) -> void:
 			continue
 		for p in patch:
 			types[p] = G.FOREST if forest_noise.get_noise_2d(p.x, p.y) > 0.05 else G.GRASS
+
+# (2026-11-17) Ô đất lạc giữa nước (đảo nhỏ dưới 8 ô, mũi đất 1 ô thò ra nước) đổi
+# thành nước. Không đụng cầu và chỗ có người/quái/tài nguyên.
+func _drop_stray_islands(types: Dictionary, solid: Dictionary, map_root: Node, avoid: Array[Vector2i]) -> void:
+	var keep := {}
+	for b in map_root.get_meta("bridges", []):
+		keep[b[0]] = true
+	for p in avoid:
+		keep[p] = true
+	var dirs := [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]
+	var seen := {}
+	for c in types.keys():
+		if seen.has(c) or solid.has(c):
+			continue
+		var part: Array[Vector2i] = [c]
+		seen[c] = true
+		var only_water := true
+		var i := 0
+		while i < part.size():
+			for d in dirs:
+				var n: Vector2i = part[i] + d
+				if not types.has(n):
+					only_water = false
+				elif solid.has(n):
+					if solid[n] != G.WATER:
+						only_water = false
+				elif not seen.has(n):
+					seen[n] = true
+					part.append(n)
+			i += 1
+		if part.size() < 8 and only_water and not part.any(func(p): return keep.has(p)):
+			for p in part:
+				solid[p] = G.WATER
+	# Mũi đất 1 ô: ba mặt là nước. Lặp vài lượt vì bỏ một ô có thể lộ ô kế tiếp.
+	for pass_i in 3:
+		var tips: Array[Vector2i] = []
+		for c in types.keys():
+			if solid.has(c) or keep.has(c):
+				continue
+			var water := 0
+			for d in dirs:
+				if solid.get(c + d, -1) == G.WATER:
+					water += 1
+			if water >= 3:
+				tips.append(c)
+		for c in tips:
+			solid[c] = G.WATER
 
 func _near_any(cells_set: Dictionary, c: Vector2i, r: int) -> bool:
 	for dx in range(-r, r + 1):
@@ -1089,11 +1155,10 @@ func _pick_deco(t: int, x: int, y: int) -> int:
 			if r < 0.035: return [D.FLOWER_MOON, D.FLOWER_MOON, D.FLOWER_RED, D.FLOWER_YELLOW, D.FLOWER_PURPLE][int(k * 5)]
 			if r < 0.065: return D.TUFT
 			# (2026-11-17) Không rải đá trang trí trên cỏ, đất: hòn đá nhỏ ở đó đều nhặt được.
-			if r < 0.08: return D.BUSH
+			# Bỏ cả bụi xanh nhỏ (D.BUSH) theo yêu cầu chủ dự án.
 		G.FOREST:
 			if r < 0.03: return D.MUSHROOM
 			if r < 0.07: return D.LEAVES
-			if r < 0.09: return D.BUSH
 			if r < 0.10: return D.FLOWER_MOON
 		G.STONE:
 			if r < 0.05: return D.ROCK
@@ -1102,8 +1167,8 @@ func _pick_deco(t: int, x: int, y: int) -> int:
 			if r < 0.05: return D.ORE
 			if r < 0.07: return D.PEBBLE
 		G.GOLD:
-			if r < 0.04: return D.CRYSTAL
-			if r < 0.07: return D.ROCK
+			# (2026-11-17) Bỏ tinh thể xanh (D.CRYSTAL).
+			if r < 0.03: return D.ROCK
 		G.MUD:
 			if r < 0.07: return D.REEDS
 			if r < 0.09: return D.MUSHROOM
@@ -1614,12 +1679,15 @@ func _pick_prop(c: Vector2i, t: int, solid: Dictionary, trail: Dictionary, avoid
 	var item := -1
 	match t:
 		# (2026-11-17) Bỏ bụi hoa 2x2; hòn đá nhỏ (MOSSROCK) giờ là điểm nhặt đá (_pick_pebble).
+		# (2026-11-17) Gốc cây bớt một nửa, gốc còn lại nhặt được 1 gỗ (WoodPickups).
 		G.GRASS:
 			if r < 0.006: item = P.BOULDER
-			elif r < 0.010: item = P.STUMP
+			elif r < 0.008: item = P.STUMP
+			elif r < 0.010: pass
 			elif r < 0.013: item = P.LOG
 		G.FOREST:
-			if r < 0.02: item = P.STUMP
+			if r < 0.008: item = P.STUMP
+			elif r < 0.02: pass
 			elif r < 0.026: item = P.LOG
 			elif r < 0.05: item = P.FERN
 			elif r < 0.06: item = P.SHROOMS
@@ -1627,8 +1695,6 @@ func _pick_prop(c: Vector2i, t: int, solid: Dictionary, trail: Dictionary, avoid
 		G.MUD:
 			if r < 0.01: item = P.LOG
 			elif r < 0.02: item = P.SHROOMS
-		G.STONE, G.RUST, G.GOLD:
-			if r < 0.008: item = P.BOULDER
 		G.RUIN:
 			if r < 0.006: item = P.BOULDER
 	if item < 0:

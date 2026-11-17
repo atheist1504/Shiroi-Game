@@ -2,7 +2,7 @@ extends Area2D
 
 # ResourceNode - Điểm thu thập tài nguyên (Cây, Tảng đá, Hòn đá nhỏ, Bụi thảo dược) (Bước 17)
 @export var node_id: StringName = &"tree_01"
-@export var node_type: String = "tree" # "tree", "rock", "pebble", "iron", "gold", "herb"
+@export var node_type: String = "tree" # "tree", "stump", "rock", "pebble", "iron", "gold", "herb"
 @export var resource_id: StringName = &"wood"
 @export var yield_amount: int = 3
 @export var respawn_seconds: float = 0.0 # 0 = dùng mặc định theo loại tài nguyên
@@ -251,6 +251,7 @@ const ART: Texture2D = preload("res://assets/tiles/terrain_tiles.png")
 # Cây, quặng là hình AI đã dán vào terrain_tiles.png (tools/ai_art.gd).
 const ART_TREE := Rect2(0, 21 * 16, 48, 48) # cây tán xanh bạc to 3x3 ô (cột 0; cột 12 đã bỏ 2026-11-17)
 const ART_PEBBLE := Rect2(128, 24 * 16, 16, 16) # hòn đá nhỏ nhặt được
+const ART_STUMP := Rect2(64, 24 * 16, 16, 16) # gốc cây nhặt được 1 gỗ (2026-11-17)
 const ART_ROCK := Rect2(160, 24 * 16, 32, 32) # cụm đá mỏ 2x2 ô
 const ART_IRON := Rect2(192, 24 * 16, 32, 32) # cụm quặng sắt 2x2 ô
 const ART_GOLD := Rect2(224, 24 * 16, 32, 32) # cụm quặng vàng 2x2 ô
@@ -264,6 +265,8 @@ func _draw() -> void:
 			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_ROCK)
 		"pebble":
 			draw_texture_rect_region(ART, Rect2(-8, -10, 16, 16), ART_PEBBLE)
+		"stump":
+			draw_texture_rect_region(ART, Rect2(-8, -10, 16, 16), ART_STUMP)
 		"iron":
 			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_IRON)
 		"gold":
