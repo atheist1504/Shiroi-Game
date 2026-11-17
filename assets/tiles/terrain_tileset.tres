@@ -1,6 +1,6 @@
-[gd_resource type="TileSet" format=3 uid="uid://dtnfglas2ebxu"]
+[gd_resource type="TileSet" format=3]
 
-[ext_resource type="Texture2D" uid="uid://6pisfobmtrkn" path="res://assets/tiles/terrain_tiles.png" id="1_fsnex"]
+[ext_resource type="Texture2D" path="res://assets/tiles/terrain_tiles.png" id="1_fsnex"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fsnex"]
 resource_name = "Tile Shiroi (tools/gen_world_art.gd)"

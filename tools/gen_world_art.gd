@@ -70,9 +70,6 @@ const AI_ART := preload("res://tools/ai_art.gd")
 var _img: Image
 # Có ảnh gốc AI thì rừng dùng nhiều biến thể cây tán xanh bạc.
 var _ai_art: bool = AI_ART.new().has_sources()
-var _box_cells: Array[Vector2i] = []
-# Tham số "-- paint regen_highlands": xóa gò đất cũ, sinh lại theo cấu hình mới.
-var _regen_highlands := false
 # Gốc khung bản đồ (ô) khi tô: MAP_ORIGIN của world_terrain.gd (âm, vì bản đồ nối ra lục địa).
 var _o := Vector2i.ZERO
 const OLD_FOREST_CELLS := Vector2i(160, 90)
@@ -93,7 +90,6 @@ func _run() -> void:
 	elif "expand" in args:
 		_expand()
 	elif "paint" in args:
-		_regen_highlands = "regen_highlands" in args
 		await _paint()
 	else:
 		printerr("Cần tham số: -- images hoặc -- paint")
@@ -732,33 +728,23 @@ func _paint() -> void:
 	# Đọc loại nền hiện có từ custom data trước khi đổi tileset.
 	var types := {}
 	var solid := {}
-	var highland := {}
 	for x in range(_o.x, _o.x + cells.x):
 		for y in range(_o.y, _o.y + cells.y):
 			var c := Vector2i(x, y)
 			var gd := ground.get_cell_tile_data(c)
 			types[c] = int(gd.get_custom_data("ground")) if gd else G.GRASS
 			var od := obstacles.get_cell_tile_data(c)
-			if od:
+			# (2026-11-17) Bỏ hết gò đất cao: chủ dự án không muốn đồi trên bản đồ.
+			if od and obstacles.get_cell_atlas_coords(c).y != ROW_HIGHLAND:
 				solid[c] = int(od.get_custom_data("ground"))
-				if obstacles.get_cell_atlas_coords(c).y == ROW_HIGHLAND and _regen_highlands:
-					solid.erase(c)
-				elif obstacles.get_cell_atlas_coords(c).y == ROW_HIGHLAND:
-					highland[c] = true
 	var avoid: Array[Vector2i] = await _gameplay_cells()
-	# Khối chướng ngại cũ (Environment/Obstacles/Box*) vẽ thành mỏm đá.
-	for c in _box_cells:
-		solid[c] = G.CLIFF
-		highland[c] = true
+	_drop_stray_rock_patches(types, solid)
 	# Chỉ bo hồ một lần, chạy lại script không ăn mòn thêm.
 	if not map_root.has_meta("water_rounded"):
 		_round_water(solid, cells)
 		map_root.set_meta("water_rounded", true)
 	_blend_shore(types, solid, cells)
-	# Gò đất cao chỉ thêm một lần; lần sau đọc lại từ lớp Obstacles.
-	if _regen_highlands or not map_root.has_meta("highlands_added"):
-		_add_highlands(types, solid, cells, avoid, highland)
-		map_root.set_meta("highlands_added", true)
+	map_root.remove_meta("highlands_added")
 	var tileset := _build_tileset()
 	# Chiếm đường dẫn của tileset cũ đang nạp để scene trỏ tới file .tres, không nhúng.
 	tileset.take_over_path(TILESET_PATH)
@@ -780,6 +766,7 @@ func _paint() -> void:
 	var green := [G.GRASS, G.FOREST]
 	var trees := {}
 	var props := {}
+	var pebbles := {}
 	for x in range(_o.x, _o.x + cells.x):
 		for y in range(_o.y, _o.y + cells.y):
 			var c := Vector2i(x, y)
@@ -795,16 +782,10 @@ func _paint() -> void:
 					var inside := _in_map(n, cells)
 					if inside and solid.get(n, -1) != kind:
 						mask |= 1 << i
-				var row := ROW_WATER if kind == G.WATER else (ROW_HIGHLAND if highland.has(c) else ROW_CLIFF)
+				var row := ROW_WATER if kind == G.WATER else ROW_CLIFF
 				if kind == G.VOID:
 					obstacles.set_cell(c, 0, Vector2i(2, ROW_BRIDGE))
 					continue
-				if highland.has(c):
-					mask = 0
-					for i in 4:
-						var n: Vector2i = c + [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT][i]
-						if not highland.has(n) and _in_map(n, cells):
-							mask |= 1 << i
 				obstacles.set_cell(c, 0, Vector2i(mask, row))
 				# Lá súng chỉ ở hồ, sông trong Rừng Nguyệt Ảnh, không rải ra biển.
 				if kind == G.WATER and mask == 0 and _h(x, y, 204) < 0.04 and Rect2i(Vector2i.ZERO, OLD_FOREST_CELLS).has_point(c):
@@ -827,10 +808,14 @@ func _paint() -> void:
 			var item := _pick_deco(t, x, y)
 			if item >= 0:
 				deco.set_cell(c, 0, Vector2i(item, ROW_DECO))
-			var kind_tree := _pick_tree(c, t, cells, solid, trail, avoid, trees, types)
+			var kind_tree := -1 if _near_any(pebbles, c, 2) else _pick_tree(c, t, cells, solid, trail, avoid, trees, types)
 			if kind_tree >= 0:
 				trees[c] = true
 				canopy.set_cell(c, 0, _tree_coords(kind_tree, x, y))
+				deco.erase_cell(c)
+				continue
+			if _pick_pebble(c, t, solid, trail, avoid, pebbles, trees):
+				pebbles[c] = true
 				deco.erase_cell(c)
 				continue
 			var prop := _pick_prop(c, t, solid, trail, avoid, props)
@@ -845,6 +830,8 @@ func _paint() -> void:
 		deco.erase_cell(bc)
 		canopy.erase_cell(bc)
 
+	_write_pebbles(map_root, pebbles)
+
 	var fog := map_root.get_node_or_null("FogBorder")
 	if not fog:
 		fog = Node2D.new()
@@ -855,7 +842,80 @@ func _paint() -> void:
 	var scene := PackedScene.new()
 	scene.pack(map_root)
 	ResourceSaver.save(scene, MAP_SCENE)
-	print("Đã tô lại bản đồ: %d cây, %d ô đường mòn." % [trees.size(), trail.size()])
+	print("Đã tô lại bản đồ: %d cây, %d ô đường mòn, %d hòn đá nhặt được." % [trees.size(), trail.size(), pebbles.size()])
+
+# (2026-11-17) Nền đá/gỉ sắt/vàng chỉ còn ở 3 bãi mỏ lớn; các bãi nhỏ lạc chỗ (dưới
+# 100 ô) đổi thành cỏ/rừng theo cùng nhiễu với phần còn lại của rừng.
+func _drop_stray_rock_patches(types: Dictionary, solid: Dictionary) -> void:
+	var rocky := [G.STONE, G.RUST, G.GOLD]
+	var forest_noise := FastNoiseLite.new()
+	forest_noise.seed = 7001
+	forest_noise.frequency = 0.05
+	var seen := {}
+	for c in types.keys():
+		if seen.has(c) or solid.has(c) or not types[c] in rocky:
+			continue
+		var patch: Array[Vector2i] = [c]
+		seen[c] = true
+		var i := 0
+		while i < patch.size():
+			for d in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+				var n: Vector2i = patch[i] + d
+				if types.has(n) and not seen.has(n) and not solid.has(n) and types[n] in rocky:
+					seen[n] = true
+					patch.append(n)
+			i += 1
+		if patch.size() >= 100:
+			continue
+		for p in patch:
+			types[p] = G.FOREST if forest_noise.get_noise_2d(p.x, p.y) > 0.05 else G.GRASS
+
+func _near_any(cells_set: Dictionary, c: Vector2i, r: int) -> bool:
+	for dx in range(-r, r + 1):
+		for dy in range(-r, r + 1):
+			if cells_set.has(c + Vector2i(dx, dy)):
+				return true
+	return false
+
+# Hòn đá nhỏ nhặt được (2026-11-17): rải trên cỏ và đất trống, tránh Trại, đường mòn,
+# vật cản, cây và chỗ có người/quái/tài nguyên.
+const PEBBLE_CAMP_CLEAR := 24.0 # ô; Trại rộng tối đa 320 px = 20 ô
+func _pick_pebble(c: Vector2i, t: int, solid: Dictionary, trail: Dictionary, avoid: Array[Vector2i], pebbles: Dictionary, trees: Dictionary) -> bool:
+	if not t in [G.GRASS, G.DIRT] or _h(c.x, c.y, 361) >= 0.012:
+		return false
+	if Vector2(c).distance_to(CAMP_CELL) < PEBBLE_CAMP_CLEAR or _edge_value(c) > 0.8:
+		return false
+	if _near_any(pebbles, c, 4) or _near_any(trees, c, 2) or _near_any(solid, c, 1) or _near_any(trail, c, 1):
+		return false
+	for p in avoid:
+		if absi(p.x - c.x) <= 2 and absi(p.y - c.y) <= 2:
+			return false
+	return true
+
+# Ghi các hòn đá nhỏ thành điểm tài nguyên (resource_node.tscn) dưới node StonePickups
+# của world_map.tscn. node_id theo ô nên save giữ đúng hòn đã nhặt.
+func _write_pebbles(map_root: Node, pebbles: Dictionary) -> void:
+	var old := map_root.get_node_or_null("StonePickups")
+	if old:
+		map_root.remove_child(old)
+		old.free()
+	var holder := Node2D.new()
+	holder.name = "StonePickups"
+	map_root.add_child(holder)
+	holder.owner = map_root
+	var res_scene := load("res://scenes/resource_node.tscn") as PackedScene
+	var keys := pebbles.keys()
+	keys.sort()
+	for c in keys:
+		var node := res_scene.instantiate()
+		node.name = "Pebble_%d_%d" % [c.x, c.y]
+		node.position = Vector2(c) * T + Vector2(8, 10)
+		node.set("node_id", StringName("pebble_%d_%d" % [c.x, c.y]))
+		node.set("node_type", "pebble")
+		node.set("resource_id", &"stone")
+		node.set("yield_amount", 1)
+		holder.add_child(node)
+		node.owner = map_root
 
 func _in_map(c: Vector2i, cells: Vector2i) -> bool:
 	return Rect2i(_o, cells).has_point(c)
@@ -966,14 +1026,6 @@ func _gameplay_cells() -> Array[Vector2i]:
 		if terrain.is_ancestor_of(n) or n == terrain or n.name in ["Walls", "Zones", "Environment"] or n.get_parent().name in ["Walls", "Zones"]:
 			continue
 		result.append(Vector2i((n.global_position / float(T)).floor()))
-	for body in main.get_node("Environment/Obstacles").get_children():
-		var shape_node := body.get_node_or_null("CollisionShape2D") as CollisionShape2D
-		if shape_node and shape_node.shape is RectangleShape2D:
-			var size: Vector2 = (shape_node.shape as RectangleShape2D).size
-			var rect := Rect2(shape_node.global_position - size * 0.5, size)
-			for x in range(int(floor(rect.position.x / T)), int(ceil(rect.end.x / T))):
-				for y in range(int(floor(rect.position.y / T)), int(ceil(rect.end.y / T))):
-					_box_cells.append(Vector2i(x, y))
 	main.queue_free()
 	await process_frame
 	return result
@@ -1021,15 +1073,13 @@ func _pick_deco(t: int, x: int, y: int) -> int:
 		G.GRASS:
 			if r < 0.035: return [D.FLOWER_MOON, D.FLOWER_MOON, D.FLOWER_RED, D.FLOWER_YELLOW, D.FLOWER_PURPLE][int(k * 5)]
 			if r < 0.065: return D.TUFT
-			if r < 0.075: return D.PEBBLE
+			# (2026-11-17) Không rải đá trang trí trên cỏ, đất: hòn đá nhỏ ở đó đều nhặt được.
 			if r < 0.08: return D.BUSH
 		G.FOREST:
 			if r < 0.03: return D.MUSHROOM
 			if r < 0.07: return D.LEAVES
 			if r < 0.09: return D.BUSH
 			if r < 0.10: return D.FLOWER_MOON
-		G.DIRT:
-			if r < 0.04: return D.PEBBLE
 		G.STONE:
 			if r < 0.05: return D.ROCK
 			if r < 0.08: return D.PEBBLE
@@ -1477,55 +1527,6 @@ func _ground_material() -> ShaderMaterial:
 	return mat
 
 # Gò đất cao ở vùng rìa, xa người/quái/tài nguyên và đường mòn: chỉ trên cỏ, rừng.
-func _add_highlands(types: Dictionary, solid: Dictionary, cells: Vector2i, avoid: Array[Vector2i], highland: Dictionary) -> void:
-	var noise := FastNoiseLite.new()
-	noise.seed = 99
-	noise.frequency = 0.045
-	for x in range(_o.x, _o.x + cells.x):
-		for y in range(_o.y, _o.y + cells.y):
-			var c := Vector2i(x, y)
-			var border := _border(Vector2i(x, y), cells)
-			var sv := _shape_value(c)
-			if sv < 0.35 or sv > 0.78 or solid.has(c) or not types[c] in [G.GRASS, G.FOREST]:
-				continue
-			if noise.get_noise_2d(x, y) < 0.22:
-				continue
-			var ok := true
-			for p in avoid:
-				if absi(p.x - x) <= 5 and absi(p.y - y) <= 5:
-					ok = false
-					break
-			if ok:
-				highland[c] = true
-	# Bỏ ô lẻ (ít hơn 2 hàng xóm) cho gò liền khối.
-	for c in highland.keys():
-		var n := 0
-		for d in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
-			if highland.has(c + d):
-				n += 1
-		if n < 2:
-			highland.erase(c)
-	# Bỏ dải hẹp (dưới 3 ô): co lại rồi nở ra, chỉ giữ phần gò đủ dày.
-	var core := {}
-	for c in highland:
-		var full := true
-		for dx in range(-1, 2):
-			for dy in range(-1, 2):
-				if not highland.has(c + Vector2i(dx, dy)):
-					full = false
-		if full:
-			core[c] = true
-	var kept := {}
-	for c in core:
-		for dx in range(-1, 2):
-			for dy in range(-1, 2):
-				kept[c + Vector2i(dx, dy)] = true
-	for c in highland.keys():
-		if not kept.has(c):
-			highland.erase(c)
-	for c in highland:
-		solid[c] = G.CLIFF
-
 var _grove_noise: FastNoiseLite
 
 # Cây mọc thành cụm: hệ số mật độ theo nhiễu tần số thấp.
@@ -1544,8 +1545,9 @@ func _tree_coords(kind: int, x: int, y: int) -> Vector2i:
 		return Vector2i(TREE.DEAD, ROW_TREE)
 	if _ai_art:
 		# Hình AI có ba biến thể cây tán xanh bạc ở cột 12, 0, 3 (xem tools/ai_art.gd).
+		# (2026-11-17) Bỏ biến thể cột 12 theo yêu cầu chủ dự án, rừng chỉ dùng cột 0 và 3.
 		var k := _h(x, y, 77)
-		return Vector2i(BIG.MOON if k < 0.5 else (BIG.OAK if k < 0.8 else BIG.DARK), ROW_BIGTREE)
+		return Vector2i(BIG.OAK if k < 0.6 else BIG.DARK, ROW_BIGTREE)
 	return Vector2i(BIG.MOON, ROW_BIGTREE)
 
 # Mảng cỏ cao, đất trống, đồng hoa trên cỏ/rừng/bùn (không đổi loại nền).
@@ -1596,15 +1598,13 @@ func _pick_prop(c: Vector2i, t: int, solid: Dictionary, trail: Dictionary, avoid
 	var k := _h(c.x, c.y, 352)
 	var item := -1
 	match t:
+		# (2026-11-17) Bỏ bụi hoa 2x2; hòn đá nhỏ (MOSSROCK) giờ là điểm nhặt đá (_pick_pebble).
 		G.GRASS:
 			if r < 0.006: item = P.BOULDER
-			elif r < 0.014: item = P.BUSH2
-			elif r < 0.018: item = P.STUMP
-			elif r < 0.021: item = P.LOG
-			elif r < 0.03: item = P.MOSSROCK
+			elif r < 0.010: item = P.STUMP
+			elif r < 0.013: item = P.LOG
 		G.FOREST:
-			if r < 0.012: item = P.BUSH2
-			elif r < 0.02: item = P.STUMP
+			if r < 0.02: item = P.STUMP
 			elif r < 0.026: item = P.LOG
 			elif r < 0.05: item = P.FERN
 			elif r < 0.06: item = P.SHROOMS
@@ -1618,7 +1618,7 @@ func _pick_prop(c: Vector2i, t: int, solid: Dictionary, trail: Dictionary, avoid
 			if r < 0.006: item = P.BOULDER
 	if item < 0:
 		return Vector2i(-1, -1)
-	var big := item in [P.BOULDER, P.BUSH2, P.LOG]
+	var big := item in [P.BOULDER, P.LOG]
 	for dx in range(-2, 3):
 		for dy in range(-2, 2):
 			var n := c + Vector2i(dx, dy)

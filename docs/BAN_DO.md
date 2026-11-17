@@ -18,13 +18,14 @@ Mảng 6.
 - Các lớp trong `scenes/world_map.tscn` (từ dưới lên):
   - **Ground**: nền theo loại.
   - **Blend**: viền cỏ lấn sang nền khác, đường mòn, mảng cỏ cao, đất trống, đồng hoa.
-  - **Obstacles**: nước có bờ và bọt, vách đá, gò đất cao; các tile này chặn đường.
+  - **Obstacles**: nước có bờ và bọt, vách đá; các tile này chặn đường.
   - **Decoration**: hoa, đá, nấm, sậy, súng, tảng đá, bụi, gốc cây, khúc gỗ.
+  - **StonePickups**: hòn đá nhỏ nhặt được (điểm tài nguyên, xem dưới).
   - **Canopy**: cây, vẽ đè lên nhân vật.
   - **FogBorder**: mây đen bằng shader quanh vùng chơi.
 - Nền đổi sắc theo từng mảng lớn nhờ shader trên lớp Ground và Blend, nên không còn những mảng một màu.
 - Bản đồ nhỏ (góc trên phải) hiện vùng quanh người chơi. Bản đồ M hiện cả lục địa (`assets/maps/continent.png`), Rừng Nguyệt Ảnh sáng rõ có tên, phần còn lại dưới mây.
-- Tường biên và bốn khối chướng ngại cũ không còn hiện khối màu; va chạm vẫn giữ. Bốn khối cũ được vẽ thành gò đất.
+- Tường biên và bốn khối chướng ngại cũ không còn hiện khối màu; va chạm vẫn giữ.
 
 ## Vùng chơi nối ra lục địa (2026-11-15)
 
@@ -48,6 +49,16 @@ Theo quyết định chung ở `docs/KE_HOACH.md` (dùng AI thì ghi rõ): cây,
 - (sau, cùng ngày) Dọn bố cục ở bước `-- expand`: bỏ cát giữa đất liền (chỉ còn cát ven nước), bỏ các dải vách trên đất cao của lục địa, bỏ cát và vách sót dọc mép khung Rừng Nguyệt Ảnh cũ (trừ vòng vách Tàn Tích). Phía đông giờ là bãi đất trống rộng.
 - Ảnh chụp để duyệt: `docs/screenshots/` (Trại, rừng, mỏ đá, mỏ sắt, mỏ vàng, phía đông, Tàn Tích, bờ biển).
 
+## Dọn bản đồ, hòn đá nhặt được (2026-11-17)
+
+Chủ dự án yêu cầu, làm ở bước `-- paint`:
+- Bỏ hết **gò đất cao** (đồi có vách), không sinh lại nữa.
+- Bỏ **cây tán xanh bạc cột 12** (hàng 21) khỏi rừng; rừng dùng cột 0 và 3. Điểm tài nguyên cây cũng đổi sang cột 0.
+- Bỏ **bụi hoa 2x2** (cột 2 hàng 24).
+- Nền đá / gỉ sắt / vàng chỉ còn ở **3 bãi mỏ lớn**; 5 bãi nhỏ lạc chỗ (dưới 100 ô) đổi thành cỏ/rừng. Bỏ các điểm tài nguyên đá, vàng nằm trên đó (`far_rock_01..03`, `far_gold_01..02`) và 2 tảng đá ngoài mỏ (`rock_01`, `rock_02`); `zone_iron_01` dời vào nền quặng sắt (1448, 520). Tảng đá trong Trại (`hv_rock_*`) giữ nguyên.
+- **Hòn đá nhỏ nhặt được:** rải trên cỏ và đất trống (tránh Trại, đường mòn, cây, vật cản), mỗi hòn bấm F được 1 Đá, hồi sau 90 giây. Là điểm tài nguyên `node_type = "pebble"` dưới node `StonePickups` của `world_map.tscn`, `node_id = pebble_<x>_<y>` theo ô. Hiện 42 hòn. Đá trang trí nhỏ không còn rải trên cỏ, đất để khỏi lẫn với hòn nhặt được (trên bãi mỏ, cát vẫn còn).
+- Còn lại chưa đổi: tảng đá trang trí 2x2 (cột 0 hàng 24) trông giống điểm đá mỏ nhưng không khai thác được.
+
 ## Sửa bản đồ
 
 **Cách 1, vẽ tay trong editor:** mở `scenes/world_map.tscn`, chọn lớp, mở bảng **TileMap** rồi vẽ, xong lưu (Ctrl+S).
@@ -64,7 +75,7 @@ Theo quyết định chung ở `docs/KE_HOACH.md` (dùng AI thì ghi rõ): cây,
 2. `Godot --headless --path . --import`: Godot nhập ảnh mới.
 2a. `Godot --headless --path . -s tools/gen_world_art.gd -- expand`: nối bản đồ ra lục địa theo đường ranh `NORTH_EDGE`, ghi lại `play_mask.png`; giữ Rừng Nguyệt Ảnh cũ. Sau đó chạy `--import` rồi bước 3.
 2b. (Chỉ khi muốn dựng lại bố cục từ đầu) `Godot --headless --path . -s tools/gen_world_art.gd -- layout`: dựng lại loại nền theo các hằng số đầu phần "bố cục rừng" (sông, cầu, hồ, vòng vách Tàn Tích, bãi đá). Bước này chỉ dựng phần 160×90 cũ, xóa mọi sửa tay ở lớp Ground/Obstacles và báo nếu có vật thể bị nước hay vách đè lên. Sau đó chạy bước 2a rồi bước 3.
-3. `Godot --headless --path . -s tools/gen_world_art.gd -- paint`: dựng tileset và tô lại bản đồ. Thêm `regen_highlands` để sinh lại gò đất. Bo hồ và thêm gò chỉ chạy một lần (đánh dấu bằng metadata trên node Terrain), nên chạy lại không làm hồ bị ăn mòn thêm.
+3. `Godot --headless --path . -s tools/gen_world_art.gd -- paint`: dựng tileset và tô lại bản đồ. Bo hồ chỉ chạy một lần (đánh dấu bằng metadata trên node Terrain), nên chạy lại không làm hồ bị ăn mòn thêm. Bước này cũng sinh lại hòn đá nhặt được (node `StonePickups`).
 
 Khác:
 - Khung bản đồ và vị trí trong lục địa khai báo trong `scripts/world_terrain.gd` (`MAP_ORIGIN`, `MAP_CELLS`, `WORLD_CELLS`, `REGION_OFFSET`); đường ranh phía bắc là `NORTH_EDGE` trong `tools/gen_world_art.gd`. Vật thể nên nằm chỗ `play_shape_value` < 0,85 (cách mép mây hơn khoảng 2 ô).

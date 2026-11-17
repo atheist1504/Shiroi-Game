@@ -357,18 +357,6 @@ position = Vector2(330, 220)
 position = Vector2(480, 220)
 node_id = &"tree_02"
 
-[node name="Rock01" parent="ResourceNodes" unique_id=1165413512 instance=ExtResource("10_res_node")]
-position = Vector2(250, 330)
-node_id = &"rock_01"
-node_type = "rock"
-resource_id = &"stone"
-
-[node name="Rock02" parent="ResourceNodes" unique_id=2052499897 instance=ExtResource("10_res_node")]
-position = Vector2(520, 440)
-node_id = &"rock_02"
-node_type = "rock"
-resource_id = &"stone"
-
 [node name="Herb01" parent="ResourceNodes" unique_id=816072869 instance=ExtResource("10_res_node")]
 position = Vector2(380, 290)
 node_id = &"herb_01"
@@ -462,7 +450,7 @@ node_type = "rock"
 resource_id = &"stone"
 
 [node name="ZoneIron01" parent="ResourceNodes" unique_id=1371461411 instance=ExtResource("10_res_node")]
-position = Vector2(1400, 480)
+position = Vector2(1448, 520)
 node_id = &"zone_iron_01"
 node_type = "iron"
 resource_id = &"iron_ore"
@@ -563,38 +551,6 @@ node_id = &"far_tree_01"
 [node name="FarTree02" parent="ResourceNodes" unique_id=365353460 instance=ExtResource("10_res_node")]
 position = Vector2(500, 1270)
 node_id = &"far_tree_02"
-
-[node name="FarRock01" parent="ResourceNodes" unique_id=1594493875 instance=ExtResource("10_res_node")]
-position = Vector2(980, 900)
-node_id = &"far_rock_01"
-node_type = "rock"
-resource_id = &"stone"
-
-[node name="FarRock02" parent="ResourceNodes" unique_id=88735352 instance=ExtResource("10_res_node")]
-position = Vector2(1300, 860)
-node_id = &"far_rock_02"
-node_type = "rock"
-resource_id = &"stone"
-
-[node name="FarRock03" parent="ResourceNodes" unique_id=1797777219 instance=ExtResource("10_res_node")]
-position = Vector2(1500, 1100)
-node_id = &"far_rock_03"
-node_type = "rock"
-resource_id = &"stone"
-
-[node name="FarGold01" parent="ResourceNodes" unique_id=691701723 instance=ExtResource("10_res_node")]
-position = Vector2(1120, 1240)
-node_id = &"far_gold_01"
-node_type = "gold"
-resource_id = &"gold_ore"
-yield_amount = 2
-
-[node name="FarGold02" parent="ResourceNodes" unique_id=631333522 instance=ExtResource("10_res_node")]
-position = Vector2(1520, 1320)
-node_id = &"far_gold_02"
-node_type = "gold"
-resource_id = &"gold_ore"
-yield_amount = 2
 
 [node name="FirstNight" type="Node" parent="." unique_id=491754996]
 script = ExtResource("23_first_night")

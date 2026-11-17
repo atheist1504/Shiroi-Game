@@ -82,7 +82,17 @@ func _run() -> void:
 	for node in get_nodes_in_group("resource_nodes"):
 		if str(node.get("node_id")).begins_with("far_"):
 			far_count += 1
-	_check(far_count == 11, "Vùng phía nam có 11 điểm tài nguyên")
+	# Hòn đá nhỏ rải trên bản đồ nhặt được 1 đá (2026-11-17).
+	var pebbles: Node = terrain.get_node_or_null("StonePickups")
+	_check(pebbles != null and pebbles.get_child_count() >= 20, "Có hòn đá nhỏ nhặt được rải trên bản đồ")
+	if pebbles and pebbles.get_child_count() > 0:
+		var pebble: Node = pebbles.get_child(0)
+		var inv := root.get_node("InventoryManager")
+		var before := int(inv.call("get_item_count", &"stone"))
+		pebble.call("_try_gather")
+		_check(pebble.get("node_type") == "pebble" and pebble.is_in_group("resource_nodes") and int(inv.call("get_item_count", &"stone")) == before + 1 and bool(pebble.get("is_harvested")), "Nhặt hòn đá nhỏ được 1 đá rồi hòn đá biến mất")
+		pebble.call("set_harvested", false, false)
+	_check(far_count == 6,"Vùng phía nam có 6 điểm tài nguyên (cây, thảo dược; đá và vàng chỉ ở bãi mỏ)")
 
 	# Sông chặn đường, chỉ qua được ở cầu.
 	player.global_position = Vector2(1240, 400)
