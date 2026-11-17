@@ -2,7 +2,7 @@
 
 Game 2D top-down, Godot 4.7.2 (`D:\Godot\Godot_v4.7.2-stable_win64.exe`), GDScript. Scene chính `main.tscn`, script trong `scripts/`. Đồ án 10 tuần (2026-11-09 là tuần 5); đề tài nhấn mạnh gacha, khám phá, căn cứ sinh tồn.
 
-- Kế hoạch: `docs/KE_HOACH.md` (8 lớp, 12 mảng). **Đang ở lớp 1** (ổn định bản hiện có).
+- Kế hoạch: `docs/KE_HOACH.md` (8 lớp, 12 mảng). **Lớp 1 xong** (thử tay ổn, `week5-foundation` đã merge vào `main` 2026-11-17); lớp tiếp theo là lớp 3 (vòng tiến trình).
 - Lịch sử kiểm thử và mô tả chi tiết cũ: `docs/NHAT_KY_KIEM_THU.md`. Chỉ đọc khi cần tra.
 - Thiết kế từng mảng: xem tài liệu của mảng trong `docs/`.
 
@@ -42,17 +42,16 @@ Chạy: `powershell -ExecutionPolicy Bypass -File tests\run_tests.ps1` (lọc b�
 - 2026-11-17, sau khi nới cầu, xóa ô đất lạc giữa nước, bụi xanh nhỏ, tinh thể, đá trên nền mỏ, và cho gốc cây nhặt được gỗ: chạy toàn bộ 22 file đều PASS (`test_map_terrain.gd` 41 mục, có mục đứng hàng dưới cầu cũ vẫn qua sông); sau đó thêm 2 mục gốc cây và chạy riêng: 43/43. Chụp `docs/screenshots/cau.png`, `goc_cay.png`, `mo_sat.png`, `bo_bien_dong.png`. Chưa thử tay.
 - 2026-11-17, sau khi thêm bụi thảo dược nhặt được và bỏ đá trong Trại: chạy toàn bộ 22 file đều PASS; sau đó thêm 2 mục thảo dược vào `test_map_terrain.gd` và chạy riêng: 39/39. `test_camp.gd` thử dọn đất bằng cây `hv_tree_02`, `test_step21_3.gd` còn 4 điểm tài nguyên trong Trại, thử giờ hồi đá bằng `zone_rock_01`. Chụp `docs/screenshots/trai.png`, `bui_thao_duoc.png`. Chưa thử tay.
 - 2026-11-17, sau khi dọn bản đồ và thêm hòn đá nhặt được: **761/761 PASS** ở 22 file (`test_map_terrain.gd` thêm 2 mục hòn đá, đổi số điểm tài nguyên phía nam 11 → 6); `test_step16.gd` bị bộ chạy bỏ qua vì lỗi thời (chạy riêng thì 6/8, lỗi lưu/tải có sẵn). Chụp màn hình có cửa sổ ở `docs/screenshots/` (thêm `hon_da_nho.png`, `bai_da_cu.png`). Chưa thử tay.
-- **Chưa thử tay:** đêm đầu, thợ và đột kích, tổ đội, trọn chuỗi nhiệm vụ, bản đồ mới, trạm khai thác. Gacha đã được người dùng thử.
+- **Thử tay:** 2026-11-17 chủ dự án thử tay trọn game, báo ổn, không ghi lỗi. Gacha đã được thử tay từ trước.
 
-## Việc còn lại của lớp 1
+## Việc còn lại sau lớp 1
 
-1. Thử tay trọn game, bắt đầu bằng đêm đầu.
-2. Sửa lỗi phát sinh, merge `week5-foundation` vào `main`.
-3. Phần đất mới phía nam chưa có tài nguyên, quái, nhiệm vụ; bản đồ nhỏ chưa che theo chỗ đã đi.
-4. Xuất bản: đã có `export_presets.cfg`; lần xuất thử 2026-11-10 có một lần tự tắt sau 9 giây, chưa rõ nguyên nhân.
+1. Phần đất mới phía nam chưa có tài nguyên, quái, nhiệm vụ; bản đồ nhỏ chưa che theo chỗ đã đi.
+2. Xuất bản: đã có `export_presets.cfg`; lần xuất thử 2026-11-10 có một lần tự tắt sau 9 giây, chưa rõ nguyên nhân.
 
 ## Nhật ký gần nhất
 
+- 2026-11-17: chủ dự án thử tay trọn game, ổn; merge `week5-foundation` vào `main` qua PR, khép lớp 1.
 - 2026-11-17: sửa `test_step16.gd` cho khớp mã nhiệm vụ và phiên bản save hiện tại; bộ chạy test không còn bỏ qua file này.
 - 2026-11-17: sông thẳng vuông góc ở chỗ cầu, đường mòn nở rộng tới cầu; hồ tây nam thông ra biển; gộp mảng nền lẻ; bản đồ M che kín giao diện và chặn phím khác; NPC thử nghiệm không còn tự có trong game (save cũ cũng không khôi phục); bàn chế tạo dời từ mép nam Trại (944, 728) vào (1000, 650).
 - 2026-11-17: cây tán trơn sẫm bớt còn 47 cây, chặt được 3 Gỗ; tảng đá bớt còn 26, đập được 3 Đá; cây cách nhau 3 ô, vật không nằm dưới tán cây.
