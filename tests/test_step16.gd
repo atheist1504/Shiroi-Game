@@ -57,6 +57,9 @@ func _run() -> void:
 	var main_scn: PackedScene = load("res://main.tscn")
 	var main_node: Node = main_scn.instantiate()
 	root.add_child(main_node)
+	current_scene = main_node
+	await process_frame
+	await physics_frame
 
 	# Giả lập Autoload nếu chưa có trong SceneTree headless
 	var save_mgr: Node = root.get_node_or_null("SaveManager")
@@ -111,10 +114,13 @@ func _run() -> void:
 		skill_c.set("current_energy", 50.0)
 
 	world_state.call("set_flag", &"test_flag_step16", true)
-	quest_mgr.call("activate_quest", &"q_slime_hunter")
+	quest_mgr.call("activate_quest", &"main_clear_slimes")
 
 	save_mgr.set("is_busy", false)
 	save_mgr.set("_last_op_tick", 0)
+	save_mgr.connect("save_completed", func(_s: int, ok: bool, msg: String) -> void:
+		if not ok:
+			print("  save_game: " + msg))
 	var save_res: bool = bool(save_mgr.call("save_game", 1))
 	var save_file_path: String = str(save_mgr.call("get_save_path", 1))
 	var tmp_file_path: String = save_file_path + ".tmp"
@@ -122,7 +128,7 @@ func _run() -> void:
 	if save_res and FileAccess.file_exists(save_file_path) and not FileAccess.file_exists(tmp_file_path):
 		var content: String = FileAccess.get_file_as_string(save_file_path)
 		var parsed: Variant = JSON.parse_string(content)
-		if parsed is Dictionary and int((parsed as Dictionary).get("schema_version", 0)) == 1:
+		if parsed is Dictionary and int((parsed as Dictionary).get("schema_version", 0)) == int(save_mgr.get("SCHEMA_VERSION")):
 			var p_dict: Dictionary = (parsed as Dictionary).get("player", {})
 			if float(p_dict.get("current_health", 0.0)) == 75.0:
 				print("  -> PASS: File slot_01.json đã ghi an toàn, file .tmp đã dọn sạch, JSON hợp lệ.")
@@ -153,7 +159,7 @@ func _run() -> void:
 	if skill_c:
 		energy_ok = absf(float(skill_c.get("current_energy")) - 50.0) < 0.1
 	var flag_ok: bool = bool(world_state.call("get_flag", &"test_flag_step16")) == true
-	var quest_ok: bool = int(quest_mgr.call("get_quest_status", &"q_slime_hunter")) == 2
+	var quest_ok: bool = int(quest_mgr.call("get_quest_status", &"main_clear_slimes")) == 2
 
 	if load_res and pos_ok and hp_ok and sta_ok and energy_ok and flag_ok and quest_ok:
 		print("  -> PASS: Tải game thành công. Vị trí, Máu (75), Thể lực (60), Năng lượng (50), WorldState và Quest được khôi phục chuẩn xác.")

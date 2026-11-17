@@ -41,11 +41,6 @@ try {
 	$tests = Get-ChildItem -Path (Join-Path $projectDir "tests") -Filter "test_*.gd" |
 		Where-Object { $_.Name -like "*$Filter*" } | Sort-Object Name
 	foreach ($test in $tests) {
-		# Outdated: expects save schema 1 and a quest id that no longer exists.
-		if ($test.Name -eq "test_step16.gd") {
-			"{0,-10} {1,-26} outdated, needs rewriting" -f "SKIPPED", $test.Name
-			continue
-		}
 		$out = Join-Path $workDir ($test.BaseName + ".out")
 		$err = Join-Path $workDir ($test.BaseName + ".err")
 		$arguments = @("--headless", "--path", "`"$projectDir`"", "--script", "res://tests/$($test.Name)")

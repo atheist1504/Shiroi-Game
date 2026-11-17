@@ -36,6 +36,7 @@ WASD di chuyển; chuột trái chém; chuột phải chạy; Space né; E/R k�
 
 Chạy: `powershell -ExecutionPolicy Bypass -File tests\run_tests.ps1` (lọc bằng `-Filter`; tự sao lưu save).
 
+- 2026-11-17, sau khi sửa `test_step16.gd` (đổi mã nhiệm vụ cũ `q_slime_hunter` sang `main_clear_slimes`, so phiên bản save với `SaveManager.SCHEMA_VERSION`, đặt `current_scene` và chờ một khung hình trước khi lưu) và bỏ dòng bỏ qua file này trong `run_tests.ps1`: **784/784 PASS** ở 23 file, `test_step16.gd` 8/8. Lỗi 6/8 cũ nằm ở test, không phải ở lưu/tải. Chưa thử tay.
 - 2026-11-17, sau khi nắn sông ở chỗ cầu, nở đường mòn tới cầu, nối hồ ra biển, gộp mảng nền lẻ, bản đồ M che kín và chặn phím, bỏ NPC thử nghiệm khỏi game, dời bàn chế tạo vào giữa Trại: toàn bộ 22 file PASS. `test_view.gd` thêm 3 mục bản đồ M (nền kín, B không mở túi khi đang xem bản đồ, đối chứng B mở túi khi đã đóng), dời điểm thử bản đồ nhỏ từ (1280, 720) sang (1180, 720) vì giờ sát sông; 4 file test NPC tự gọi `spawn_test_npc()`. Chụp `docs/screenshots/cau_1..4.png`, `kenh_ra_bien.png`, `trai.png`, `ban_do_m.png`. Chưa thử tay.
 - 2026-11-17, sau khi bớt cây cột 0 và tảng đá (chặt 3 gỗ, đập 3 đá) và giãn khoảng cách để cây, vật không che nhau: toàn bộ 22 file PASS (`test_map_terrain.gd` 48 mục: thêm cây 3 gỗ, đá 3 đá, tán cây không chồng). Chưa thử tay.
 - 2026-11-17, sau khi nới cầu, xóa ô đất lạc giữa nước, bụi xanh nhỏ, tinh thể, đá trên nền mỏ, và cho gốc cây nhặt được gỗ: chạy toàn bộ 22 file đều PASS (`test_map_terrain.gd` 41 mục, có mục đứng hàng dưới cầu cũ vẫn qua sông); sau đó thêm 2 mục gốc cây và chạy riêng: 43/43. Chụp `docs/screenshots/cau.png`, `goc_cay.png`, `mo_sat.png`, `bo_bien_dong.png`. Chưa thử tay.
@@ -47,12 +48,12 @@ Chạy: `powershell -ExecutionPolicy Bypass -File tests\run_tests.ps1` (lọc b�
 
 1. Thử tay trọn game, bắt đầu bằng đêm đầu.
 2. Sửa lỗi phát sinh, merge `week5-foundation` vào `main`.
-3. Sửa hoặc bỏ `test_step16.gd` (6/8).
-4. Phần đất mới phía nam chưa có tài nguyên, quái, nhiệm vụ; bản đồ nhỏ chưa che theo chỗ đã đi.
-5. Xuất bản: đã có `export_presets.cfg`; lần xuất thử 2026-11-10 có một lần tự tắt sau 9 giây, chưa rõ nguyên nhân.
+3. Phần đất mới phía nam chưa có tài nguyên, quái, nhiệm vụ; bản đồ nhỏ chưa che theo chỗ đã đi.
+4. Xuất bản: đã có `export_presets.cfg`; lần xuất thử 2026-11-10 có một lần tự tắt sau 9 giây, chưa rõ nguyên nhân.
 
 ## Nhật ký gần nhất
 
+- 2026-11-17: sửa `test_step16.gd` cho khớp mã nhiệm vụ và phiên bản save hiện tại; bộ chạy test không còn bỏ qua file này.
 - 2026-11-17: sông thẳng vuông góc ở chỗ cầu, đường mòn nở rộng tới cầu; hồ tây nam thông ra biển; gộp mảng nền lẻ; bản đồ M che kín giao diện và chặn phím khác; NPC thử nghiệm không còn tự có trong game (save cũ cũng không khôi phục); bàn chế tạo dời từ mép nam Trại (944, 728) vào (1000, 650).
 - 2026-11-17: cây tán trơn sẫm bớt còn 47 cây, chặt được 3 Gỗ; tảng đá bớt còn 26, đập được 3 Đá; cây cách nhau 3 ô, vật không nằm dưới tán cây.
 - 2026-11-17: cầu rộng 3 ô (đứng hàng dưới cầu cũ bị kẹt); xóa ô đất lạc giữa nước; bỏ bụi xanh nhỏ, tinh thể xanh, tảng đá trên nền mỏ; gốc cây bớt một nửa, gốc còn lại nhặt được 1 Gỗ (25 gốc, `WoodPickups`). Chi tiết `docs/BAN_DO.md`.
