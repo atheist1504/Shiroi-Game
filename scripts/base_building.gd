@@ -260,8 +260,67 @@ func _configure_collision() -> void:
 	col.shape = rectangle
 	col.disabled = is_preview
 
+# Hình công trình do công cụ AI vẽ (cắt bằng tools/ai_art.gd, xem docs/CAN_CU.md).
+const ART_SHED := preload("res://assets/art_ai/shed.png")
+const ART_BY_TYPE: Dictionary = {
+	&"watchtower": preload("res://assets/art_ai/watchtower.png"),
+	&"storage": ART_SHED,
+	&"lumber_camp": ART_SHED,
+	&"fence": preload("res://assets/art_ai/fence.png"),
+	&"stone_quarry": preload("res://assets/art_ai/mine_stone.png"),
+	&"iron_mine": preload("res://assets/art_ai/mine_iron.png"),
+	&"gold_mine": preload("res://assets/art_ai/mine_gold.png"),
+	&"herb_garden": preload("res://assets/art_ai/herb_garden.png"),
+}
+# Nhà ở cấp 1-3: lều tranh, nhà gỗ, nhà đá.
+const ART_HOUSE: Array[Texture2D] = [
+	preload("res://assets/art_ai/house_1.png"),
+	preload("res://assets/art_ai/house_2.png"),
+	preload("res://assets/art_ai/house_3.png"),
+]
+const ART_LOG := preload("res://assets/art_ai/log.png")
+
+func _art() -> Texture2D:
+	if building_type_id == &"house":
+		return ART_HOUSE[clampi(level, 1, 3) - 1]
+	return ART_BY_TYPE.get(building_type_id, null)
+
 func _draw() -> void:
 	var rect := Rect2(-_footprint * 0.5, _footprint)
+	var art := _art()
+	var top := -_footprint.y * 0.5
+	if art:
+		# Hình đặt sát đáy ô nền, phần mái nhô lên trên.
+		var size := art.get_size()
+		var mod := Color(1, 1, 1, 0.55 if is_preview else 1.0)
+		top = _footprint.y * 0.5 - size.y
+		draw_texture(art, Vector2(-size.x * 0.5, top).round(), mod)
+		if building_type_id == &"lumber_camp":
+			draw_texture(ART_LOG, Vector2(-_footprint.x * 0.5, _footprint.y * 0.5 - ART_LOG.get_height()), mod)
+		if is_station() and not is_preview:
+			_draw_station_status()
+	else:
+		_draw_block(rect)
+
+	if is_preview:
+		var outline := Color(0.25, 1.0, 0.4, 0.95) if _placement_valid else Color(1.0, 0.25, 0.2, 0.95)
+		draw_rect(rect, outline, false, 2.0)
+	elif current_health < max_health:
+		var bar := Rect2(-_footprint.x * 0.5, top - 6.0, _footprint.x, 3.0)
+		draw_rect(bar, Color(0.1, 0.1, 0.12, 0.9), true)
+		draw_rect(Rect2(bar.position, Vector2(bar.size.x * current_health / max_health, bar.size.y)), Color(0.9, 0.3, 0.25, 1), true)
+
+# Người làm (chấm áo xanh = NPC thuê) và thanh kho trạm.
+func _draw_station_status() -> void:
+	for i in hired:
+		draw_circle(Vector2(-_footprint.x * 0.5 + 6 + i * 8, _footprint.y * 0.5 + 6), 3.0, Color(0.35, 0.7, 0.95, 1))
+	var fill_ratio := float(get_stock_total()) / float(STATION_CAPACITY)
+	var stock_bar := Rect2(-_footprint.x * 0.5, _footprint.y * 0.5 + 12, _footprint.x, 3)
+	draw_rect(stock_bar, Color(0.1, 0.1, 0.12, 0.9), true)
+	draw_rect(Rect2(stock_bar.position, Vector2(stock_bar.size.x * fill_ratio, 3)), Color(0.95, 0.8, 0.3, 1), true)
+
+# Khối màu cũ, dùng khi loại công trình chưa có hình.
+func _draw_block(rect: Rect2) -> void:
 	var fill := _building_color
 	if is_preview:
 		fill.a = 0.45
@@ -283,25 +342,7 @@ func _draw() -> void:
 			draw_rect(Rect2(-_footprint.x * 0.35, -_footprint.y * 0.3, _footprint.x * 0.7, _footprint.y * 0.48), roof, true)
 			draw_rect(Rect2(-4, _footprint.y * 0.15, 8, _footprint.y * 0.35), Color(0.28, 0.2, 0.14, 1), true)
 			if is_station() and not is_preview:
-				# Người làm (chấm áo xanh = NPC thuê) và thanh kho trạm.
-				for i in hired:
-					draw_circle(Vector2(-_footprint.x * 0.5 + 6 + i * 8, _footprint.y * 0.5 + 6), 3.0, Color(0.35, 0.7, 0.95, 1))
-				var fill_ratio := float(get_stock_total()) / float(STATION_CAPACITY)
-				var stock_bar := Rect2(-_footprint.x * 0.5, _footprint.y * 0.5 + 12, _footprint.x, 3)
-				draw_rect(stock_bar, Color(0.1, 0.1, 0.12, 0.9), true)
-				draw_rect(Rect2(stock_bar.position, Vector2(stock_bar.size.x * fill_ratio, 3)), Color(0.95, 0.8, 0.3, 1), true)
-			if building_type_id == &"house" and not is_preview:
-				# Chấm vàng trên mái = cấp nhà.
-				for i in level:
-					draw_rect(Rect2(-_footprint.x * 0.3 + i * 7.0, -_footprint.y * 0.26, 4, 4), Color(1.0, 0.85, 0.3, 1), true)
-
-	if is_preview:
-		var outline := Color(0.25, 1.0, 0.4, 0.95) if _placement_valid else Color(1.0, 0.25, 0.2, 0.95)
-		draw_rect(rect, outline, false, 3.0)
-	elif current_health < max_health:
-		var bar := Rect2(-_footprint.x * 0.5, -_footprint.y * 0.5 - 6.0, _footprint.x, 3.0)
-		draw_rect(bar, Color(0.1, 0.1, 0.12, 0.9), true)
-		draw_rect(Rect2(bar.position, Vector2(bar.size.x * current_health / max_health, bar.size.y)), Color(0.9, 0.3, 0.25, 1), true)
+				_draw_station_status()
 
 func to_save_dict() -> Dictionary:
 	return {

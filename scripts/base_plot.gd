@@ -38,17 +38,10 @@ func _draw() -> void:
 		draw_arc(center, base_manager.CAMP_FIRE_CLEAR, 0.0, TAU, 32, Color(1.0, 0.85, 0.5, 0.5), 1.0)
 	_draw_campfire(center)
 
+# Đống lửa do công cụ AI vẽ (tools/ai_art.gd); quầng sáng lập lòe vẽ thêm bằng code.
+const CAMPFIRE_ART: Texture2D = preload("res://assets/art_ai/campfire.png")
+
 func _draw_campfire(c: Vector2) -> void:
-	# Vòng đá.
-	for i in 8:
-		var p := c + Vector2.from_angle(TAU * i / 8.0) * Vector2(9, 6)
-		draw_circle(p, 2.6, Color(0.42, 0.41, 0.40))
-		draw_circle(p - Vector2(0.6, 0.6), 1.4, Color(0.62, 0.61, 0.58))
-	# Củi.
-	draw_line(c + Vector2(-6, 2), c + Vector2(6, -1), Color(0.42, 0.27, 0.15), 3.0)
-	draw_line(c + Vector2(-6, -1), c + Vector2(6, 2), Color(0.36, 0.22, 0.12), 3.0)
-	# Lửa lập lòe.
-	var h := 7.0 + sin(_flicker * 9.0) * 1.5 + sin(_flicker * 13.0) * 0.8
-	draw_colored_polygon(PackedVector2Array([c + Vector2(-4, 1), c + Vector2(0, -h), c + Vector2(4, 1)]), Color(1.0, 0.55, 0.15, 0.95))
-	draw_colored_polygon(PackedVector2Array([c + Vector2(-2, 1), c + Vector2(0, -h * 0.6), c + Vector2(2, 1)]), Color(1.0, 0.88, 0.45))
-	draw_circle(c, 18.0, Color(1.0, 0.7, 0.3, 0.06))
+	var glow := 0.07 + sin(_flicker * 9.0) * 0.02 + sin(_flicker * 13.0) * 0.01
+	draw_circle(c, 18.0, Color(1.0, 0.7, 0.3, glow))
+	draw_texture(CAMPFIRE_ART, (c - Vector2(CAMPFIRE_ART.get_width() * 0.5, CAMPFIRE_ART.get_height() - 6.0)).round())

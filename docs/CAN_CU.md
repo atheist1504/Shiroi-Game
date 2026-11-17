@@ -30,4 +30,13 @@ Cách hoạt động (`base_building.gd`, `base_manager.gd`, `worker_manager.gd`
 - NPC dân làng và nhân vật gacha không còn tự đi khai thác điểm tài nguyên.
 - Save lưu kho trạm, số NPC, thời gian chở còn lại.
 
-Chưa làm: NPC thuê chưa có thân đi lại thật (chỉ vẽ chấm xanh dưới trạm, việc chở hàng tính bằng thời gian); hình trạm vẫn là khối màu; số liệu chưa cân bằng.
+Chưa làm: NPC thuê chưa có thân đi lại thật (chỉ vẽ chấm xanh dưới trạm, việc chở hàng tính bằng thời gian); số liệu chưa cân bằng.
+
+## Hình công trình do AI vẽ (2026-11-15)
+
+Công trình, bàn chế tạo và đống lửa Trại dùng **hình do công cụ AI vẽ** (theo quyết định chung ở `docs/KE_HOACH.md`), cắt từ `assets/tiles/source/ai_buildings.webp` bằng `tools/ai_art.gd`, lưu ở `assets/art_ai/`. Hình đặt sát đáy ô nền, mái nhô lên trên; va chạm và ô nền không đổi.
+- Nhà ở cấp 1–3: lều tranh, nhà gỗ, nhà đá (`house_1..3.png`), thay cho chấm vàng báo cấp.
+- Tháp canh; Kho chứa tạm dùng lán gỗ; Trại gỗ = lán gỗ + khúc gỗ; hàng rào.
+- Mỏ vàng = cửa hầm có quặng vàng; Mỏ đá và Mỏ sắt dùng cùng cửa hầm, quặng nhuộm xám / cam (chưa có hình cửa hầm thường riêng); Dược viên = chậu thảo dược.
+- Bàn chế tạo (`crafting_station.gd`) = bàn rèn; đống lửa Trại (`base_plot.gd`) = đống lửa AI, quầng sáng lập lòe vẽ thêm bằng code.
+- Loại công trình chưa có hình thì vẫn vẽ khối màu như cũ.

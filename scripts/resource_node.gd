@@ -248,11 +248,12 @@ func _get_prompt_text() -> String:
 
 # Hình lấy từ bộ tile pixel của bản đồ (tools/gen_world_art.gd) cho hợp với cây, đá trang trí.
 const ART: Texture2D = preload("res://assets/tiles/terrain_tiles.png")
-const ART_TREE := Rect2(0, 21 * 16, 48, 48) # sồi to 3x3 ô
+# Cây, quặng là hình AI đã dán vào terrain_tiles.png (tools/ai_art.gd).
+const ART_TREE := Rect2(192, 21 * 16, 48, 48) # cây tán xanh bạc to 3x3 ô
 const ART_ROCK := Rect2(160, 24 * 16, 32, 32) # cụm đá mỏ 2x2 ô
 const ART_IRON := Rect2(192, 24 * 16, 32, 32) # cụm quặng sắt 2x2 ô
 const ART_GOLD := Rect2(224, 24 * 16, 32, 32) # cụm quặng vàng 2x2 ô
-const ART_HERB := Rect2(32, 24 * 16, 32, 32) # bụi hoa 2x2 ô
+const ART_HERB: Texture2D = preload("res://assets/art_ai/herb_bush.png") # bụi thảo dược quả xanh
 
 func _draw() -> void:
 	match node_type:
@@ -265,7 +266,4 @@ func _draw() -> void:
 		"gold":
 			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_GOLD)
 		"herb":
-			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_HERB)
-			# Hoa vàng để phân biệt với bụi hoa trang trí cùng hình trên bản đồ
-			for p in [Vector2(-6, -14), Vector2(4, -17), Vector2(1, -9)]:
-				draw_rect(Rect2(p, Vector2(2, 2)), Color(1.0, 0.9, 0.35, 1.0))
+			draw_texture(ART_HERB, Vector2(-ART_HERB.get_width() * 0.5, 8 - ART_HERB.get_height()))

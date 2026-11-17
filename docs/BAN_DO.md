@@ -37,6 +37,17 @@ Chủ dự án vẽ đường ranh phía bắc trên bản đồ M; vùng chơi 
 - Đá, sắt, vàng khai thác được vẽ thành cụm đá có tinh thể quặng (xám bạc, cam, vàng), hàng 24 cột 10/12/14 của ảnh tile.
 - Lưới đường đi của NPC phủ cả bản đồ (khoảng 65 ms khi dựng lại). Bỏ 4 tường biên cũ.
 
+## Hình do AI vẽ (2026-11-15)
+
+Theo quyết định chung ở `docs/KE_HOACH.md` (dùng AI thì ghi rõ): cây, vật thể, quặng, cầu trên bản đồ là **hình do công cụ AI vẽ**, chủ dự án cung cấp, phong cách lấy cây tán xanh bạc làm chính, không chép hình game khác.
+- Ảnh gốc: `assets/tiles/source/` (`tileset_ai_ref1.webp` tấm mẫu, `ai_trees`, `ai_shore`, `ai_cliff_bridge`, `ai_resources`, `ai_buildings`). Thư mục có `.gdignore` nên Godot không nhập. Nền ô vuông trong ảnh là vẽ giả, được xóa bằng code.
+- `tools/ai_art.gd` cắt từng món theo khung ghi trong file, thu về cỡ ô 16 (cây to 48×48, cụm quặng 32×32) và dán đè lên `terrain_tiles.png` ở bước `-- images`; đồng thời ghi hình công trình vào `assets/art_ai/`. Đổi ảnh gốc thì phải đo lại khung.
+- Đã thay: cây to (3 biến thể cây tán xanh bạc ở cột 0, 3, 12 hàng 21, rừng dùng xen kẽ; cây thu, cây hoa hồng), cây 2×2 (thông, cây khô...), bụi hoa, gốc cây, khúc gỗ, cỏ bụi, cụm đá/sắt/vàng, cột đá đổ, tinh thể, cầu gỗ. Điểm tài nguyên cây dùng cây tán xanh bạc, thảo dược dùng bụi quả xanh `assets/art_ai/herb_bush.png`.
+- Chưa thay (vẫn vẽ bằng code): ô nền (cỏ, đất, cát, đá...), bờ nước, vách đá, gò đất, đá rêu, nấm. Ảnh mẫu AI có lưới kẻ sẵn, bờ nước và vách vẽ liền thành mảng chứ không phải ô rời theo hướng, nên chưa ghép được; cần AI vẽ lại thành ô 16×16 rời (8 hướng + 4 góc trong).
+- (sau, cùng ngày) Hình AI gốc nhiều sắc độ nên trông như ảnh dán lên nền phẳng: `ai_art.gd` `flatten()` gom mỗi hình về 6–10 màu, hạ độ rực, thêm viền tối 1 điểm (công trình 8 màu). Riêng cụm đá xám giữ nguyên (chủ dự án thấy hợp) và thay luôn tảng đá, hòn đá nhỏ cũ. Quặng sắt và vàng cũng dùng cụm đá này, lộ vân gỉ cam / cục vàng trên các mặt sáng (`ore_tint()`), thay hình quặng AI riêng.
+- (sau, cùng ngày) Dọn bố cục ở bước `-- expand`: bỏ cát giữa đất liền (chỉ còn cát ven nước), bỏ các dải vách trên đất cao của lục địa, bỏ cát và vách sót dọc mép khung Rừng Nguyệt Ảnh cũ (trừ vòng vách Tàn Tích). Phía đông giờ là bãi đất trống rộng.
+- Ảnh chụp để duyệt: `docs/screenshots/` (Trại, rừng, mỏ đá, mỏ sắt, mỏ vàng, phía đông, Tàn Tích, bờ biển).
+
 ## Sửa bản đồ
 
 **Cách 1, vẽ tay trong editor:** mở `scenes/world_map.tscn`, chọn lớp, mở bảng **TileMap** rồi vẽ, xong lưu (Ctrl+S).

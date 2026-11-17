@@ -377,7 +377,10 @@ func _add_reveal_fog() -> void:
 	var fog := Image.create(columns, rows, false, Image.FORMAT_RGBA8)
 	for y in rows:
 		for x in columns:
-			var open := _revealed.has(y * columns + x)
+			# Ngoài vùng chơi (phía bắc đường ranh, mép khung) ảnh lục địa đã có mây: không che thêm,
+			# nếu không sẽ tối hai lần và lộ đường cắt ở mép khung.
+			var outside: bool = _terrain.play_distance(_chunk_center(Vector2i(x, y))) < -REVEAL_CHUNK * _terrain.TILE_SIZE
+			var open := outside or _revealed.has(y * columns + x)
 			fog.set_pixel(x, y, Color(UNREVEALED_COLOR, 0.0 if open else 0.9))
 	var rect := TextureRect.new()
 	rect.name = "RevealFog"

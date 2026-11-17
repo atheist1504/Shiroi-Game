@@ -26,6 +26,9 @@ extends SceneTree
 #              7 dương xỉ, 8 đá rêu, 9 cụm nấm
 #   hàng 26    gò đất cao (chặn đường), cột = mặt nạ cạnh hở
 #   hàng 27    cầu gỗ: cột 0 lối đông-tây, cột 1 lối bắc-nam
+# Có ảnh gốc AI ở assets/tiles/source/ thì tools/ai_art.gd đè hình AI lên cây
+# (hàng 16, 21: cột 0, 3, 12 là ba biến thể cây tán xanh bạc), vật thể, quặng,
+# cột đá, tinh thể, cầu; nền, nước, vách vẫn vẽ bằng code.
 # Mọi hình đều là tile trong tileset: sửa ảnh terrain_tiles.png bằng tay hay
 # thay ảnh khác cùng bố cục thì bản đồ tự đổi theo.
 
@@ -63,7 +66,10 @@ const BIG_SHADES := {
 	BIG.MOON: [Color(0.12, 0.22, 0.32), Color(0.25, 0.42, 0.52), Color(0.40, 0.62, 0.70), Color(0.62, 0.82, 0.86), Color(0.85, 0.96, 0.98)],
 }
 
+const AI_ART := preload("res://tools/ai_art.gd")
 var _img: Image
+# Có ảnh gốc AI thì rừng dùng nhiều biến thể cây tán xanh bạc.
+var _ai_art: bool = AI_ART.new().has_sources()
 var _box_cells: Array[Vector2i] = []
 # Tham số "-- paint regen_highlands": xóa gò đất cũ, sinh lại theo cấu hình mới.
 var _regen_highlands := false
@@ -182,6 +188,11 @@ func _make_tiles() -> void:
 	_props()
 	_bridge(_cell(0, ROW_BRIDGE), true)
 	_bridge(_cell(1, ROW_BRIDGE), false)
+	# Hình do công cụ AI vẽ (assets/tiles/source/) đè lên cây, vật thể, quặng, cầu.
+	var ai = AI_ART.new()
+	if ai.has_sources():
+		ai.apply_tiles(_img)
+		ai.make_sprites()
 	_save(_img, TILE_PNG)
 
 func _save(image: Image, path: String) -> void:
@@ -1527,10 +1538,14 @@ func _grove(c: Vector2i) -> float:
 	return 2.6 if n > 0.2 else (1.0 if n > -0.1 else 0.3)
 
 # Loại cây nhỏ (TREE.*) sang ô atlas: phần lớn dùng cây to 3x3.
-func _tree_coords(kind: int, _x: int, _y: int) -> Vector2i:
+func _tree_coords(kind: int, x: int, y: int) -> Vector2i:
 	# Rừng Nguyệt Ảnh chỉ một loại cây: cây trăng tán xanh bạc; cây khô ở Tàn Tích.
 	if kind == TREE.DEAD:
 		return Vector2i(TREE.DEAD, ROW_TREE)
+	if _ai_art:
+		# Hình AI có ba biến thể cây tán xanh bạc ở cột 12, 0, 3 (xem tools/ai_art.gd).
+		var k := _h(x, y, 77)
+		return Vector2i(BIG.MOON if k < 0.5 else (BIG.OAK if k < 0.8 else BIG.DARK), ROW_BIGTREE)
 	return Vector2i(BIG.MOON, ROW_BIGTREE)
 
 # Mảng cỏ cao, đất trống, đồng hoa trên cỏ/rừng/bùn (không đổi loại nền).
@@ -1826,6 +1841,12 @@ func _expand() -> void:
 					solid[c] = old_solid[c]
 				# Bố cục cũ làm rừng dày dọc mép khung 160x90; bỏ dải đó để không lộ đường thẳng.
 				var old_border := mini(mini(x, OLD_FOREST_CELLS.x - 1 - x), mini(y, OLD_FOREST_CELLS.y - 1 - y))
+				# (2026-11-15) Cát và vách sót dọc mép khung cũ cũng bỏ, để không thành dải lạc giữa đất liền.
+				var near_ruins := ((Vector2(c) * T + Vector2(8, 8) - RUINS_CENTER) / RUINS_RADIUS).length() <= 1.1
+				if old_border < 6 and solid.get(c, -1) == G.CLIFF and not near_ruins:
+					solid.erase(c)
+				if old_border < 12 and not solid.has(c) and old_types[c] == G.SAND:
+					types[c] = G.FOREST if forest_noise.get_noise_2d(x, y) > 0.05 else G.GRASS
 				if old_border < 8 and not solid.has(c) and old_types[c] in [G.GRASS, G.FOREST]:
 					types[c] = G.FOREST if forest_noise.get_noise_2d(x, y) > 0.05 else G.GRASS
 				kept += 1
@@ -1854,22 +1875,18 @@ func _expand() -> void:
 				if cont.get_pixelv(p).is_equal_approx(RIVER_COLOR):
 					river = true
 			var m := moist.get_noise_2d(px.x, px.y) * 0.5 + 0.5
-			var nx := float(px.x) / CONT_SIZE.x
-			var ny := float(px.y) / CONT_SIZE.y
 			var t := G.GRASS
 			if e < 0.385:
 				t = G.SAND
 			elif e > 0.60:
 				t = G.DIRT
-			elif m < 0.36 and nx > 0.55:
-				t = G.SAND
 			elif forest_noise.get_noise_2d(x, y) > 0.05 or m > 0.66:
 				t = G.FOREST
 			types[c] = t
+			# (2026-11-15) Bỏ cát giữa đất liền và các dải vách trên đất cao: chủ dự án thấy lộn xộn.
+			# Cát chỉ còn ở ven nước (e < 0.385), lục địa không có vách.
 			if river or e < 0.355:
 				solid[c] = G.WATER
-			elif e > 0.62 + ny * 0.75 or e > 0.70:
-				solid[c] = G.CLIFF
 	_save_play_mask(types, solid, cells)
 	ground.clear()
 	obstacles.clear()
