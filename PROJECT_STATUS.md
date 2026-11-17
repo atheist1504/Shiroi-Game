@@ -19,7 +19,7 @@ Game 2D top-down, Godot 4.7.2 (`D:\Godot\Godot_v4.7.2-stable_win64.exe`), GDScri
 | Thời gian | Đồng hồ chỉ chạy khi chơi, tài nguyên ngoài Trại hồi sinh | `world_clock.gd`, `resource_node.gd` |
 | Gacha | Ví vàng/Tinh Vẫn, 5★ 2%, bảo hiểm 40, Tinh Hồn, theo seed | `wallet_manager.gd`, `gacha_manager.gd`, `gacha_ui.gd` |
 | Tổ đội | 3 người, đổi 1/2/3, 6 phối hợp nguyên tố, gục hồi sau 30s | `party_manager.gd`, `party_ui.gd` |
-| Bản đồ | Không có gò đất; nền đá/quặng chỉ ở 3 bãi mỏ; hòn đá nhỏ trên cỏ, đất nhặt được 1 Đá. Vùng chơi là lục địa phía nam (khung 320×134 ô, gốc (-80, -24), mặt nạ `assets/maps/play_mask.png`), Rừng Nguyệt Ảnh giữ tọa độ cũ; ngoài vùng là mây. Vẽ bằng `tools/gen_world_art.gd` (bước layout/expand/images/paint) và hình AI ghép bằng `tools/ai_art.gd`. Cách sửa ở `docs/BAN_DO.md` | `world_terrain.gd`, `map_zone.gd`, `region_gate.gd`, `scenes/world_map.tscn` |
+| Bản đồ | Không có gò đất; nền đá/quặng chỉ ở 3 bãi mỏ; hòn đá nhỏ trên cỏ, đất nhặt được 1 Đá; bụi quả đỏ là thảo dược nhặt được (1 Thảo dược); Trại không có cục đá. Vùng chơi là lục địa phía nam (khung 320×134 ô, gốc (-80, -24), mặt nạ `assets/maps/play_mask.png`), Rừng Nguyệt Ảnh giữ tọa độ cũ; ngoài vùng là mây. Vẽ bằng `tools/gen_world_art.gd` (bước layout/expand/images/paint) và hình AI ghép bằng `tools/ai_art.gd`. Cách sửa ở `docs/BAN_DO.md` | `world_terrain.gd`, `map_zone.gd`, `region_gate.gd`, `scenes/world_map.tscn` |
 | Bản đồ nhỏ, bản đồ M | Bản đồ nhỏ tròn góc trên phải, trượt theo người chơi; M mở bản đồ thế giới theo chỗ đã đi, nút ◆ ở Trại để dịch chuyển về; Ctrl + lăn chuột zoom 0,75–1,5 | `minimap.gd`, `camera_zoom.gd` |
 | Cốt truyện | Mở đầu, lời kết demo (nháp), 6 nhiệm vụ Hệ thống. Khung truyện đã chốt trong `docs/COT_TRUYEN.md`, `docs/NHIEM_VU.md`; lời thoại trong game chưa đổi theo | `narrative_ui.gd`, `quest_manager.gd` |
 | Màn bắt đầu | Chơi mới / Tiếp tục (Slot 1) / Thoát; Chơi mới: đặt tên → mở đầu → đêm đầu | `title_menu.gd` |
@@ -36,6 +36,7 @@ WASD di chuyển; chuột trái chém; chuột phải chạy; Space né; E/R k�
 
 Chạy: `powershell -ExecutionPolicy Bypass -File tests\run_tests.ps1` (lọc bằng `-Filter`; tự sao lưu save).
 
+- 2026-11-17, sau khi thêm bụi thảo dược nhặt được và bỏ đá trong Trại: chạy toàn bộ 22 file đều PASS; sau đó thêm 2 mục thảo dược vào `test_map_terrain.gd` và chạy riêng: 39/39. `test_camp.gd` thử dọn đất bằng cây `hv_tree_02`, `test_step21_3.gd` còn 4 điểm tài nguyên trong Trại, thử giờ hồi đá bằng `zone_rock_01`. Chụp `docs/screenshots/trai.png`, `bui_thao_duoc.png`. Chưa thử tay.
 - 2026-11-17, sau khi dọn bản đồ và thêm hòn đá nhặt được: **761/761 PASS** ở 22 file (`test_map_terrain.gd` thêm 2 mục hòn đá, đổi số điểm tài nguyên phía nam 11 → 6); `test_step16.gd` bị bộ chạy bỏ qua vì lỗi thời (chạy riêng thì 6/8, lỗi lưu/tải có sẵn). Chụp màn hình có cửa sổ ở `docs/screenshots/` (thêm `hon_da_nho.png`, `bai_da_cu.png`). Chưa thử tay.
 - **Chưa thử tay:** đêm đầu, thợ và đột kích, tổ đội, trọn chuỗi nhiệm vụ, bản đồ mới, trạm khai thác. Gacha đã được người dùng thử.
 
@@ -49,5 +50,6 @@ Chạy: `powershell -ExecutionPolicy Bypass -File tests\run_tests.ps1` (lọc b�
 
 ## Nhật ký gần nhất
 
+- 2026-11-17: bụi tối trên bản đồ thay bằng bụi quả đỏ (ảnh chủ dự án gửi), là thảo dược nhặt được (31 bụi, `HerbPickups`); các điểm thảo dược đặt sẵn cũng dùng hình này; bỏ 2 cục đá trong Trại (`hv_rock_01/02`). `tools/ai_art.gd` bỏ qua điểm ảnh trong suốt của ảnh gốc.
 - 2026-11-17: dọn bản đồ theo yêu cầu (chi tiết `docs/BAN_DO.md`, mục "Dọn bản đồ"): bỏ gò đất, cây tán xanh bạc cột 12, bụi hoa 2x2, 5 bãi đá/vàng nhỏ ngoài 3 khu mỏ cùng 7 điểm đá/vàng lạc chỗ; dời `zone_iron_01` vào mỏ sắt; thêm 42 hòn đá nhỏ nhặt được (1 Đá mỗi hòn).
 - 2026-11-17: xóa 8 thư mục `backup_*` và các file `.bak` khỏi git (còn trong lịch sử git); thêm `*.bak`, `backup_*/`, `*.log` vào `.gitignore`; rút gọn file này, chuyển nhật ký cũ sang `docs/NHAT_KY_KIEM_THU.md`.

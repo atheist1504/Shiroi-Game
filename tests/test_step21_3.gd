@@ -25,17 +25,18 @@ func _run() -> void:
 
 	var base_rect := Rect2(Vector2(672, 520), Vector2(544, 160))
 	var base_nodes: Array[Node2D] = []
-	for id in [&"hv_tree_01", &"hv_tree_02", &"hv_rock_01", &"hv_rock_02", &"hv_herb_01", &"hv_herb_02"]:
+	for id in [&"hv_tree_01", &"hv_tree_02", &"hv_herb_01", &"hv_herb_02"]:
 		var found := _find_node(nodes, id)
 		if found and base_rect.has_point(found.global_position):
 			base_nodes.append(found)
-	_check(base_nodes.size() == 6, "Căn cứ có đủ 6 điểm tài nguyên nằm trong BasePlot")
-	if base_nodes.size() != 6:
+	_check(base_nodes.size() == 4, "Căn cứ có đủ 4 điểm tài nguyên (2 cây, 2 thảo dược) nằm trong BasePlot")
+	if base_nodes.size() != 4:
 		_finish()
 		return
 
 	var tree := _find_node(nodes, &"hv_tree_01")
-	var rock := _find_node(nodes, &"hv_rock_01")
+	# (2026-11-17) Trại không còn cục đá: thử giờ hồi đá bằng một điểm đá ở mỏ.
+	var rock := _find_node(nodes, &"zone_rock_01")
 	var herb := _find_node(nodes, &"hv_herb_01")
 	_check(is_equal_approx(float(tree.call("get_respawn_duration")), 60.0), "Gỗ hồi sau 60 giây")
 	_check(is_equal_approx(float(rock.call("get_respawn_duration")), 90.0), "Đá hồi sau 90 giây")
@@ -103,7 +104,7 @@ func _run() -> void:
 	var base_manager := root.get_node("BaseManager")
 	base_manager.call("unlock_base_for_debug")
 	# Quy tắc dọn đất: tài nguyên đã cạn không còn chặn xây (xây lên thì nó mất hẳn, xem test_camp.gd).
-	_check(bool(rock.get("is_harvested")) and not str(base_manager.call("_get_placement_block_reason", &"storage", Vector2i(55, 41))).contains("tài nguyên"), "Tài nguyên đã cạn không chặn xây")
+	_check(bool(herb.get("is_harvested")) and not str(base_manager.call("_get_placement_block_reason", &"storage", Vector2i((herb.global_position / 16.0).round()))).contains("tài nguyên"), "Tài nguyên đã cạn không chặn xây")
 	var npc: Node = npc_manager.call("get_npc")
 	if not npc:
 		_check(false, "NPC tồn tại để chạy vòng lặp")

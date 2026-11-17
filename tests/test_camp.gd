@@ -88,7 +88,8 @@ func _run() -> void:
 	_check(base.validate_save_data(old_save), "Save cũ chưa có cấp nhà vẫn tải được")
 
 	# Dọn đất: tài nguyên còn thì chặn xây; đã khai thác thì xây lên được và mất hẳn.
-	var rock: Node2D = scene.get_node("ResourceNodes/BaseRock01")
+	# (2026-11-17) Trại không còn cục đá: thử bằng cây trong Trại.
+	var rock: Node2D = scene.get_node("ResourceNodes/BaseTree02")
 	var rock_grid := Vector2i((rock.global_position / 16.0).round())
 	_check(base._get_placement_block_reason(&"fence", rock_grid).contains("tài nguyên"), "Tài nguyên chưa khai thác chặn xây")
 	rock.set_harvested(true, false)
@@ -99,7 +100,7 @@ func _run() -> void:
 	rock.set_harvested(false, false)
 	_check(rock.is_harvested and not rock.is_processing(), "Chỗ đã dọn không mọc lại")
 	var world_save: Dictionary = root.get_node("WorldState").to_dict()
-	_check(str(world_save).contains("cleared_hv_rock_01"), "Cờ dọn đất nằm trong dữ liệu lưu của thế giới")
+	_check(str(world_save).contains("cleared_hv_tree_02"), "Cờ dọn đất nằm trong dữ liệu lưu của thế giới")
 
 	# Tháp canh bắn quái đã vào Trại, không bắn quái ngoài Trại.
 	var slime_scene := load("res://slime.tscn") as PackedScene

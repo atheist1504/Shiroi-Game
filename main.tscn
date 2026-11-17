@@ -326,18 +326,6 @@ node_id = &"hv_tree_01"
 position = Vector2(1120, 548)
 node_id = &"hv_tree_02"
 
-[node name="BaseRock01" parent="ResourceNodes" unique_id=2102207855 instance=ExtResource("10_res_node")]
-position = Vector2(880, 652)
-node_id = &"hv_rock_01"
-node_type = "rock"
-resource_id = &"stone"
-
-[node name="BaseRock02" parent="ResourceNodes" unique_id=797817867 instance=ExtResource("10_res_node")]
-position = Vector2(1040, 652)
-node_id = &"hv_rock_02"
-node_type = "rock"
-resource_id = &"stone"
-
 [node name="BaseHerb01" parent="ResourceNodes" unique_id=1562931415 instance=ExtResource("10_res_node")]
 position = Vector2(720, 640)
 node_id = &"hv_herb_01"

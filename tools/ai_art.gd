@@ -79,6 +79,9 @@ func cut(sheet: String, r: Rect2i, opts: Dictionary = {}) -> Image:
 			if sx >= w or sy >= img.get_height() or bg[sy * w + sx] == 1:
 				continue
 			var c := img.get_pixel(sx, sy)
+			# Ảnh gốc có nền trong suốt (vd. ai_herb_bush.webp) thì bỏ qua điểm trong suốt.
+			if c.a < 0.5:
+				continue
 			if opts.get("holes", false) and c.s < 0.05 and (absf(c.v - tones[0]) < 0.05 or absf(c.v - tones[1]) < 0.05):
 				continue
 			if opts.get("no_green", false) and c.h > 0.17 and c.h < 0.45 and c.s > 0.3:
@@ -317,7 +320,8 @@ const SPRITES := {
 	"fence": ["ai_buildings", Rect2i(664, 387, 139, 48), {"holes": true}, Vector2i(32, 16)],
 	"anvil": ["ai_buildings", Rect2i(551, 378, 84, 72), {"holes": true}, Vector2i(28, 24)],
 	"campfire": ["ai_buildings", Rect2i(553, 470, 71, 67), {}, Vector2i(24, 24)],
-	"herb_bush": ["ai_trees", Rect2i(434, 410, 60, 55), {}, Vector2i(28, 26)],
+	# (2026-11-17) Bụi quả đỏ do chủ dự án gửi: thảo dược nhặt được.
+	"herb_bush": ["ai_herb_bush", Rect2i(278, 234, 838, 732), {}, Vector2i(24, 21)],
 	"log": ["ai_trees", Rect2i(291, 344, 119, 44), {}, Vector2i(24, 10)],
 }
 

@@ -92,6 +92,16 @@ func _run() -> void:
 		pebble.call("_try_gather")
 		_check(pebble.get("node_type") == "pebble" and pebble.is_in_group("resource_nodes") and int(inv.call("get_item_count", &"stone")) == before + 1 and bool(pebble.get("is_harvested")), "Nhặt hòn đá nhỏ được 1 đá rồi hòn đá biến mất")
 		pebble.call("set_harvested", false, false)
+	# Bụi quả đỏ rải trong rừng là thảo dược nhặt được (2026-11-17).
+	var herbs: Node = terrain.get_node_or_null("HerbPickups")
+	_check(herbs != null and herbs.get_child_count() >= 15, "Có bụi thảo dược nhặt được rải trên bản đồ")
+	if herbs and herbs.get_child_count() > 0:
+		var bush: Node = herbs.get_child(0)
+		var inv_h := root.get_node("InventoryManager")
+		var herb_before := int(inv_h.call("get_item_count", &"herb"))
+		bush.call("_try_gather")
+		_check(bush.get("node_type") == "herb" and int(inv_h.call("get_item_count", &"herb")) == herb_before + 1 and bool(bush.get("is_harvested")), "Nhặt bụi thảo dược được 1 thảo dược")
+		bush.call("set_harvested", false, false)
 	_check(far_count == 6,"Vùng phía nam có 6 điểm tài nguyên (cây, thảo dược; đá và vàng chỉ ở bãi mỏ)")
 
 	# Sông chặn đường, chỉ qua được ở cầu.

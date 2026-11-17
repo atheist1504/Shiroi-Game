@@ -767,6 +767,7 @@ func _paint() -> void:
 	var trees := {}
 	var props := {}
 	var pebbles := {}
+	var herbs := {}
 	for x in range(_o.x, _o.x + cells.x):
 		for y in range(_o.y, _o.y + cells.y):
 			var c := Vector2i(x, y)
@@ -808,7 +809,7 @@ func _paint() -> void:
 			var item := _pick_deco(t, x, y)
 			if item >= 0:
 				deco.set_cell(c, 0, Vector2i(item, ROW_DECO))
-			var kind_tree := -1 if _near_any(pebbles, c, 2) else _pick_tree(c, t, cells, solid, trail, avoid, trees, types)
+			var kind_tree := -1 if _near_any(pebbles, c, 2) or _near_any(herbs, c, 2) else _pick_tree(c, t, cells, solid, trail, avoid, trees, types)
 			if kind_tree >= 0:
 				trees[c] = true
 				canopy.set_cell(c, 0, _tree_coords(kind_tree, x, y))
@@ -819,7 +820,13 @@ func _paint() -> void:
 				deco.erase_cell(c)
 				continue
 			var prop := _pick_prop(c, t, solid, trail, avoid, props)
-			if prop.x >= 0:
+			# (2026-11-17) Bụi tối (FERN) thay bằng bụi quả đỏ: thảo dược nhặt được.
+			if prop.x == P.FERN:
+				if _pickup_spot_ok(c, solid, trail, avoid, trees):
+					props[c] = true
+					herbs[c] = true
+					deco.erase_cell(c)
+			elif prop.x >= 0:
 				props[c] = true
 				deco.set_cell(c, 0, prop)
 
@@ -830,7 +837,8 @@ func _paint() -> void:
 		deco.erase_cell(bc)
 		canopy.erase_cell(bc)
 
-	_write_pebbles(map_root, pebbles)
+	_write_pickups(map_root, "StonePickups", pebbles, "pebble", &"stone")
+	_write_pickups(map_root, "HerbPickups", herbs, "herb", &"herb")
 
 	var fog := map_root.get_node_or_null("FogBorder")
 	if not fog:
@@ -842,7 +850,7 @@ func _paint() -> void:
 	var scene := PackedScene.new()
 	scene.pack(map_root)
 	ResourceSaver.save(scene, MAP_SCENE)
-	print("Đã tô lại bản đồ: %d cây, %d ô đường mòn, %d hòn đá nhặt được." % [trees.size(), trail.size(), pebbles.size()])
+	print("Đã tô lại bản đồ: %d cây, %d ô đường mòn, %d hòn đá, %d bụi thảo dược nhặt được." % [trees.size(), trail.size(), pebbles.size(), herbs.size()])
 
 # (2026-11-17) Nền đá/gỉ sắt/vàng chỉ còn ở 3 bãi mỏ lớn; các bãi nhỏ lạc chỗ (dưới
 # 100 ô) đổi thành cỏ/rừng theo cùng nhiễu với phần còn lại của rừng.
@@ -883,36 +891,43 @@ const PEBBLE_CAMP_CLEAR := 24.0 # ô; Trại rộng tối đa 320 px = 20 ô
 func _pick_pebble(c: Vector2i, t: int, solid: Dictionary, trail: Dictionary, avoid: Array[Vector2i], pebbles: Dictionary, trees: Dictionary) -> bool:
 	if not t in [G.GRASS, G.DIRT] or _h(c.x, c.y, 361) >= 0.012:
 		return false
+	if _near_any(pebbles, c, 4):
+		return false
+	return _pickup_spot_ok(c, solid, trail, avoid, trees)
+
+# Chỗ đặt vật nhặt được: ngoài Trại (tài nguyên trong Trại không hồi), xa mép mây,
+# không sát cây, vật cản, đường mòn, và chỗ có người/quái/tài nguyên.
+func _pickup_spot_ok(c: Vector2i, solid: Dictionary, trail: Dictionary, avoid: Array[Vector2i], trees: Dictionary) -> bool:
 	if Vector2(c).distance_to(CAMP_CELL) < PEBBLE_CAMP_CLEAR or _edge_value(c) > 0.8:
 		return false
-	if _near_any(pebbles, c, 4) or _near_any(trees, c, 2) or _near_any(solid, c, 1) or _near_any(trail, c, 1):
+	if _near_any(trees, c, 2) or _near_any(solid, c, 1) or _near_any(trail, c, 1):
 		return false
 	for p in avoid:
 		if absi(p.x - c.x) <= 2 and absi(p.y - c.y) <= 2:
 			return false
 	return true
 
-# Ghi các hòn đá nhỏ thành điểm tài nguyên (resource_node.tscn) dưới node StonePickups
-# của world_map.tscn. node_id theo ô nên save giữ đúng hòn đã nhặt.
-func _write_pebbles(map_root: Node, pebbles: Dictionary) -> void:
-	var old := map_root.get_node_or_null("StonePickups")
+# Ghi vật nhặt được (hòn đá, bụi thảo dược) thành điểm tài nguyên (resource_node.tscn)
+# dưới một node của world_map.tscn. node_id theo ô nên save giữ đúng cái đã nhặt.
+func _write_pickups(map_root: Node, holder_name: String, cells_set: Dictionary, kind: String, resource: StringName) -> void:
+	var old := map_root.get_node_or_null(holder_name)
 	if old:
 		map_root.remove_child(old)
 		old.free()
 	var holder := Node2D.new()
-	holder.name = "StonePickups"
+	holder.name = holder_name
 	map_root.add_child(holder)
 	holder.owner = map_root
 	var res_scene := load("res://scenes/resource_node.tscn") as PackedScene
-	var keys := pebbles.keys()
+	var keys := cells_set.keys()
 	keys.sort()
 	for c in keys:
 		var node := res_scene.instantiate()
-		node.name = "Pebble_%d_%d" % [c.x, c.y]
+		node.name = "%s_%d_%d" % [kind.capitalize(), c.x, c.y]
 		node.position = Vector2(c) * T + Vector2(8, 10)
-		node.set("node_id", StringName("pebble_%d_%d" % [c.x, c.y]))
-		node.set("node_type", "pebble")
-		node.set("resource_id", &"stone")
+		node.set("node_id", StringName("%s_%d_%d" % [kind, c.x, c.y]))
+		node.set("node_type", kind)
+		node.set("resource_id", resource)
 		node.set("yield_amount", 1)
 		holder.add_child(node)
 		node.owner = map_root
