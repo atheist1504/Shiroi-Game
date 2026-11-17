@@ -11,9 +11,15 @@ enum Type {
 const MAX_TOASTS: int = 3
 const TOAST_DURATION: float = 3.0
 const ANTI_SPAM_WINDOW_MS: int = 800
+const REGION_NAMES: Dictionary = {
+	&"hope_valley_area": "Trại", &"zone_forest": "Khu Rừng", &"zone_stone_mine": "Mỏ Đá",
+	&"zone_iron_mine": "Mỏ Sắt", &"zone_gold_mine": "Mỏ Vàng", &"zone_swamp": "Đầm Lầy", &"zone_dunes": "Đồi Cát",
+	&"zone_ruins": "Tàn Tích", &"ruins": "Tàn Tích", &"ancient_archive": "Bản ghi cổ", &"forest_traces": "Di Tích Cổ"
+}
 
 var _canvas_layer: CanvasLayer = null
 var _vbox: VBoxContainer = null
+var _toast_tweens: Dictionary = {}
 
 # Lịch sử chống spam: {"hash": last_tick_ms}
 var _recent_messages: Dictionary = {}
@@ -37,9 +43,10 @@ func _create_ui() -> void:
 	_vbox.anchor_top = 0.0
 	_vbox.anchor_bottom = 0.0
 	_vbox.offset_left = -230.0
-	_vbox.offset_top = 10.0
+	# Dưới bản đồ nhỏ ở góc trên phải.
+	_vbox.offset_top = 112.0
 	_vbox.offset_right = -10.0
-	_vbox.offset_bottom = 160.0
+	_vbox.offset_bottom = 262.0
 	_vbox.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_vbox.add_theme_constant_override("separation", 5)
@@ -51,15 +58,15 @@ func _connect_game_signals() -> void:
 	if event_bus:
 		if event_bus.has_signal("region_discovered"):
 			event_bus.region_discovered.connect(func(r_id: StringName):
-				show_info("Khám phá vùng đất: %s" % str(r_id))
+				show_info("Khám phá vùng đất: %s" % str(REGION_NAMES.get(r_id, r_id)))
 			)
 		if event_bus.has_signal("region_unlocked"):
 			event_bus.region_unlocked.connect(func(r_id: StringName):
-				show_success("Mở khóa khu vực mới: %s" % str(r_id))
+				show_success("Mở khóa khu vực mới: %s" % str(REGION_NAMES.get(r_id, r_id)))
 			)
 		if event_bus.has_signal("quest_completed"):
 			event_bus.quest_completed.connect(func(q_id: StringName):
-				show_success("Hoàn thành nhiệm vụ: %s!" % str(q_id))
+				show_success("Hoàn thành nhiệm vụ: %s!" % str(get_node("/root/QuestManager").get_quest_definition(q_id).get("title", q_id)))
 			)
 
 	# Lắng nghe QuestManager
@@ -122,11 +129,16 @@ func show_notification(text: String, type: Type = Type.INFO) -> void:
 			return
 	_recent_messages[text] = now
 
-	# Dọn dẹp nếu vượt quá số lượng tối đa đồng thời
-	if _vbox.get_child_count() >= MAX_TOASTS:
-		var oldest := _vbox.get_child(0)
-		if oldest:
-			oldest.queue_free()
+	# Dọn các toast cũ cùng tween của chúng trước khi vượt giới hạn.
+	while _vbox.get_child_count() >= MAX_TOASTS:
+		var oldest: Control = null
+		for child in _vbox.get_children():
+			if child is Control and not child.is_queued_for_deletion():
+				oldest = child as Control
+				break
+		if not oldest:
+			break
+		_remove_toast(oldest)
 
 	# Tạo Toast PanelContainer
 	var panel := PanelContainer.new()
@@ -188,11 +200,24 @@ func show_notification(text: String, type: Type = Type.INFO) -> void:
 	# Hiệu ứng mờ dần và trượt mượt mà
 	panel.modulate.a = 0.0
 	var tween := create_tween()
+	var toast_instance_id := panel.get_instance_id()
+	_toast_tweens[toast_instance_id] = tween
 	tween.set_parallel(false)
 	tween.tween_property(panel, "modulate:a", 1.0, 0.15)
 	tween.tween_interval(TOAST_DURATION)
 	tween.tween_property(panel, "modulate:a", 0.0, 0.3)
-	tween.tween_callback(func():
-		if is_instance_valid(panel):
-			panel.queue_free()
-	)
+	tween.tween_callback(_finish_toast.bind(toast_instance_id))
+
+func _remove_toast(panel: Control) -> void:
+	var toast_instance_id := panel.get_instance_id()
+	var tween := _toast_tweens.get(toast_instance_id) as Tween
+	if tween and tween.is_valid():
+		tween.kill()
+	_toast_tweens.erase(toast_instance_id)
+	panel.queue_free()
+
+func _finish_toast(toast_instance_id: int) -> void:
+	_toast_tweens.erase(toast_instance_id)
+	var toast := instance_from_id(toast_instance_id)
+	if is_instance_valid(toast) and toast is Node:
+		(toast as Node).queue_free()

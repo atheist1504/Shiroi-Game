@@ -18,6 +18,10 @@ signal world_flag_changed(flag_id: StringName, value: Variant)
 # 4. Các tín hiệu nhiệm vụ
 signal quest_completed(quest_id: StringName)
 
+# 5. Các tín hiệu gacha & phòng thủ căn cứ
+signal gacha_pulled(count: int)
+signal raid_repelled(wave: int)
+
 # Lịch sử sự kiện gần nhất phục vụ Debug Panel (tối đa 12 mục)
 var recent_event_log: Array[Dictionary] = []
 const MAX_LOG_ENTRIES := 12

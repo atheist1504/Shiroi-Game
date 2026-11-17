@@ -99,7 +99,7 @@ custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.78, 0.84, 0.9, 1)
 theme_override_font_sizes/font_size = 8
-text = "WASD: Di chuyển | Chuột phải: Chạy\nChuột trái: Tấn công | Space: Né\nE/R: Kỹ năng Phong | F: Tương tác\nB: Túi đồ | J: Nhiệm vụ | G: Xây dựng\nF3: Debug | F5/F9: Lưu/Tải\nEsc: Menu / Tiếp tục"
+text = "WASD: Di chuyển | Chuột phải: Chạy\nChuột trái: Tấn công | Space: Né\nE/R: Kỹ năng Phong | F: Tương tác\nB: Túi đồ | J: Nhiệm vụ | G: Xây dựng\nF3: Debug | F5/F9: Lưu/Tải\nF11 hoặc Alt+Enter: Toàn màn hình | Esc: Menu / Tiếp tục"
 horizontal_alignment = 1
 autowrap_mode = 2
 
@@ -126,6 +126,14 @@ theme_override_font_sizes/font_size = 10
 theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
 text = "Tải game (F9)"
+
+[node name="FullscreenBtn" type="Button" parent="PanelContainer/Margin/VBox"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
+text = "Toàn màn hình (F11 / Alt+Enter)"
 
 [node name="RestartBtn" type="Button" parent="PanelContainer/Margin/VBox"]
 custom_minimum_size = Vector2(0, 24)

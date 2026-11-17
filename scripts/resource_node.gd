@@ -1,18 +1,47 @@
 extends Area2D
 
-# ResourceNode - Điểm thu thập tài nguyên (Cây, Tảng đá, Bụi thảo dược) (Bước 17)
+# ResourceNode - Điểm thu thập tài nguyên (Cây, Tảng đá, Hòn đá nhỏ, Bụi thảo dược) (Bước 17)
 @export var node_id: StringName = &"tree_01"
-@export var node_type: String = "tree" # "tree", "rock", "herb"
+@export var node_type: String = "tree" # "tree", "stump", "rock", "pebble", "iron", "gold", "herb"
 @export var resource_id: StringName = &"wood"
 @export var yield_amount: int = 3
+@export var respawn_seconds: float = 0.0 # 0 = dùng mặc định theo loại tài nguyên
+
+const DEFAULT_RESPAWN_SECONDS: Dictionary = {&"wood": 60.0, &"stone": 90.0, &"herb": 45.0, &"iron_ore": 120.0, &"gold_ore": 180.0}
+const FALLBACK_RESPAWN_SECONDS: float = 60.0
 
 @onready var prompt_label: Label = $PromptLabel
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
 var player_inside: bool = false
 var is_harvested: bool = false
+var _reserved_by_npc: StringName = &""
+var _fade_tween: Tween = null
+
+func _process(_delta: float) -> void:
+	var clock := get_node_or_null("/root/WorldClock")
+	if not clock:
+		return
+	var respawn_at := _get_respawn_at()
+	if respawn_at >= 0.0 and float(clock.call("get_time")) >= respawn_at:
+		if _is_in_camp():
+			_stop_respawn() # Trại đã nở tới đây trong lúc chờ: không mọc lại nữa
+		else:
+			set_harvested(false, false)
+
+# Tài nguyên trong vòng Trại khai thác xong là hết, không hồi sinh.
+func _is_in_camp() -> bool:
+	var base := get_node_or_null("/root/BaseManager")
+	return base != null and bool(base.call("is_in_camp", global_position))
+
+func _stop_respawn() -> void:
+	var world_state = get_node_or_null("/root/WorldState")
+	if world_state:
+		world_state.set_flag(_respawn_flag_id(), -1.0)
+	set_process(false)
 
 func _ready() -> void:
+	set_process(false)
 	collision_layer = 0
 	collision_mask = 2 # Player layer
 	add_to_group("resource_nodes")
@@ -20,9 +49,12 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if prompt_label:
 		prompt_label.visible = false
 		prompt_label.text = _get_prompt_text()
+		if node_type == "tree":
+			prompt_label.position.y -= 16.0 # cây cao, đẩy chữ lên trên tán
 
 	# Kiểm tra xem tài nguyên này đã từng thu thập trước đó chưa (từ WorldState)
 	var world_state = get_node_or_null("/root/WorldState")
@@ -40,11 +72,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _try_gather() -> void:
+	if is_harvested:
+		return
 	var inv_mgr = get_node_or_null("/root/InventoryManager")
 	if not inv_mgr:
 		return
 
-	if not inv_mgr.can_add_item(resource_id, yield_amount):
+	if resource_id != &"gold_ore" and not inv_mgr.can_add_item(resource_id, yield_amount):
 		var notif_mgr = get_node_or_null("/root/NotificationManager")
 		if notif_mgr:
 			notif_mgr.show_warning("Túi đồ đã đầy! Không thể thu thập thêm.")
@@ -54,6 +88,9 @@ func _try_gather() -> void:
 	set_harvested(true, true)
 
 func set_harvested(harvested: bool, notify: bool = false) -> void:
+	# Chỗ đã bị công trình xây lên thì không bao giờ mọc lại (kể cả khi tải save).
+	if not harvested and is_cleared():
+		return
 	is_harvested = harvested
 	if is_harvested:
 		if prompt_label:
@@ -61,7 +98,14 @@ func set_harvested(harvested: bool, notify: bool = false) -> void:
 		if collision_shape:
 			collision_shape.set_deferred("disabled", true)
 
-		if notify:
+		if notify and resource_id == &"gold_ore":
+			var wallet = get_node_or_null("/root/WalletManager")
+			if wallet:
+				wallet.add_gold(yield_amount * wallet.GOLD_PER_ORE)
+				var gold_notice = get_node_or_null("/root/NotificationManager")
+				if gold_notice:
+					gold_notice.show_success("+%d vàng" % (yield_amount * wallet.GOLD_PER_ORE))
+		elif notify:
 			var inv_mgr = get_node_or_null("/root/InventoryManager")
 			if inv_mgr:
 				inv_mgr.add_item(resource_id, yield_amount)
@@ -79,15 +123,106 @@ func set_harvested(harvested: bool, notify: bool = false) -> void:
 		if world_state and world_state.has_method("set_flag"):
 			world_state.set_flag(StringName("harvested_" + str(node_id)), true)
 
+		_schedule_respawn_if_needed()
+
 		# Hiệu ứng mờ dần khi biến mất
-		var tween := create_tween()
-		tween.tween_property(self, "modulate:a", 0.0, 0.25)
-		tween.tween_callback(func(): visible = false)
+		_kill_fade()
+		_fade_tween = create_tween()
+		_fade_tween.tween_property(self, "modulate:a", 0.0, 0.25)
+		_fade_tween.tween_callback(func(): visible = false)
 	else:
+		_kill_fade()
 		visible = true
 		modulate.a = 1.0
 		if collision_shape:
 			collision_shape.set_deferred("disabled", false)
+		_clear_harvest_flags()
+		set_process(false)
+		if player_inside and prompt_label:
+			prompt_label.text = _get_prompt_text()
+			prompt_label.visible = true
+	_reserved_by_npc = &""
+
+func get_respawn_duration() -> float:
+	if respawn_seconds > 0.0:
+		return respawn_seconds
+	return float(DEFAULT_RESPAWN_SECONDS.get(resource_id, FALLBACK_RESPAWN_SECONDS))
+
+# Mốc hồi sinh nằm trong WorldState nên được lưu cùng save; F9 không đặt lại giờ.
+func _get_respawn_at() -> float:
+	var world_state = get_node_or_null("/root/WorldState")
+	if not world_state:
+		return -1.0
+	return float(world_state.get_flag(_respawn_flag_id(), -1.0))
+
+func _cleared_flag_id() -> StringName:
+	return StringName("cleared_" + str(node_id))
+
+func is_cleared() -> bool:
+	var world_state = get_node_or_null("/root/WorldState")
+	return world_state != null and world_state.get_flag(_cleared_flag_id(), false) == true
+
+# Công trình xây lên chỗ tài nguyên đã khai thác: dọn đất, tài nguyên mất hẳn.
+func clear_for_building() -> void:
+	var world_state = get_node_or_null("/root/WorldState")
+	if world_state:
+		world_state.set_flag(_cleared_flag_id(), true)
+		world_state.set_flag(_respawn_flag_id(), -1.0)
+	if not is_harvested:
+		set_harvested(true, false)
+	set_process(false)
+	_kill_fade()
+	visible = false
+
+func _schedule_respawn_if_needed() -> void:
+	if is_cleared() or _is_in_camp():
+		_stop_respawn()
+		return
+	var clock := get_node_or_null("/root/WorldClock")
+	var world_state = get_node_or_null("/root/WorldState")
+	if not clock or not world_state:
+		return
+	if _get_respawn_at() < 0.0:
+		world_state.set_flag(_respawn_flag_id(), float(clock.call("get_time")) + get_respawn_duration())
+	set_process(true)
+
+func _clear_harvest_flags() -> void:
+	var world_state = get_node_or_null("/root/WorldState")
+	if not world_state:
+		return
+	var harvested_flag := StringName("harvested_" + str(node_id))
+	if world_state.get_flag(harvested_flag) == true:
+		world_state.set_flag(harvested_flag, false)
+	if _get_respawn_at() >= 0.0:
+		world_state.set_flag(_respawn_flag_id(), -1.0)
+
+func _respawn_flag_id() -> StringName:
+	return StringName("respawn_at_" + str(node_id))
+
+func _kill_fade() -> void:
+	if _fade_tween and _fade_tween.is_valid():
+		_fade_tween.kill()
+	_fade_tween = null
+
+func is_available_for_npc(npc_id: StringName) -> bool:
+	return not is_harvested and (_reserved_by_npc == StringName() or _reserved_by_npc == npc_id)
+
+func reserve_for_npc(npc_id: StringName) -> bool:
+	if npc_id == StringName() or not is_available_for_npc(npc_id):
+		return false
+	_reserved_by_npc = npc_id
+	return true
+
+func release_npc_reservation(npc_id: StringName) -> void:
+	if _reserved_by_npc == npc_id:
+		_reserved_by_npc = &""
+
+func harvest_for_npc(npc_id: StringName) -> int:
+	if npc_id == StringName() or _reserved_by_npc != npc_id or is_harvested or yield_amount <= 0:
+		return 0
+	# NPC harvesting marks the world node depleted without player inventory/reward events.
+	set_harvested(true, false)
+	return yield_amount
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("player") and not is_harvested:
@@ -111,33 +246,30 @@ func _get_prompt_text() -> String:
 			item_name = def.name
 	return "[F] Thu thập %s (x%d)" % [item_name, yield_amount]
 
+# Hình lấy từ bộ tile pixel của bản đồ (tools/gen_world_art.gd) cho hợp với cây, đá trang trí.
+const ART: Texture2D = preload("res://assets/tiles/terrain_tiles.png")
+# Cây, quặng là hình AI đã dán vào terrain_tiles.png (tools/ai_art.gd).
+const ART_TREE := Rect2(0, 21 * 16, 48, 48) # cây tán xanh bạc to 3x3 ô (cột 0; cột 12 đã bỏ 2026-11-17)
+const ART_PEBBLE := Rect2(128, 24 * 16, 16, 16) # hòn đá nhỏ nhặt được
+const ART_STUMP := Rect2(64, 24 * 16, 16, 16) # gốc cây nhặt được 1 gỗ (2026-11-17)
+const ART_ROCK := Rect2(160, 24 * 16, 32, 32) # cụm đá mỏ 2x2 ô
+const ART_IRON := Rect2(192, 24 * 16, 32, 32) # cụm quặng sắt 2x2 ô
+const ART_GOLD := Rect2(224, 24 * 16, 32, 32) # cụm quặng vàng 2x2 ô
+const ART_HERB: Texture2D = preload("res://assets/art_ai/herb_bush.png") # bụi thảo dược quả xanh
+
 func _draw() -> void:
-	# Vẽ tài nguyên Pixel Art tự nhiên
 	match node_type:
 		"tree":
-			# Bóng gốc cây
-			draw_circle(Vector2(0, 4), 10.0, Color(0.0, 0.0, 0.0, 0.25))
-			# Thân cây
-			draw_rect(Rect2(-4, -12, 8, 16), Color(0.35, 0.22, 0.14, 1.0))
-			draw_rect(Rect2(-3, -10, 6, 12), Color(0.48, 0.32, 0.2, 1.0))
-			# Tán lá
-			draw_circle(Vector2(0, -18), 14.0, Color(0.18, 0.45, 0.25, 1.0))
-			draw_circle(Vector2(-4, -20), 10.0, Color(0.24, 0.58, 0.32, 1.0))
-			draw_circle(Vector2(4, -18), 11.0, Color(0.2, 0.52, 0.28, 1.0))
-			draw_circle(Vector2(0, -22), 8.0, Color(0.32, 0.68, 0.38, 1.0))
+			draw_texture_rect_region(ART, Rect2(-24, -42, 48, 48), ART_TREE)
 		"rock":
-			# Bóng tảng đá
-			draw_circle(Vector2(0, 3), 11.0, Color(0.0, 0.0, 0.0, 0.25))
-			# Khối đá xám
-			draw_rect(Rect2(-10, -8, 20, 12), Color(0.3, 0.35, 0.42, 1.0))
-			draw_rect(Rect2(-8, -12, 16, 14), Color(0.42, 0.48, 0.56, 1.0))
-			draw_rect(Rect2(-5, -14, 10, 8), Color(0.55, 0.62, 0.72, 1.0))
-			draw_line(Vector2(-6, -6), Vector2(4, -8), Color(0.25, 0.28, 0.35, 1.0), 1.0)
+			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_ROCK)
+		"pebble":
+			draw_texture_rect_region(ART, Rect2(-8, -10, 16, 16), ART_PEBBLE)
+		"stump":
+			draw_texture_rect_region(ART, Rect2(-8, -10, 16, 16), ART_STUMP)
+		"iron":
+			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_IRON)
+		"gold":
+			draw_texture_rect_region(ART, Rect2(-16, -24, 32, 32), ART_GOLD)
 		"herb":
-			# Bụi thảo dược nhỏ phát sáng
-			draw_circle(Vector2(0, 2), 7.0, Color(0.0, 0.0, 0.0, 0.2))
-			draw_circle(Vector2(-3, -4), 5.0, Color(0.2, 0.6, 0.3, 1.0))
-			draw_circle(Vector2(3, -4), 5.0, Color(0.25, 0.68, 0.35, 1.0))
-			draw_circle(Vector2(0, -7), 5.0, Color(0.35, 0.8, 0.45, 1.0))
-			# Hoa thảo dược vàng/trắng
-			draw_circle(Vector2(0, -6), 2.0, Color(1.0, 0.95, 0.5, 1.0))
+			draw_texture(ART_HERB, Vector2(-ART_HERB.get_width() * 0.5, 8 - ART_HERB.get_height()))

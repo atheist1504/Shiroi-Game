@@ -1,7 +1,15 @@
 extends SceneTree
 
 # Kịch bản kiểm thử toàn diện Bước 17: Inventory, Resource Gathering, Loot & Notifications
-func _init() -> void:
+func _initialize() -> void:
+	call_deferred("_run")
+
+func _run() -> void:
+	# Test tự tạo các manager; bỏ autoload cùng tên để game và test dùng chung một bản.
+	for autoload_name in ["InventoryManager", "NotificationManager", "EventBus", "WorldState", "QuestManager", "SaveManager"]:
+		var existing := root.get_node_or_null(autoload_name)
+		if existing:
+			existing.free()
 	print("==================================================")
 	print(" BẮT ĐẦU KIỂM THỬ BƯỚC 17: INVENTORY, LOOT & NOTIFICATIONS")
 	print("==================================================")

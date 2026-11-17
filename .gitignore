@@ -1,3 +1,11 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Bản xuất game
+/build/
+
+# Bản sao lưu và log tạm (đã có lịch sử git)
+*.bak
+backup_*/
+*.log

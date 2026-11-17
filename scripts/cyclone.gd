@@ -12,6 +12,7 @@ signal cyclone_finished
 @export var total_ticks: int = 4
 @export var pull_speed: float = 145.0
 
+var tint: Color = Color(0.25, 0.95, 0.82)
 var elapsed_time: float = 0.0
 var tick_interval: float = 0.5 # 2.0 / 4 = 0.5s
 var next_tick_time: float = 0.25
@@ -158,17 +159,17 @@ func _finish_cyclone() -> void:
 
 func _draw() -> void:
 	# Vẽ vùng lốc xoáy Bão Phong phong cách Pixel Art
-	var color_outer := Color(0.25, 0.9, 0.8, 0.25)       # Vùng ảnh hưởng hút (96px)
-	var color_damage := Color(0.3, 0.95, 0.85, 0.35)     # Vùng sát thương (64px)
-	var color_blade := Color(0.85, 1.0, 0.95, 0.8)       # Các nhánh gió cuộn xoáy
-	var color_core := Color(0.95, 1.0, 1.0, 0.95)        # Mắt bão trung tâm
+	var color_outer := Color(tint.r, tint.g, tint.b, 0.25)       # Vùng ảnh hưởng hút (96px)
+	var color_damage := Color(tint.r, tint.g, tint.b, 0.35)      # Vùng sát thương (64px)
+	var color_blade := tint.lerp(Color.WHITE, 0.8)               # Các nhánh gió cuộn xoáy
+	var color_core := Color(0.95, 1.0, 1.0, 0.95)                # Mắt bão trung tâm
 
 	# 1. Vòng tròn bán kính hút 96px (nét đứt hoặc viền mờ)
 	draw_arc(Vector2.ZERO, pull_radius, 0, TAU, 32, color_outer, 1.0)
 
 	# 2. Vòng tròn bán kính sát thương 64px
 	draw_arc(Vector2.ZERO, damage_radius, 0, TAU, 28, color_damage, 1.5)
-	draw_circle(Vector2.ZERO, damage_radius, Color(0.2, 0.85, 0.75, 0.08))
+	draw_circle(Vector2.ZERO, damage_radius, Color(tint.r, tint.g, tint.b, 0.08))
 
 	# 3. Các cánh xoáy cuộn gió phong cách Pixel Art quay tròn
 	var arm_count := 4

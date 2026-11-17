@@ -17,10 +17,16 @@ extends CanvasLayer
 @onready var slot_r_cost: Label = $SkillContainer/SlotR/VBox/CostLabel
 @onready var slot_r_panel: PanelContainer = $SkillContainer/SlotR
 
+@onready var slot_e_key: Label = $SkillContainer/SlotE/VBox/KeyLabel
+@onready var slot_e_desc: Label = $SkillContainer/SlotE/VBox/DescLabel
+@onready var slot_r_key: Label = $SkillContainer/SlotR/VBox/KeyLabel
+
 @onready var feedback_label: Label = $SkillFeedbackLabel
 
 @onready var game_over_panel: PanelContainer = $GameOverPanel
 @onready var retry_button: Button = $GameOverPanel/VBoxContainer/RetryButton
+
+const RESPAWN_POSITION: Vector2 = Vector2(640, 360)
 
 var feedback_tween: Tween = null
 var current_energy_cache: float = 0.0
@@ -59,6 +65,9 @@ func _ready() -> void:
 				skill_comp.cooldown_changed.connect(_on_cooldown_changed)
 			if skill_comp.has_signal("skill_feedback"):
 				skill_comp.skill_feedback.connect(_show_skill_feedback)
+			if skill_comp.has_signal("kit_changed"):
+				skill_comp.kit_changed.connect(_on_kit_changed)
+				_on_kit_changed(skill_comp.e_skill_name, skill_comp.r_skill_name, skill_comp.e_damage)
 
 func _process(_delta: float) -> void:
 	# Cập nhật hiển thị đếm ngược thời gian hồi chiêu
@@ -67,6 +76,10 @@ func _process(_delta: float) -> void:
 		player = get_tree().get_first_node_in_group("player")
 	if not player:
 		return
+
+	# F9 sau khi chết cũng phải đóng bảng thua.
+	if game_over_panel and game_over_panel.visible and not bool(player.get("is_dead")):
+		game_over_panel.visible = false
 
 	var skill_comp: Node = player.get_node_or_null("SkillComponent")
 	if not skill_comp:
@@ -154,6 +167,11 @@ func _on_cooldown_changed(skill_name: String, remaining: float, _total: float) -
 		if slot_r_overlay:
 			slot_r_overlay.visible = (remaining > 0.0 or current_energy_cache < 100.0)
 
+func _on_kit_changed(e_name: String, r_name: String, e_damage_value: float) -> void:
+	slot_e_key.text = "[ E ] %s" % e_name
+	slot_e_desc.text = "%d ST (5s)" % roundi(e_damage_value)
+	slot_r_key.text = "[ R ] %s" % r_name
+
 # Hiển thị thông báo phản hồi khi kỹ năng chưa sẵn sàng hoặc thiếu năng lượng
 func _show_skill_feedback(msg: String) -> void:
 	if not feedback_label:
@@ -173,4 +191,9 @@ func _on_player_died() -> void:
 		game_over_panel.visible = true
 
 func _on_retry_button_pressed() -> void:
-	get_tree().reload_current_scene()
+	# Không tải lại scene: công trình và thợ là node trong scene, tải lại sẽ mất cả căn cứ.
+	var player: Node = get_parent().get_node_or_null("Player")
+	if player and player.has_method("respawn_at"):
+		player.call("respawn_at", RESPAWN_POSITION)
+	if game_over_panel:
+		game_over_panel.visible = false

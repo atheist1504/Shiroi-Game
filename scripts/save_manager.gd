@@ -10,6 +10,7 @@ const SAVE_DIR: String = "user://saves"
 const DEFAULT_SLOT: int = 1
 const SCHEMA_VERSION: int = 3
 const GAME_VERSION: String = "1.0.0"
+const OPTIONAL_AUTOLOAD_SECTIONS: Dictionary = {"world_clock": "WorldClock", "wallet": "WalletManager", "gacha": "GachaManager", "party": "PartyManager"}
 
 var playtime_seconds: float = 0.0
 var is_busy: bool = false
@@ -165,12 +166,22 @@ func save_game(slot_id: int = DEFAULT_SLOT) -> bool:
 	var base_manager := get_node_or_null("/root/BaseManager")
 	if base_manager and base_manager.has_method("to_dict"):
 		base_state = base_manager.to_dict()
+	var npc_state: Dictionary = {}
+	var npc_manager := get_tree().current_scene.get_node_or_null("NPCManager") if get_tree().current_scene else null
+	if npc_manager and npc_manager.has_method("to_dict"):
+		npc_state = npc_manager.call("to_dict")
+	var worker_manager := get_tree().current_scene.get_node_or_null("WorkerManager") if get_tree().current_scene else null
+	var worker_state: Dictionary = worker_manager.call("to_dict") if worker_manager else {}
 
 	var save_dict: Dictionary = {
 		"schema_version": SCHEMA_VERSION,
 		"game_version": GAME_VERSION,
 		"save_timestamp": Time.get_datetime_string_from_system(false, true),
 		"playtime_seconds": playtime_seconds,
+		"world_clock": _autoload_snapshot("WorldClock"),
+		"wallet": _autoload_snapshot("WalletManager"),
+		"gacha": _autoload_snapshot("GachaManager"),
+		"party": _autoload_snapshot("PartyManager"),
 		"scene": current_scene_path,
 		"player": player_data,
 		"world_state": world_state_dict,
@@ -179,7 +190,9 @@ func save_game(slot_id: int = DEFAULT_SLOT) -> bool:
 		"harvested_resources": harvested_nodes,
 		"ground_pickups": pickups_data,
 		"enemy_states": enemy_snapshot.get("states", {}),
-		"base_state": base_state
+		"base_state": base_state,
+		"npc_state": npc_state,
+		"worker_state": worker_state
 	}
 	var save_validation := _validate_snapshot(save_dict)
 	if not bool(save_validation.get("valid", false)):
@@ -300,6 +313,11 @@ func load_game(slot_id: int = DEFAULT_SLOT) -> bool:
 
 	# 1. Khôi phục thời gian chơi
 	playtime_seconds = float(data.get("playtime_seconds", 0.0))
+	# Save cũ thiếu các khóa này sẽ nhận trạng thái mặc định.
+	for section in OPTIONAL_AUTOLOAD_SECTIONS:
+		var section_node := get_node_or_null("/root/" + str(OPTIONAL_AUTOLOAD_SECTIONS[section]))
+		if section_node:
+			section_node.call("load_from_dict", data.get(section, {}))
 
 	# 2. Khôi phục WorldState (nạp im lặng)
 	var world_state_node = get_node_or_null("/root/WorldState")
@@ -342,7 +360,20 @@ func load_game(slot_id: int = DEFAULT_SLOT) -> bool:
 	else:
 		push_warning("Save cũ không có enemy_states; giữ enemy runtime hiện tại vì không có HP lịch sử để khôi phục.")
 
-	# 7. Khôi phục trạng thái thu thập tài nguyên ResourceNode
+	# 7. Khôi phục NPC sau công trình để A* đọc đúng vật cản mới.
+	# Save cũ không có npc_state sẽ xóa NPC thử nghiệm mặc định.
+	var npc_manager := get_tree().current_scene.get_node_or_null("NPCManager") if get_tree().current_scene else null
+	if npc_manager:
+		var npc_snapshot: Dictionary = data.get("npc_state", {"schema_version": 1, "npcs": []})
+		if npc_manager.has_method("load_from_dict") and not bool(npc_manager.call("load_from_dict", npc_snapshot)):
+			_finish_load(slot_id, false, "Không thể khôi phục NPC từ file lưu.")
+			return false
+	var worker_manager := get_tree().current_scene.get_node_or_null("WorkerManager") if get_tree().current_scene else null
+	if worker_manager and not bool(worker_manager.call("load_from_dict", data.get("worker_state", {}))):
+		_finish_load(slot_id, false, "Không thể khôi phục thợ từ file lưu.")
+		return false
+
+	# 8. Khôi phục trạng thái thu thập tài nguyên ResourceNode
 	var harvested_arr = data.get("harvested_resources", [])
 	if harvested_arr is Array:
 		var res_nodes = get_tree().get_nodes_in_group("resource_nodes")
@@ -354,7 +385,7 @@ func load_game(slot_id: int = DEFAULT_SLOT) -> bool:
 				else:
 					r.call("set_harvested", false, false)
 
-	# 8. Khôi phục vật phẩm rơi trên mặt đất PickupItem
+	# 9. Khôi phục vật phẩm rơi trên mặt đất PickupItem
 	var existing_pickups = get_tree().get_nodes_in_group("pickup_items")
 	for ep in existing_pickups:
 		if is_instance_valid(ep):
@@ -376,7 +407,7 @@ func load_game(slot_id: int = DEFAULT_SLOT) -> bool:
 						new_p.global_position = Vector2(float(pd.get("x", 0)), float(pd.get("y", 0)))
 						current_sc.add_child(new_p)
 
-	# 9. Khôi phục Player trong scene hiện tại
+	# 10. Khôi phục Player trong scene hiện tại
 	var player: Node2D = get_tree().get_first_node_in_group("player") as Node2D
 	if not player:
 		var root := get_tree().current_scene
@@ -398,7 +429,10 @@ func load_game(slot_id: int = DEFAULT_SLOT) -> bool:
 		var saved_hp: float = float(p_data.get("current_health", player.get("max_health")))
 		var max_hp: float = float(player.get("max_health"))
 		player.set("current_health", clampf(saved_hp, 1.0, max_hp))
+		var was_dead := bool(player.get("is_dead"))
 		player.set("is_dead", false)
+		if was_dead and player.has_method("clear_death_visuals"):
+			player.call("clear_death_visuals")
 
 		# Khôi phục Stamina
 		var saved_sta: float = float(p_data.get("stamina", player.get("max_stamina")))
@@ -477,6 +511,9 @@ func _collect_enemy_states() -> Dictionary:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(enemy) or not enemy.has_method("get_persistence_data"):
 			continue
+		# Quái tạm (sói đêm đầu) do màn chơi tự tạo lại, không lưu.
+		if enemy.is_in_group("no_save"):
+			continue
 		var row: Dictionary = enemy.call("get_persistence_data", scene_root)
 		var persistent_id := str(row.get("persistent_id", ""))
 		if persistent_id.is_empty() or seen_ids.has(persistent_id):
@@ -489,6 +526,10 @@ func _collect_enemy_states() -> Dictionary:
 			grouped[region_id] = []
 		grouped[region_id].append(row)
 	return {"ok": true, "states": grouped}
+
+func _autoload_snapshot(autoload_name: String) -> Dictionary:
+	var node := get_node_or_null("/root/" + autoload_name)
+	return node.call("to_dict") if node else {}
 
 func _validate_snapshot(data: Dictionary) -> Dictionary:
 	if not (data.get("player") is Dictionary and data.get("world_state") is Dictionary and data.get("quest_manager") is Dictionary):
@@ -510,6 +551,11 @@ func _validate_snapshot(data: Dictionary) -> Dictionary:
 		return {"valid": false, "error": "HP trong player snapshot không hợp lệ."}
 	if data.has("inventory") and not (data["inventory"] is Dictionary):
 		return {"valid": false, "error": "Dữ liệu inventory không hợp lệ."}
+	for section in OPTIONAL_AUTOLOAD_SECTIONS:
+		if data.has(section):
+			var section_node := get_node_or_null("/root/" + str(OPTIONAL_AUTOLOAD_SECTIONS[section]))
+			if section_node and not section_node.call("is_valid_snapshot", data[section]):
+				return {"valid": false, "error": "Dữ liệu '%s' trong file lưu không hợp lệ." % section}
 	if data.has("harvested_resources") and not (data["harvested_resources"] is Array):
 		return {"valid": false, "error": "Danh sách tài nguyên đã thu thập không hợp lệ."}
 	if data.has("ground_pickups"):
@@ -533,6 +579,14 @@ func _validate_snapshot(data: Dictionary) -> Dictionary:
 		var base_manager := get_node_or_null("/root/BaseManager")
 		if not base_manager or not bool(base_manager.call("validate_save_data", data["base_state"])):
 			return {"valid": false, "error": "Base snapshot không hợp lệ."}
+	if data.has("npc_state"):
+		var npc_manager := get_tree().current_scene.get_node_or_null("NPCManager") if get_tree().current_scene else null
+		if npc_manager and npc_manager.has_method("validate_save_data") and not bool(npc_manager.call("validate_save_data", data["npc_state"])):
+			return {"valid": false, "error": "NPC snapshot không hợp lệ."}
+	if data.has("worker_state"):
+		var worker_manager := get_tree().current_scene.get_node_or_null("WorkerManager") if get_tree().current_scene else null
+		if worker_manager and not bool(worker_manager.call("validate_save_data", data["worker_state"])):
+			return {"valid": false, "error": "Dữ liệu thợ không hợp lệ."}
 	return {"valid": true, "error": ""}
 
 func _validate_enemy_states(snapshot: Variant) -> bool:
@@ -620,13 +674,27 @@ func _restore_enemy_states(snapshot: Dictionary) -> bool:
 		staged_spawns[id] = [new_enemy, parent]
 
 	# Xóa runtime-spawn enemies phát sinh sau thời điểm save; enemy scene-authored
-	# vẫn tồn tại và được khôi phục theo persistent_id.
+	# không nằm trong snapshot được trả về trạng thái mặc định (đầy máu).
 	for id in by_id.keys():
 		var enemy: Node = by_id[id]
 		if active_regions.has(str(enemy.get("region_id"))) and bool(enemy.get("is_runtime_spawn")) and not wanted.has(id):
 			enemy.get_parent().remove_child(enemy)
 			enemy.free()
 			by_id.erase(id)
+		elif not wanted.has(id):
+			# Khôi phục đầy máu và trạng thái ban đầu cho quái mặc định không có trong bản ghi
+			var max_hp = float(enemy.get("max_health")) if enemy.get("max_health") != null else 60.0
+			enemy.set("current_health", max_hp)
+			enemy.set("is_dead", false)
+			enemy.set("visible", true)
+			var h_bar = enemy.get_node_or_null("HealthBar")
+			if h_bar:
+				h_bar.max_value = max_hp
+				h_bar.value = max_hp
+				h_bar.visible = false
+			var col := enemy.get_node_or_null("CollisionShape2D") as CollisionShape2D
+			if col:
+				col.set_deferred("disabled", false)
 
 	for row in rows:
 		var id := str(row["persistent_id"])

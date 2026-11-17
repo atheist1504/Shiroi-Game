@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://scripts/slash_effect.gd" id="3_slash_script"]
 [ext_resource type="Script" path="res://scripts/player_anim_controller.gd" id="4_anim_ctrl_script"]
 [ext_resource type="Script" path="res://scripts/skill_component.gd" id="5_skill_script"]
+[ext_resource type="Script" path="res://scripts/camera_zoom.gd" id="6_camera_zoom"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
 size = Vector2(20, 24)
@@ -741,7 +742,7 @@ collision_mask = 1
 script = ExtResource("1_player_script")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-texture_filter = 1
+texture_filter = 3
 position = Vector2(0, -6)
 scale = Vector2(0.135, 0.135)
 texture = ExtResource("2_walk_sheet")
@@ -753,6 +754,7 @@ position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_player")
 
 [node name="Camera2D" type="Camera2D" parent="."]
+script = ExtResource("6_camera_zoom")
 position_smoothing_enabled = true
 position_smoothing_speed = 8.0
 

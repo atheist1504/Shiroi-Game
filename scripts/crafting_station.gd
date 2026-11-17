@@ -25,48 +25,11 @@ func _ready() -> void:
 
 	queue_redraw()
 
+# Bàn rèn do công cụ AI vẽ (tools/ai_art.gd), đáy hình ở y = 7 như bàn gỗ cũ.
+const ART: Texture2D = preload("res://assets/art_ai/anvil.png")
+
 func _draw() -> void:
-	# Vẽ bàn chế tạo gỗ pixel art phong cách mộc (kích thước khoảng 32x24)
-	# Bóng đổ bàn
-	draw_ellipse(Vector2(0, 10), 18.0, 6.0, Color(0.0, 0.0, 0.0, 0.3))
-
-	# 4 chân bàn gỗ sồi đậm
-	var leg_dark := Color(0.35, 0.22, 0.12, 1.0)
-	var leg_light := Color(0.48, 0.32, 0.18, 1.0)
-	draw_rect(Rect2(-14, 0, 4, 10), leg_dark)
-	draw_rect(Rect2(-14, 0, 2, 10), leg_light)
-
-	draw_rect(Rect2(10, 0, 4, 10), leg_dark)
-	draw_rect(Rect2(10, 0, 2, 10), leg_light)
-
-	draw_rect(Rect2(-10, -3, 3, 7), leg_dark)
-	draw_rect(Rect2(7, -3, 3, 7), leg_dark)
-
-	# Mặt bàn dày
-	var table_top := Color(0.68, 0.46, 0.26, 1.0)
-	var table_highlight := Color(0.82, 0.58, 0.34, 1.0)
-	var table_shadow := Color(0.45, 0.28, 0.15, 1.0)
-	var table_border := Color(0.25, 0.15, 0.08, 1.0)
-
-	# Khung viền mặt bàn
-	draw_rect(Rect2(-17, -10, 34, 12), table_border)
-	# Mặt gỗ
-	draw_rect(Rect2(-16, -9, 32, 10), table_top)
-	# Vát sáng mép trên
-	draw_line(Vector2(-16, -9), Vector2(16, -9), table_highlight, 1.0)
-	# Mép tối cạnh dưới
-	draw_line(Vector2(-16, 0), Vector2(16, 0), table_shadow, 1.0)
-
-	# Chi tiết trên mặt bàn:
-	# 1. Kẹp ê-tô sắt (Vise) bên trái
-	draw_rect(Rect2(-14, -13, 5, 4), Color(0.3, 0.35, 0.4, 1.0))
-	draw_rect(Rect2(-15, -12, 2, 2), Color(0.6, 0.65, 0.7, 1.0))
-	# 2. Ván gỗ đang gia công ở giữa
-	draw_rect(Rect2(-5, -8, 12, 5), Color(0.85, 0.65, 0.4, 1.0))
-	draw_rect(Rect2(-5, -6, 12, 1), Color(0.55, 0.35, 0.2, 1.0)) # vân gỗ
-	# 3. Búa nhỏ bên phải
-	draw_line(Vector2(9, -7), Vector2(14, -4), Color(0.5, 0.35, 0.2, 1.0), 2.0) # cán
-	draw_rect(Rect2(12, -9, 4, 3), Color(0.4, 0.45, 0.5, 1.0)) # đầu búa
+	draw_texture(ART, Vector2(-ART.get_width() * 0.5, 7 - ART.get_height()))
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not player_inside or is_queued_for_deletion():

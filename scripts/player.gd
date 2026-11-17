@@ -45,6 +45,7 @@ var last_move_direction: Vector2 = Vector2.DOWN
 
 var attack_cooldown_timer: float = 0.0
 var is_dead: bool = false
+var _damage_flash_tween: Tween = null
 
 @onready var sprite_2d: Sprite2D = $Sprite2D
 @onready var slash_effect: Node2D = get_node_or_null("SlashEffect")
@@ -52,6 +53,7 @@ var is_dead: bool = false
 @onready var skill_comp: Node = get_node_or_null("SkillComponent")
 
 var attack_anim_timer: float = 0.0
+var _default_sheet: Texture2D = null
 
 func _ready() -> void:
 	add_to_group("player")
@@ -66,8 +68,51 @@ func _ready() -> void:
 	health_changed.emit(current_health, max_health)
 	stamina_changed.emit(stamina, max_stamina)
 
+	var party := get_node_or_null("/root/PartyManager")
+	if party:
+		if skill_comp:
+			skill_comp.skill_used.connect(Callable(party, "notify_combat_action").unbind(1))
+			skill_comp.skill_hit.connect(Callable(party, "notify_combat_action").unbind(3))
+		party.call("bind_player", self)
+
+func _unhandled_input(event: InputEvent) -> void:
+	for slot in 3:
+		if event.is_action_pressed("party_slot_%d" % (slot + 1)):
+			get_viewport().set_input_as_handled()
+			_request_party_switch(slot)
+			return
+
+func _request_party_switch(slot: int) -> void:
+	var party := get_node_or_null("/root/PartyManager")
+	if not party or is_dead or _is_ui_modal_open():
+		return
+	var result: Dictionary = party.call("try_switch", slot)
+	if not str(result["reason"]).is_empty() and skill_comp:
+		skill_comp.skill_feedback.emit(result["reason"])
+
+# Nạp chỉ số của thành viên tổ đội vừa ra sân vào thân nhân vật duy nhất.
+func apply_party_member(profile: Dictionary, health: float) -> void:
+	max_health = float(profile["max_health"])
+	attack_damage = float(profile["attack_damage"])
+	current_health = clampf(health, 0.0, max_health)
+	if sprite_2d:
+		if _default_sheet == null:
+			_default_sheet = sprite_2d.texture
+		# Nhân vật có hình riêng (cùng bố cục 4x4) thì dùng hình đó, không nhuộm màu.
+		var sheet_path := str(profile.get("sprite_sheet", ""))
+		var own_sheet: Texture2D = load(sheet_path) as Texture2D if not sheet_path.is_empty() else null
+		sprite_2d.texture = own_sheet if own_sheet else _default_sheet
+		# self_modulate không đụng modulate mà animation và hiệu ứng trúng đòn đang dùng.
+		var character_color: Color = profile["color"]
+		sprite_2d.self_modulate = Color.WHITE if own_sheet else character_color.lerp(Color.WHITE, 0.35)
+	health_changed.emit(current_health, max_health)
+
 func _physics_process(delta: float) -> void:
 	if is_dead:
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
+	if _is_storage_interaction_open():
 		velocity = Vector2.ZERO
 		move_and_slide()
 		return
@@ -214,19 +259,56 @@ func take_damage(amount: float) -> void:
 	current_health = maxf(0.0, current_health - amount)
 	health_changed.emit(current_health, max_health)
 
-	# Hiệu ứng chớp đỏ khi bị đánh trúng
-	if anim_ctrl:
-		anim_ctrl.play_hurt()
-	elif sprite_2d:
-		sprite_2d.modulate = Color(1.0, 0.35, 0.35, 1.0)
-		var tween := create_tween()
-		tween.tween_property(sprite_2d, "modulate", Color.WHITE, 0.12)
-
 	if current_health <= 0.0:
+		var party := get_node_or_null("/root/PartyManager")
+		if party and bool(party.call("handle_active_fallen")):
+			return
 		_die()
+	else:
+		_play_damage_flash()
+
+# Chơi lại sau khi cả đội gục: hồi sinh ngay trong thế giới hiện tại, căn cứ giữ nguyên.
+func respawn_at(world_position: Vector2) -> void:
+	is_dead = false
+	is_dodging = false
+	velocity = Vector2.ZERO
+	global_position = world_position
+	stamina = max_stamina
+	stamina_changed.emit(stamina, max_stamina)
+	clear_death_visuals()
+	var party := get_node_or_null("/root/PartyManager")
+	if party:
+		party.call("bind_player", self)
+	else:
+		current_health = max_health
+		health_changed.emit(current_health, max_health)
+	var camera := get_node_or_null("Camera2D") as Camera2D
+	if camera:
+		camera.reset_smoothing()
+
+func clear_death_visuals() -> void:
+	if is_instance_valid(_damage_flash_tween) and _damage_flash_tween.is_running():
+		_damage_flash_tween.kill()
+	if sprite_2d:
+		sprite_2d.modulate = Color.WHITE
+	if anim_ctrl:
+		anim_ctrl.set("is_locked", false)
+		anim_ctrl.call("_play_anim", "idle_" + str(anim_ctrl.get("current_facing")))
+
+func _play_damage_flash() -> void:
+	if not sprite_2d:
+		return
+	if is_instance_valid(_damage_flash_tween) and _damage_flash_tween.is_running():
+		_damage_flash_tween.kill()
+	var alpha := sprite_2d.modulate.a
+	sprite_2d.modulate = Color(1.0, 0.35, 0.35, alpha)
+	_damage_flash_tween = create_tween()
+	_damage_flash_tween.tween_property(sprite_2d, "modulate", Color(1.0, 1.0, 1.0, alpha), 0.12)
 
 func _die() -> void:
 	is_dead = true
+	if is_instance_valid(_damage_flash_tween) and _damage_flash_tween.is_running():
+		_damage_flash_tween.kill()
 	player_died.emit()
 	if anim_ctrl:
 		anim_ctrl.play_die()
@@ -311,6 +393,8 @@ func _is_ui_modal_open() -> bool:
 	var base_manager = get_node_or_null("/root/BaseManager")
 	if base_manager and base_manager.get("is_build_mode") == true:
 		return true
+	if base_manager and base_manager.get("is_storage_interaction_open") == true:
+		return true
 	var root := get_tree().current_scene
 	if not root:
 		return false
@@ -327,6 +411,10 @@ func _is_ui_modal_open() -> bool:
 	if inv_ui and inv_ui.visible:
 		return true
 	return false
+
+func _is_storage_interaction_open() -> bool:
+	var base_manager := get_node_or_null("/root/BaseManager")
+	return base_manager != null and base_manager.get("is_storage_interaction_open") == true
 
 # Tự động khởi tạo Action nếu trong Project Settings chưa có
 func _setup_fallback_input_actions() -> void:
