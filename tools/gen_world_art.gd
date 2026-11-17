@@ -752,7 +752,13 @@ func _paint() -> void:
 				extra.append([n, b[1]])
 		map_root.set_meta("bridges", bridges + extra)
 		map_root.set_meta("bridges_widened", true)
+	var avoid_set := {}
+	for p in avoid:
+		avoid_set[p] = true
+	_straighten_bridges(types, solid, map_root, avoid_set)
+	_connect_lake_to_sea(types, solid, map_root, avoid_set)
 	_drop_stray_islands(types, solid, map_root, avoid)
+	_merge_small_ground_patches(types, solid, map_root)
 	# Chỉ bo hồ một lần, chạy lại script không ăn mòn thêm.
 	if not map_root.has_meta("water_rounded"):
 		_round_water(solid, cells)
@@ -776,6 +782,7 @@ func _paint() -> void:
 	ground.material = material
 	blend.material = material
 	var trail := _trails(cells, solid, types)
+	_widen_trail_at_bridges(trail, solid, types, map_root)
 	var patches := _patches(cells, solid, types, trail)
 	var green := [G.GRASS, G.FOREST]
 	var trees := {}
@@ -783,6 +790,8 @@ func _paint() -> void:
 	var pebbles := {}
 	var herbs := {}
 	var stumps := {}
+	var wood_trees := {}
+	var rocks := {}
 	for x in range(_o.x, _o.x + cells.x):
 		for y in range(_o.y, _o.y + cells.y):
 			var c := Vector2i(x, y)
@@ -824,25 +833,38 @@ func _paint() -> void:
 			var item := _pick_deco(t, x, y)
 			if item >= 0:
 				deco.set_cell(c, 0, Vector2i(item, ROW_DECO))
-			var kind_tree := -1 if _near_any(pebbles, c, 2) or _near_any(herbs, c, 2) or _near_any(stumps, c, 2) else _pick_tree(c, t, cells, solid, trail, avoid, trees, types)
+			# Tán cây to 3x3 ô che xuống vật quanh gốc: cách mọi vật nhặt được và vật thể 2 ô.
+			var crowded := _near_any(pebbles, c, 2) or _near_any(herbs, c, 2) or _near_any(stumps, c, 2) or _near_any(props, c, 2)
+			var kind_tree := -1 if crowded else _pick_tree(c, t, cells, solid, trail, avoid, trees, types)
 			if kind_tree >= 0:
 				trees[c] = true
-				canopy.set_cell(c, 0, _tree_coords(kind_tree, x, y))
 				deco.erase_cell(c)
+				var coords := _tree_coords(kind_tree, x, y)
+				# (2026-11-17) Cây tán trơn sẫm (cột 0) chặt được 3 gỗ; trong Trại hay sát mây thì
+				# dùng cây cột 3 trang trí thay.
+				if coords == Vector2i(BIG.OAK, ROW_BIGTREE):
+					if _pickup_spot_ok(c, solid, trail, avoid, {}):
+						wood_trees[c] = true
+						continue
+					coords = Vector2i(BIG.DARK, ROW_BIGTREE)
+				canopy.set_cell(c, 0, coords)
 				continue
 			if _pick_pebble(c, t, solid, trail, avoid, pebbles, trees):
 				pebbles[c] = true
 				deco.erase_cell(c)
 				continue
 			var prop := _pick_prop(c, t, solid, trail, avoid, props)
+			if prop.x >= 0 and _near_any(trees, c, 2):
+				prop = Vector2i(-1, -1)
 			# (2026-11-17) Bụi tối (FERN) thay bằng bụi quả đỏ: thảo dược nhặt được.
-			if prop.x == P.FERN or prop.x == P.STUMP:
+			# Gốc cây nhặt được 1 gỗ; tảng đá (BOULDER) đập được 3 đá.
+			if prop.x in [P.FERN, P.STUMP, P.BOULDER]:
 				if _pickup_spot_ok(c, solid, trail, avoid, trees):
 					props[c] = true
-					if prop.x == P.FERN:
-						herbs[c] = true
-					else:
-						stumps[c] = true
+					match prop.x:
+						P.FERN: herbs[c] = true
+						P.STUMP: stumps[c] = true
+						P.BOULDER: rocks[c] = true
 					deco.erase_cell(c)
 			elif prop.x >= 0:
 				props[c] = true
@@ -858,6 +880,8 @@ func _paint() -> void:
 	_write_pickups(map_root, "StonePickups", pebbles, "pebble", &"stone")
 	_write_pickups(map_root, "HerbPickups", herbs, "herb", &"herb")
 	_write_pickups(map_root, "WoodPickups", stumps, "stump", &"wood")
+	_write_pickups(map_root, "TreeNodes", wood_trees, "tree", &"wood", 3)
+	_write_pickups(map_root, "RockNodes", rocks, "rock", &"stone", 3)
 
 	var fog := map_root.get_node_or_null("FogBorder")
 	if not fog:
@@ -869,7 +893,7 @@ func _paint() -> void:
 	var scene := PackedScene.new()
 	scene.pack(map_root)
 	ResourceSaver.save(scene, MAP_SCENE)
-	print("Đã tô lại bản đồ: %d cây, %d ô đường mòn, %d hòn đá, %d bụi thảo dược, %d gốc cây nhặt được." % [trees.size(), trail.size(), pebbles.size(), herbs.size(), stumps.size()])
+	print("Đã tô lại bản đồ: %d cây, %d ô đường mòn, %d hòn đá, %d bụi thảo dược, %d gốc cây nhặt được; %d cây chặt được, %d tảng đá đập được." % [trees.size(), trail.size(), pebbles.size(), herbs.size(), stumps.size(), wood_trees.size(), rocks.size()])
 
 # (2026-11-17) Nền đá/gỉ sắt/vàng chỉ còn ở 3 bãi mỏ lớn; các bãi nhỏ lạc chỗ (dưới
 # 100 ô) đổi thành cỏ/rừng theo cùng nhiễu với phần còn lại của rừng.
@@ -944,6 +968,233 @@ func _drop_stray_islands(types: Dictionary, solid: Dictionary, map_root: Node, a
 		for c in tips:
 			solid[c] = G.WATER
 
+# (2026-11-17) Đường mòn tới cầu nở rộng bằng cầu (3 ô) trong 4 ô cuối, để khớp với cầu.
+func _widen_trail_at_bridges(trail: Dictionary, solid: Dictionary, types: Dictionary, map_root: Node) -> void:
+	for g in _bridge_groups(map_root):
+		var ew: bool = g["ew"]
+		var a0: int = g["a0"]
+		var a1: int = g["a1"]
+		var b0: int = g["b0"]
+		var b1: int = g["b1"]
+		for side in [[a0 - 4, a0 - 1], [a1 + 1, a1 + 4]]:
+			var touched := false
+			for a in range(side[0] - 1, side[1] + 2):
+				for b in range(b0 - 1, b1 + 2):
+					if trail.has(_from_ab(a, b, ew)):
+						touched = true
+			if not touched:
+				continue
+			for a in range(side[0], side[1] + 1):
+				for b in range(b0, b1 + 1):
+					var c := _from_ab(a, b, ew)
+					if types.has(c) and not solid.has(c) and types[c] in [G.GRASS, G.FOREST]:
+						trail[c] = true
+
+var _land_noise: FastNoiseLite
+
+# Đổi một ô nước/cầu thành đất liền (cỏ hoặc rừng theo cùng nhiễu với rừng).
+func _set_land(c: Vector2i, types: Dictionary, solid: Dictionary) -> void:
+	if not _land_noise:
+		_land_noise = FastNoiseLite.new()
+		_land_noise.seed = 7001
+		_land_noise.frequency = 0.05
+	solid.erase(c)
+	types[c] = G.FOREST if _land_noise.get_noise_2d(c.x, c.y) > 0.05 else G.GRASS
+
+# Tọa độ theo cầu: a = hướng đi qua cầu (ngang sông), b = hướng sông chảy.
+func _from_ab(a: int, b: int, ew: bool) -> Vector2i:
+	return Vector2i(a, b) if ew else Vector2i(b, a)
+
+# Gom ô cầu (metadata "bridges") thành từng cây cầu: [{cells, ew, a0, a1, b0, b1}].
+func _bridge_groups(map_root: Node) -> Array:
+	var left := {}
+	for b in map_root.get_meta("bridges", []):
+		left[b[0]] = b[1]
+	var groups: Array = []
+	while not left.is_empty():
+		var start: Vector2i = left.keys()[0]
+		var ew: bool = left[start]
+		var cells: Array[Vector2i] = [start]
+		left.erase(start)
+		var i := 0
+		while i < cells.size():
+			for dx in range(-1, 2):
+				for dy in range(-1, 2):
+					var n: Vector2i = cells[i] + Vector2i(dx, dy)
+					if left.has(n) and left[n] == ew:
+						left.erase(n)
+						cells.append(n)
+			i += 1
+		var rows := {}
+		for c in cells:
+			var ab: Vector2i = c if ew else Vector2i(c.y, c.x)
+			if not rows.has(ab.y):
+				rows[ab.y] = []
+			rows[ab.y].append(ab.x)
+		var keys := rows.keys()
+		keys.sort()
+		var mid: Array = rows[keys[keys.size() / 2]]
+		groups.append({"cells": cells, "ew": ew, "a0": mid.min(), "a1": mid.max(), "b0": keys[0], "b1": keys[keys.size() - 1]})
+	return groups
+
+# (2026-11-17) Chỗ có cầu, sông chảy thẳng vuông góc với cầu: trong khoảng 3 ô trước và sau
+# cầu, sông là một dải thẳng đúng bề rộng cầu; nước lệch sang hai bên thành đất. Cầu thành
+# hình chữ nhật. Hai đầu dải nối vào khúc sông uốn phía ngoài. Chạy lại nhiều lần cho cùng kết quả.
+const BRIDGE_STRAIGHT := 3
+const BRIDGE_SIDE := 5
+func _straighten_bridges(types: Dictionary, solid: Dictionary, map_root: Node, avoid_set: Dictionary) -> void:
+	var new_meta: Array = []
+	for g in _bridge_groups(map_root):
+		var ew: bool = g["ew"]
+		var a0: int = g["a0"]
+		var a1: int = g["a1"]
+		var b0: int = g["b0"]
+		var b1: int = g["b1"]
+		for c in g["cells"]:
+			var ab: Vector2i = c if ew else Vector2i(c.y, c.x)
+			if ab.x < a0 or ab.x > a1:
+				_set_land(c, types, solid)
+		for b in range(b0 - BRIDGE_STRAIGHT, b1 + BRIDGE_STRAIGHT + 1):
+			for a in range(a0 - BRIDGE_SIDE, a1 + BRIDGE_SIDE + 1):
+				var c := _from_ab(a, b, ew)
+				if not types.has(c) or avoid_set.has(c):
+					continue
+				var in_band := a >= a0 and a <= a1
+				if b >= b0 and b <= b1:
+					if in_band:
+						solid.erase(c)
+						types[c] = G.DIRT
+						new_meta.append([c, ew])
+					elif solid.get(c, -1) == G.WATER:
+						_set_land(c, types, solid)
+				elif in_band:
+					solid[c] = G.WATER
+				elif solid.get(c, -1) == G.WATER:
+					_set_land(c, types, solid)
+		# Cầu ở khúc sông rẽ: nhánh sông đổ vào từ bên hông (ngoài vùng nắn) vẫn giữ, nối thẳng
+		# vuông góc vào dải sông thay vì bị xóa.
+		for side in [[a0 - BRIDGE_SIDE - 1, a0 - 1, -1], [a1 + BRIDGE_SIDE + 1, a1 + 1, 1]]:
+			for b in range(b0 - BRIDGE_STRAIGHT, b1 + BRIDGE_STRAIGHT + 1):
+				if b >= b0 and b <= b1:
+					continue
+				if solid.get(_from_ab(side[0], b, ew), -1) != G.WATER:
+					continue
+				for a in range(mini(side[0], side[1]), maxi(side[0], side[1]) + 1):
+					var c := _from_ab(a, b, ew)
+					if types.has(c) and not avoid_set.has(c):
+						solid[c] = G.WATER
+		# Nối hai đầu dải thẳng với khúc sông phía ngoài (nối ngang tới ô nước gần nhất).
+		for b in [b0 - BRIDGE_STRAIGHT - 1, b1 + BRIDGE_STRAIGHT + 1]:
+			var band_wet := false
+			var best_a := 999999
+			for a in range(a0 - BRIDGE_SIDE - 4, a1 + BRIDGE_SIDE + 5):
+				if solid.get(_from_ab(a, b, ew), -1) != G.WATER:
+					continue
+				if a >= a0 and a <= a1:
+					band_wet = true
+				elif absi(a - (a0 + a1) / 2) < absi(best_a - (a0 + a1) / 2):
+					best_a = a
+			if band_wet or best_a == 999999:
+				continue
+			var lo := mini(a0, best_a)
+			var hi := maxi(a1, best_a)
+			for a in range(lo, hi + 1):
+				var c := _from_ab(a, b, ew)
+				if types.has(c) and not avoid_set.has(c):
+					solid[c] = G.WATER
+	map_root.set_meta("bridges", new_meta)
+
+# (2026-11-17) Hồ phía tây nam phải thông ra biển: đào kênh rộng 2 ô từ hồ tới chỗ biển gần nhất.
+func _connect_lake_to_sea(types: Dictionary, solid: Dictionary, map_root: Node, avoid_set: Dictionary) -> void:
+	var water := {}
+	for c in solid:
+		if solid[c] == G.WATER:
+			water[c] = true
+	var lake_cell := Vector2i((LAKE_CENTER / T).floor())
+	if not water.has(lake_cell):
+		return
+	var lake := _flood(lake_cell, water)
+	var sea_cell := Vector2i(100, 100)
+	if lake.has(sea_cell) or not water.has(sea_cell):
+		return
+	var sea := _flood(sea_cell, water)
+	var best := INF
+	var pa := Vector2i.ZERO
+	var pb := Vector2i.ZERO
+	for a in lake:
+		for b in sea:
+			var d := Vector2(a).distance_squared_to(Vector2(b))
+			if d < best:
+				best = d
+				pa = a
+				pb = b
+	var steps := maxi(absi(pb.x - pa.x), absi(pb.y - pa.y))
+	for i in steps + 1:
+		var p := Vector2i((Vector2(pa).lerp(Vector2(pb), float(i) / maxf(steps, 1))).round())
+		for d in [Vector2i.ZERO, Vector2i.RIGHT, Vector2i.DOWN, Vector2i(1, 1)]:
+			var c: Vector2i = p + d
+			if types.has(c) and not avoid_set.has(c) and solid.get(c, -1) != G.VOID:
+				solid[c] = G.WATER
+
+func _flood(start: Vector2i, cells_set: Dictionary) -> Dictionary:
+	var out := {start: true}
+	var q: Array[Vector2i] = [start]
+	var i := 0
+	while i < q.size():
+		for d in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			var n: Vector2i = q[i] + d
+			if cells_set.has(n) and not out.has(n):
+				out[n] = true
+				q.append(n)
+		i += 1
+	return out
+
+# (2026-11-17) Mảng nền nhỏ lẻ (cỏ giữa rừng, rừng giữa cỏ/cát, đất lẻ...) dưới 30 ô đổi theo
+# nền bao quanh nhiều nhất, để nền thành dải liền. Không đụng nền Trại, bãi mỏ, Tàn Tích.
+const SMALL_PATCH := 30
+func _merge_small_ground_patches(types: Dictionary, solid: Dictionary, map_root: Node) -> void:
+	var on_bridge := {}
+	for b in map_root.get_meta("bridges", []):
+		on_bridge[b[0]] = true
+	var mergeable := [G.GRASS, G.FOREST, G.SAND, G.DIRT, G.MUD]
+	for pass_i in 2:
+		var seen := {}
+		for c in types.keys():
+			if seen.has(c) or solid.has(c) or not types[c] in mergeable:
+				continue
+			var t: int = types[c]
+			var part: Array[Vector2i] = [c]
+			seen[c] = true
+			var around := {}
+			var i := 0
+			while i < part.size():
+				for d in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+					var n: Vector2i = part[i] + d
+					if not types.has(n) or solid.has(n):
+						continue
+					if types[n] == t:
+						if not seen.has(n):
+							seen[n] = true
+							part.append(n)
+					else:
+						around[types[n]] = around.get(types[n], 0) + 1
+				i += 1
+			if part.size() >= SMALL_PATCH or around.is_empty():
+				continue
+			# Đất của Trại và cầu là nền thật, không gộp.
+			if t == G.DIRT and part.any(func(p): return Vector2(p).distance_to(CAMP_CELL) < 24.0 or on_bridge.has(p)):
+				continue
+			var best_t := -1
+			var best_n := -1
+			for k in around:
+				if around[k] > best_n and k in mergeable:
+					best_n = around[k]
+					best_t = k
+			if best_t < 0:
+				continue
+			for p in part:
+				types[p] = best_t
+
 func _near_any(cells_set: Dictionary, c: Vector2i, r: int) -> bool:
 	for dx in range(-r, r + 1):
 		for dy in range(-r, r + 1):
@@ -975,7 +1226,7 @@ func _pickup_spot_ok(c: Vector2i, solid: Dictionary, trail: Dictionary, avoid: A
 
 # Ghi vật nhặt được (hòn đá, bụi thảo dược) thành điểm tài nguyên (resource_node.tscn)
 # dưới một node của world_map.tscn. node_id theo ô nên save giữ đúng cái đã nhặt.
-func _write_pickups(map_root: Node, holder_name: String, cells_set: Dictionary, kind: String, resource: StringName) -> void:
+func _write_pickups(map_root: Node, holder_name: String, cells_set: Dictionary, kind: String, resource: StringName, amount := 1) -> void:
 	var old := map_root.get_node_or_null(holder_name)
 	if old:
 		map_root.remove_child(old)
@@ -994,7 +1245,7 @@ func _write_pickups(map_root: Node, holder_name: String, cells_set: Dictionary, 
 		node.set("node_id", StringName("%s_%d_%d" % [kind, c.x, c.y]))
 		node.set("node_type", kind)
 		node.set("resource_id", resource)
-		node.set("yield_amount", 1)
+		node.set("yield_amount", amount)
 		holder.add_child(node)
 		node.owner = map_root
 
@@ -1194,7 +1445,7 @@ func _pick_tree(c: Vector2i, t: int, cells: Vector2i, solid: Dictionary, trail: 
 		return -1
 	# Chừa đường mòn, vật cản, cây khác, nền đất căn cứ và chỗ có người/quái/tài nguyên.
 	for dx in range(-2, 3):
-		for dy in range(-2, 2):
+		for dy in range(-2, 3): # tán 3x3: cây cách nhau 3 ô mới không che nhau
 			var n := c + Vector2i(dx, dy)
 			if absi(dx) <= 1 and (solid.has(n) or trail.has(n)):
 				return -1
@@ -1627,7 +1878,7 @@ func _tree_coords(kind: int, x: int, y: int) -> Vector2i:
 		# Hình AI có ba biến thể cây tán xanh bạc ở cột 12, 0, 3 (xem tools/ai_art.gd).
 		# (2026-11-17) Bỏ biến thể cột 12 theo yêu cầu chủ dự án, rừng chỉ dùng cột 0 và 3.
 		var k := _h(x, y, 77)
-		return Vector2i(BIG.OAK if k < 0.6 else BIG.DARK, ROW_BIGTREE)
+		return Vector2i(BIG.OAK if k < 0.25 else BIG.DARK, ROW_BIGTREE)
 	return Vector2i(BIG.MOON, ROW_BIGTREE)
 
 # Mảng cỏ cao, đất trống, đồng hoa trên cỏ/rừng/bùn (không đổi loại nền).
@@ -1662,14 +1913,22 @@ func _patches(cells: Vector2i, solid: Dictionary, types: Dictionary, trail: Dict
 				G.MUD:
 					if a.get_noise_2d(x, y) > 0.35:
 						result[c] = ROW_TALL
-	# Bỏ ô lẻ để mảng có hình khối, không lấm tấm.
+	# (2026-11-17) Bỏ mảng nhỏ dưới 24 ô (trước chỉ bỏ ô lẻ) để mảng thành dải liền, không lấm tấm.
+	var by_kind := {}
+	for k in result:
+		if not by_kind.has(result[k]):
+			by_kind[result[k]] = {}
+		by_kind[result[k]][k] = true
+	var seen := {}
 	for c in result.keys():
-		var n := 0
-		for d in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
-			if result.get(c + d, -1) == result[c]:
-				n += 1
-		if n == 0:
-			result.erase(c)
+		if seen.has(c) or not result.has(c):
+			continue
+		var part := _flood(c, by_kind[result[c]])
+		for p in part:
+			seen[p] = true
+		if part.size() < 24:
+			for p in part:
+				result.erase(p)
 	return result
 
 # Vật thể lớn: tảng đá, bụi hoa, gốc cây, khúc gỗ, dương xỉ, đá rêu, nấm.
@@ -1681,7 +1940,8 @@ func _pick_prop(c: Vector2i, t: int, solid: Dictionary, trail: Dictionary, avoid
 		# (2026-11-17) Bỏ bụi hoa 2x2; hòn đá nhỏ (MOSSROCK) giờ là điểm nhặt đá (_pick_pebble).
 		# (2026-11-17) Gốc cây bớt một nửa, gốc còn lại nhặt được 1 gỗ (WoodPickups).
 		G.GRASS:
-			if r < 0.006: item = P.BOULDER
+			if r < 0.003: item = P.BOULDER
+			elif r < 0.006: pass
 			elif r < 0.008: item = P.STUMP
 			elif r < 0.010: pass
 			elif r < 0.013: item = P.LOG
@@ -1691,7 +1951,7 @@ func _pick_prop(c: Vector2i, t: int, solid: Dictionary, trail: Dictionary, avoid
 			elif r < 0.026: item = P.LOG
 			elif r < 0.05: item = P.FERN
 			elif r < 0.06: item = P.SHROOMS
-			elif r < 0.066: item = P.BOULDER
+			elif r < 0.063: item = P.BOULDER
 		G.MUD:
 			if r < 0.01: item = P.LOG
 			elif r < 0.02: item = P.SHROOMS
@@ -1707,10 +1967,10 @@ func _pick_prop(c: Vector2i, t: int, solid: Dictionary, trail: Dictionary, avoid
 				return Vector2i(-1, -1)
 			if big and absi(dx) <= 1 and absi(dy) <= 1 and (solid.has(n) or trail.has(n)):
 				return Vector2i(-1, -1)
-	if big:
-		for p in avoid:
-			if absi(p.x - c.x) <= 2 and absi(p.y - c.y) <= 2:
-				return Vector2i(-1, -1)
+	# Mọi vật thể tránh chỗ có người/quái/tài nguyên đặt sẵn (tán cây đặt sẵn che xuống).
+	for p in avoid:
+		if absi(p.x - c.x) <= 2 and absi(p.y - c.y) <= 2:
+			return Vector2i(-1, -1)
 	return Vector2i(item, ROW_PROPS)
 
 # ================================================================ bố cục rừng

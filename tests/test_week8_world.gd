@@ -58,7 +58,7 @@ func _run() -> void:
 	_check(inventory.get_item_def(&"iron_ore") != null and inventory.get_item_def(&"gold_ore") != null, "Có vật phẩm quặng sắt và quặng vàng")
 	var far_path: PackedVector2Array = npc_manager.call("get_world_path", Vector2(704, 600), Vector2(2240, 500))
 	_check(not far_path.is_empty() and far_path[far_path.size() - 1].distance_to(Vector2(2240, 500)) < 24.0, "Có đường từ căn cứ tới mỏ vàng")
-	var villager: Node = npc_manager.call("get_npc")
+	var villager: Node = npc_manager.call("spawn_test_npc")
 	villager.call("set_idle")
 	_check(not bool(npc_manager.call("request_destination", Vector2(2240, 500))), "NPC dân làng vẫn chỉ đi trong căn cứ")
 	villager.call("set_idle")

@@ -13,7 +13,7 @@ func _run() -> void:
 	await process_frame
 	await physics_frame
 	var npc_manager: Node = scene.get_node("NPCManager")
-	var npc: Node = npc_manager.call("get_npc")
+	var npc: Node = npc_manager.call("spawn_test_npc")
 	if not npc:
 		_check(false, "NPC được tạo để chạy kiểm thử gathering")
 		_finish()

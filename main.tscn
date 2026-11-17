@@ -306,7 +306,7 @@ position = Vector2(640, 110)
 [node name="InventoryUI" parent="." unique_id=1204722365 instance=ExtResource("9_inv_ui")]
 
 [node name="CraftingStation" parent="." unique_id=1182789460 instance=ExtResource("11_craft_station")]
-position = Vector2(944, 728)
+position = Vector2(1000, 650)
 
 [node name="CraftingUI" parent="." unique_id=25628921 instance=ExtResource("12_craft_ui")]
 

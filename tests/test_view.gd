@@ -42,7 +42,7 @@ func _run() -> void:
 	_check(int(terrain.get_ground_at(Vector2(260, 1040))) == terrain.Ground.WATER, "Điểm thử đúng là nước")
 	var frame: Control = minimap.get_node("MinimapFrame")
 	_check(minimap.get("_map_rect").texture != null and frame.visible, "Bản đồ nhỏ hiện trên màn hình")
-	player.global_position = Vector2(1280, 720)
+	player.global_position = Vector2(1180, 720) # 2026-11-17: (1280, 720) giờ sát sông đã nắn thẳng
 	await process_frame
 	var dot: ColorRect = minimap.get("_player_dot")
 	var map_rect: TextureRect = minimap.get("_map_rect")
@@ -56,7 +56,7 @@ func _run() -> void:
 	player.global_position += Vector2(160, 0)
 	await process_frame
 	_check(is_equal_approx(before.x - map_rect.position.x, 10.0 * cell_px), "Đi sang phải thì bản đồ trượt sang trái theo")
-	player.global_position = Vector2(1280, 720)
+	player.global_position = Vector2(1180, 720)
 	await process_frame
 	var frame_right: float = frame.position.x + frame.size.x
 	_check(frame.position.y < 20.0 and frame_right > 600.0 and frame_right <= 640.0, "Bản đồ nhỏ nằm ở góc trên phải")
@@ -92,8 +92,19 @@ func _run() -> void:
 	var fog_px: Color = world_img.get_pixel(30, 30)
 	_check(fog_px.get_luminance() < 0.2 and inside_px.get_luminance() > fog_px.get_luminance() * 2.0, "Ngoài vùng đang chơi bị mây đen che")
 	_check(labels.get_node_or_null("RegionName") != null and (labels.get_node("RegionName") as Label).text == "RỪNG NGUYỆT ẢNH", "Bản đồ M ghi tên Rừng Nguyệt Ảnh")
+	# (2026-11-17) Đang mở bản đồ: nền kín che giao diện chơi, phím khác không chạy.
+	var backdrop := world_layer.get_child(0) as ColorRect
+	_check(world_layer.layer > 120 and backdrop.color.a >= 1.0, "Bản đồ M nằm trên HUD và thông báo, nền kín")
+	var inventory_ui := scene.get_node("InventoryUI") as CanvasLayer
+	root.push_input(_key(KEY_B))
+	await process_frame
+	_check(not inventory_ui.visible and world_layer.visible, "Đang mở bản đồ thì phím B không mở túi đồ")
 	minimap._input(_key(KEY_ESCAPE))
 	_check(not world_layer.visible and not paused, "Esc đóng bản đồ và chạy tiếp")
+	root.push_input(_key(KEY_B))
+	await process_frame
+	_check(inventory_ui.visible, "Đối chứng: bản đồ đóng thì phím B mở túi đồ")
+	inventory_ui.call("set_inventory_visible", false)
 	world_state.discover_region(&"zone_iron_mine")
 	minimap._unhandled_input(_key(KEY_M))
 	_check((labels.get_node("Zone_IronMineZone") as Label).text == "MỎ SẮT", "Vùng vừa khám phá hiện tên")

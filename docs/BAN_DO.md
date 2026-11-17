@@ -63,6 +63,12 @@ Chủ dự án yêu cầu, làm ở bước `-- paint`:
 - **Ô đất lạc giữa nước** (đảo dưới 8 ô, mũi đất 1 ô có 3 mặt là nước) đổi thành nước, trừ cầu và chỗ có người/quái/tài nguyên.
 - Bỏ **bụi xanh nhỏ** (cột 12 hàng 15), **tinh thể xanh** (cột 9 hàng 15) và **tảng đá trang trí trên nền mỏ** (đá, sắt, vàng).
 - **Gốc cây** (cột 4 hàng 24) bớt một nửa; gốc còn lại là điểm tài nguyên `node_type = "stump"`, 1 Gỗ, hồi sau 60 giây, dưới node `WoodPickups` (`node_id = stump_<x>_<y>`). Hiện 25 gốc; 33 bụi thảo dược, 42 hòn đá.
+- (sau nữa) **Cây tán trơn sẫm** (cột 0 hàng 21) bớt còn khoảng 1/4 số cây rừng, cây nào cũng chặt được 3 Gỗ (node `TreeNodes`, `node_type = "tree"`); trong Trại hay sát mây thì dùng cây cột 3 trang trí. **Tảng đá 2x2** bớt một nửa, đập được 3 Đá (node `RockNodes`, `node_type = "rock"`). Hiện 47 cây, 26 tảng.
+- **Không che nhau:** cây cách cây 3 ô (tán 3x3), cách mọi vật nhặt được và vật thể 2 ô; mọi vật thể tránh điểm đặt sẵn 2 ô. Test kiểm tán cây không chồng nhau.
+- (sau nữa) **Sông thẳng ở chỗ cầu:** 3 ô trước và sau mỗi cầu, sông là dải thẳng đúng bề rộng cầu, vuông góc với cầu; nước lệch hai bên thành đất; nhánh sông đổ vào từ bên hông (cầu ở khúc rẽ) nối thẳng vào dải. Cầu thành hình chữ nhật. (`_straighten_bridges`)
+- **Đường mòn tới cầu** nở rộng bằng cầu (3 ô) trong 4 ô cuối. (`_widen_trail_at_bridges`)
+- **Hồ tây nam thông ra biển** bằng kênh rộng 2 ô ở chỗ hồ gần biển nhất. (`_connect_lake_to_sea`)
+- **Không còn ô lẻ:** mảng nền cỏ/rừng/cát/đất/bùn dưới 30 ô đổi theo nền bao quanh (trừ đất Trại, cầu); mảng cỏ cao/đất trống/đồng hoa dưới 24 ô bỏ. (`_merge_small_ground_patches`, `_patches`)
 
 ## Sửa bản đồ
 

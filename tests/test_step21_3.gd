@@ -105,7 +105,7 @@ func _run() -> void:
 	base_manager.call("unlock_base_for_debug")
 	# Quy tắc dọn đất: tài nguyên đã cạn không còn chặn xây (xây lên thì nó mất hẳn, xem test_camp.gd).
 	_check(bool(herb.get("is_harvested")) and not str(base_manager.call("_get_placement_block_reason", &"storage", Vector2i((herb.global_position / 16.0).round()))).contains("tài nguyên"), "Tài nguyên đã cạn không chặn xây")
-	var npc: Node = npc_manager.call("get_npc")
+	var npc: Node = npc_manager.call("spawn_test_npc")
 	if not npc:
 		_check(false, "NPC tồn tại để chạy vòng lặp")
 		_finish()

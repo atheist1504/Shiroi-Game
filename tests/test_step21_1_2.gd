@@ -29,8 +29,9 @@ func _run() -> void:
 	for enemy in get_nodes_in_group("enemies"):
 		enemy.set_physics_process(false)
 	var npc_manager := scene.get_node("NPCManager")
-	var npc: Node = npc_manager.call("get_npc")
-	_check(npc != null, "Hope Valley creates the test NPC on startup")
+	_check(npc_manager.call("get_npc") == null, "Không còn tự tạo NPC thử nghiệm khi vào game")
+	var npc: Node = npc_manager.call("spawn_test_npc")
+	_check(npc != null, "Tạo được NPC thử nghiệm khi cần (kiểm thử)")
 	if not npc:
 		_finish()
 		return

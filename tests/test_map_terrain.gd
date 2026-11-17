@@ -112,6 +112,33 @@ func _run() -> void:
 		stump.call("_try_gather")
 		_check(stump.get("node_type") == "stump" and int(inv_w.call("get_item_count", &"wood")) == wood_before + 1 and bool(stump.get("is_harvested")), "Nhặt gốc cây được 1 gỗ")
 		stump.call("set_harvested", false, false)
+	# Cây tán trơn sẫm chặt được 3 gỗ, tảng đá đập được 3 đá (2026-11-17).
+	var inv_r := root.get_node("InventoryManager")
+	for spec in [["TreeNodes", &"wood", "tree"], ["RockNodes", &"stone", "rock"]]:
+		var holder: Node = terrain.get_node_or_null(spec[0])
+		_check(holder != null and holder.get_child_count() >= 10, "Có %s trên bản đồ" % spec[0])
+		if holder and holder.get_child_count() > 0:
+			var target: Node = holder.get_child(0)
+			var amount_before := int(inv_r.call("get_item_count", spec[1]))
+			target.call("_try_gather")
+			_check(target.get("node_type") == spec[2] and int(inv_r.call("get_item_count", spec[1])) == amount_before + 3, "%s cho 3 %s" % [spec[0], spec[1]])
+			target.call("set_harvested", false, false)
+	# Tán cây (3x3 ô, gốc ở ô dưới giữa) không chồng lên nhau.
+	var canopy_cover := {}
+	var canopy_overlap := 0
+	var tree_cells: Array[Vector2i] = []
+	for cell in (terrain.get_node("Canopy") as TileMapLayer).get_used_cells():
+		tree_cells.append(cell)
+	for node in terrain.get_node("TreeNodes").get_children():
+		tree_cells.append(Vector2i(((node as Node2D).position / 16.0).floor()))
+	for cell in tree_cells:
+		for dx in range(-1, 2):
+			for dy in range(-2, 1):
+				var k: Vector2i = cell + Vector2i(dx, dy)
+				if canopy_cover.has(k):
+					canopy_overlap += 1
+				canopy_cover[k] = true
+	_check(canopy_overlap == 0, "Tán cây không che lên nhau")
 	_check(far_count == 6,"Vùng phía nam có 6 điểm tài nguyên (cây, thảo dược; đá và vàng chỉ ở bãi mỏ)")
 
 	# Sông chặn đường, chỉ qua được ở cầu.

@@ -237,8 +237,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _input(event: InputEvent) -> void:
 	# Khi đang mở thì bản đồ nhận M/Esc trước menu tạm dừng.
-	if is_world_map_open() and (_is_key(event, KEY_M) or _is_key(event, KEY_ESCAPE)):
+	if not is_world_map_open():
+		return
+	if _is_key(event, KEY_M) or _is_key(event, KEY_ESCAPE):
 		set_world_map_open(false)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventKey or event is InputEventJoypadButton:
+		# (2026-11-17) Đang xem bản đồ thì không phím nào khác chạy (túi đồ, gacha, nhiệm vụ...).
+		# Chuột vẫn đi qua để bấm nút dịch chuyển trên bản đồ; nền bản đồ chặn chuột phía sau.
 		get_viewport().set_input_as_handled()
 
 func _is_key(event: InputEvent, keycode: Key) -> bool:
@@ -430,11 +436,12 @@ func teleport_to_camp() -> bool:
 func _build_world_map() -> void:
 	_world_layer = CanvasLayer.new()
 	_world_layer.name = "WorldMap"
-	_world_layer.layer = 90
+	# (2026-11-17) Trên HUD, thông báo (120) và nền kín để không thấy giao diện chơi phía sau.
+	_world_layer.layer = 125
 	_world_layer.visible = false
 	add_child(_world_layer)
 	var backdrop := ColorRect.new()
-	backdrop.color = Color(0.02, 0.03, 0.06, 0.92)
+	backdrop.color = Color(0.02, 0.03, 0.06, 1.0)
 	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_world_layer.add_child(backdrop)
 	var title := Label.new()

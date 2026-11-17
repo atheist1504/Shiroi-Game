@@ -6,6 +6,8 @@ const NPC_SCENE: PackedScene = preload("res://scenes/autonomous_test_npc.tscn")
 const CELL_SIZE: int = 16
 const NPC_RADIUS: float = 6.0
 const DEFAULT_NPC_ID: StringName = &"hope_valley_test_npc_001"
+# NPC thử nghiệm chỉ có khi spawn_test_npc() được gọi (kiểm thử), không tự có trong game.
+var _npc_enabled := false
 const DEFAULT_SPAWN_POSITION: Vector2 = Vector2(704, 560)
 const MAX_STUCK_REPATHS: int = 3
 const VALID_STATES: Array[String] = ["IDLE", "MOVING", "WORKING", "RESTING", "DELIVERING"]
@@ -88,7 +90,8 @@ func _initialize_navigation() -> void:
 	_initializing = true
 	await get_tree().physics_frame
 	refresh_navigation()
-	spawn_test_npc()
+	# (2026-11-17) Không tự tạo NPC thử nghiệm khi vào game nữa (chủ dự án thấy thừa;
+	# khai thác do trạm khai thác lo). Vẫn tạo được bằng spawn_test_npc() cho kiểm thử.
 	_initializing = false
 
 func refresh_navigation() -> void:
@@ -175,6 +178,7 @@ func find_walkable_near(position_hint: Vector2) -> Vector2:
 	return Vector2.INF if cell == Vector2i(-1, -1) else _cell_to_world(cell)
 
 func spawn_test_npc() -> Node:
+	_npc_enabled = true
 	if is_instance_valid(_npc):
 		return _npc
 	for candidate in get_tree().get_nodes_in_group("autonomous_test_npcs"):
@@ -473,7 +477,8 @@ func load_from_dict(data: Dictionary) -> bool:
 	# Re-query the physics world so old obstacle data cannot leak across loads.
 	refresh_navigation()
 	var entries: Array = data.get("npcs", [])
-	if entries.is_empty():
+	# Save cũ còn NPC thử nghiệm: không khôi phục, trừ khi phiên này đã tạo NPC (kiểm thử).
+	if entries.is_empty() or not _npc_enabled:
 		_emit_status()
 		return true
 	if entries.size() > 1:
